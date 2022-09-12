@@ -4,6 +4,35 @@
   
     
     <entry>
+      <title>《Python编程从入门到实践》读书笔记（二）</title>
+      <link href="/2022/09/12/Python%E7%BC%96%E7%A8%8B%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B02/"/>
+      <url>/2022/09/12/Python%E7%BC%96%E7%A8%8B%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B02/</url>
+      
+        <content type="html"><![CDATA[<blockquote><p>该笔记为 <strong>《Python编程从入门到实践》</strong> 的读书笔记，未经过系统的整理；<br>该笔记涉及的内容较为基础，可能含有大量废话；<br>该书的内容不涉及对Python底层逻辑的理解，不利于巩固基础，建议看完后看 <strong>《Learning Python》</strong><br>学习完成日期为2021年12月13日。</p></blockquote><p><img src="https://s2.loli.net/2022/09/09/F45BwnLIjXxVCtT.png" alt="Python编程从入门到实践"></p><h1 id="第-7-章-用户输入和while循环"><a href="#第-7-章-用户输入和while循环" class="headerlink" title="第 7 章　用户输入和while循环"></a>第 7 章　用户输入和while循环</h1><h2 id="一、用户输入"><a href="#一、用户输入" class="headerlink" title="一、用户输入"></a>一、用户输入</h2><ol><li>函数input()，等待用户输入一些文本，获取用户输入后，Python将其存储在一个变量中</li><li>用函数int()来将用户输入解读为字符串</li></ol><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 1、函数input()</span></span><br><span class="line">name = <span class="built_in">input</span>(<span class="string">&quot;Please enter your name: &quot;</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;Hello, <span class="subst">&#123;name&#125;</span>!&quot;</span>)</span><br><span class="line"><span class="comment">#★有时候提示可能超过一行，可将提示存储在一个变量中，再将该变量传递给函数input()</span></span><br><span class="line">prompt = <span class="string">&quot;If you tell us who you are, we can personalize the messages you see.&quot;</span></span><br><span class="line">prompt += <span class="string">&quot;\nWhat is your first name? &quot;</span></span><br><span class="line">name = <span class="built_in">input</span>(prompt)</span><br><span class="line"><span class="built_in">print</span>(<span class="string">f&quot;Hello, <span class="subst">&#123;name&#125;</span>!&quot;</span>)</span><br><span class="line"><span class="comment"># 2、函数int()</span></span><br><span class="line">height = <span class="built_in">input</span>(<span class="string">&quot;How tall are you, in inches? &quot;</span>)</span><br><span class="line">height = <span class="built_in">int</span>(height)</span><br><span class="line"><span class="keyword">if</span> height &gt;= <span class="number">48</span>:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\nYou&#x27;re tall enough to ride!&quot;</span>)</span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\nYou&#x27;ll be able to ride when you&#x27;re a little older.&quot;</span>)</span><br></pre></td></tr></table></figure><h2 id="二、while循环"><a href="#二、while循环" class="headerlink" title="二、while循环"></a>二、while循环</h2>]]></content>
+      
+      
+      <categories>
+          
+          <category> python </category>
+          
+          <category> python入门.读书笔记 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> python </tag>
+            
+            <tag> 读书笔记 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>《Python编程从入门到实践》读书笔记（一）</title>
       <link href="/2022/09/09/Python%E7%BC%96%E7%A8%8B%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
       <url>/2022/09/09/Python%E7%BC%96%E7%A8%8B%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/</url>
