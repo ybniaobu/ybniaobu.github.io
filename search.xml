@@ -4,6 +4,35 @@
   
     
     <entry>
+      <title>blender快捷键整理（持续更新中）</title>
+      <link href="/2022/09/14/blender_%E5%BF%AB%E6%8D%B7%E9%94%AE/"/>
+      <url>/2022/09/14/blender_%E5%BF%AB%E6%8D%B7%E9%94%AE/</url>
+      
+        <content type="html"><![CDATA[<p><strong>移动物体</strong>  </p><ul><li>Grab抓取状态：<kbd>G</kbd><ul><li>再按<kbd>X</kbd>，锁定按x轴移动</li><li>再按<kbd>Y</kbd>，锁定按y轴移动</li><li>再按<kbd>Z</kbd>，锁定按z轴移动</li></ul></li></ul>]]></content>
+      
+      
+      <categories>
+          
+          <category> blender </category>
+          
+          <category> blender教程 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> blender </tag>
+            
+            <tag> 3d建模 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>《Python编程从入门到实践》读书笔记（二）</title>
       <link href="/2022/09/12/Python%E7%BC%96%E7%A8%8B%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B02/"/>
       <url>/2022/09/12/Python%E7%BC%96%E7%A8%8B%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B02/</url>
