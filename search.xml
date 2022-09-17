@@ -8,7 +8,7 @@
       <link href="/2022/09/17/Learning_python1/"/>
       <url>/2022/09/17/Learning_python1/</url>
       
-        <content type="html"><![CDATA[<blockquote><p>该笔记为 <strong>《Learning Python》</strong> 的读书笔记，未经过系统的整理；<br>该书涉及的内容可能过于啰嗦，但包含一些python背后的逻辑和机制，值得初学者观看；<br>学习完成日期为XXXX年XX月XX日。</p></blockquote><p><img src="https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg" alt="learning_python.jpg"></p><h1 id="PART-I-Getting-Started"><a href="#PART-I-Getting-Started" class="headerlink" title="PART I Getting Started"></a>PART I Getting Started</h1><h2 id=""><a href="#" class="headerlink" title=""></a></h2>]]></content>
+        <content type="html"><![CDATA[<blockquote><p>该笔记为 <strong>《Learning Python》</strong> 的读书笔记，未经过系统的整理；<br>该书涉及的内容可能过于啰嗦，但包含一些python背后的逻辑和机制，值得初学者观看；<br>学习完成日期为XXXX年XX月XX日。</p></blockquote><p><img src="https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg" alt="learning_python.jpg"></p><h1 id="PART-I-Getting-Started"><a href="#PART-I-Getting-Started" class="headerlink" title="PART I Getting Started"></a>PART I Getting Started</h1><h2 id="Chapter-2-How-Python-Runs-Programs"><a href="#Chapter-2-How-Python-Runs-Programs" class="headerlink" title="Chapter 2 How Python Runs Programs"></a>Chapter 2 How Python Runs Programs</h2><h3 id="1、Python-Interpreter-解释器"><a href="#1、Python-Interpreter-解释器" class="headerlink" title="1、Python Interpreter 解释器"></a>1、Python Interpreter 解释器</h3><ul><li>Python即是计算机语言，又是叫解释器的安装包</li><li>Python语言代码 → python解释器 → 执行</li><li>the interpreter is a layer of software logic between your code and the computer hardware on your machine.</li></ul>]]></content>
       
       
       <categories>
