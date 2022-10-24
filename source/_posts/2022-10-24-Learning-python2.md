@@ -77,5 +77,20 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     print(L == M) # 测试对象是否具有相同的值
     print(L is M) # 检查对象的同一性，如果2个变量名指向同一对象，它会返回True。即is比较了实现引用的指针
     ```
-    
+    - ***对象缓存cache和复用reuse机制***:
+    ``` python
+    L = [1, 2, 3]
+    M = [1, 2, 3] # M和L引用了不同的对象
+    print(L == M, L is M)
+    X = 42
+    Y = 42
+    print(X == Y,X is Y) # 因为小的整数和字符串被缓存并复用了，所以is告诉我们X和Y引用了一个相同的对象。
+    ```
+    - 查询一个对象的引用次数，用标准的`sys模块`的`getrefcount`函数
+    ``` python
+    import sys
+    print(sys.getrefcount(1))
+    ```
 
+
+## chapter 7 String Fundamentals
