@@ -1,5 +1,5 @@
 ---
-title: ':2022-:10-:24-:Learning python2'
+title: 《Learning Python》读书笔记（二）
 date: 2022-10-24 13:30:33
 categories: 
   - [python, python入门.读书笔记]
@@ -19,13 +19,45 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 # PART II Types and Operations
 ## chapter 6 The Dynamic Typing Interlude
 ### 一、The Case of the Missing Declaration Statements
-1. 在python中，不用申明脚本中使用的对象的确切类型。python为动态类型模式，c、c++、java为静态类型语言。
+1. 在python中，不用申明脚本中使用的对象的确切类型。python为***动态类型模式***，c、c++、java为***静态类型语言***。
 
 2. 变量、对象和引用
-    - 在运行a = 3后的变量名和对象。变量a变成对象3的一个引用reference。在内部，变量事实上是到对象内存空间的一个指针pointer。These links from variables to objects are called references in Python。引用通过内存中的指针的形式来实现。
+    - 在运行a = 3后的变量名和对象。变量a变成对象3的一个***引用reference***。在内部，变量事实上是到对象内存空间的一个***指针pointer***。These links from variables to objects are called references in Python。*引用通过内存中的指针的形式来实现*。
     - （1）变量是一个系统表的入口，包含了指向对象的连接。（2）对象是被分配到的一块内存，有足够的空间去表示它们所代表的值。（3）引用是自动形成的从变量到对象的指针。
     - 每一个对象都有两个标准的头部信息：类型标志符type designator标识了这个对象的类型；引用的计数器reference counter决定何时回收这个对象。  
 
-3. 对象的垃圾回收garbage collection
+3. 对象的***垃圾回收garbage collection***
     - 在python中，每当一个变量名被赋予一个新的对象，如果原来的对象没有被其他的变量名或对象所引用，那么之前占用的空间会被回收，即垃圾回收；
     - 每个对象保留一个计数器，记录当前指向对象的引用的数目。一旦计数器被设置为0，这个对象的内存空间会自动回收。假设每次x都被赋值给了一个新的对象，则前对象的引用计数器会变为零。
+
+### 二、Shared References
+1. ***共享引用Shared References***
+    ``` python
+    a = 3  
+    b = a
+    ```
+    - 实际效果是变量a、b都引用了相同对象3（即相同的内存空间，该空间由字面量表达式3创建），a和b并没有彼此的关联。 
+    ``` python 
+    a = a + 2  
+    print(a, b)
+    ```
+    - 在python中，变量总是一个指向对象的指针：给变量赋一个新值，并不是替换原始的对象，而是让变量去引用另一个对象。  
+
+2. ***原位置修改In-Place Changes***
+    - 有一些对象和操作确实会在原位置改变对象（包括列表、字典和集合在内的Python可变类型）
+    - 在一个列表中对一个偏移进行赋值确实会改变这个列表对象，而不是生成一个全新的列表对象。
+    ``` python
+    L1 = [2, 3, 4]
+    L2 = L1
+    L1[0] = 24
+    print(L1, L2)
+    ```
+    - 如果你不想这样的现象发生，可以请求python复制对象，而不是创建引用，常用的是从头到尾的分片，也可以用list函数：
+    ``` python
+    L1 = [2, 3, 4]
+    L2 = L1[:]
+    L1[0] = 24
+    print(L1, L2) # 2个变量指向不同的内存空间
+    ```
+    
+    
