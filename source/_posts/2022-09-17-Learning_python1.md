@@ -740,9 +740,131 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     ```
 
 ### 三、Other Numeric Types
+1. Decimal Type小数类型
+    - 区分Decimal与浮点数，Decimal有固定的位数和小数点，可以理解为精度固定的浮点数。
+    - 浮点数运算缺乏精确性，所有小数对象虽然带来了性能上的损失，但精度更大。
+    ``` python
+    print(0.1 + 0.1 + 0.1 - 0.3)
+    from decimal import Decimal
+    print(Decimal('0.1') + Decimal('0.1') + Decimal('0.1') - Decimal('0.3'))
+    print(type(Decimal('0.1') + Decimal('0.1') + Decimal('0.1') - Decimal('0.3')))
+    # Decimal最好传入字符串，也可以传入浮点数，但是会产生默认且庞大的小数位数，所以最好用str函数变为字符串
+    print(Decimal(0.1) + Decimal(0.1) + Decimal(0.1) - Decimal(0.3))
+    # 设置全局小数精度
+    import decimal
+    print(decimal.Decimal(1) / decimal.Decimal(7))
+    decimal.getcontext().prec = 4 # 全局小数精度
+    print(decimal.getcontext())
+    print(decimal.Decimal(1) / decimal.Decimal(7))
+    print(Decimal(0.1) + Decimal(0.1) + Decimal(0.1) - Decimal(0.3))
+    # 用with上下文管理器语句context manager statement来临时重置小数精度
+    # 在with语句退出后，精度会重置为初始值。with语句详见第34章
+    print(decimal.Decimal('1.00') / decimal.Decimal('3.00'))
+    with decimal.localcontext() as ctx: # 注意是local
+        ctx.prec = 2
+        print(decimal.Decimal('1.00') / decimal.Decimal('3.00'))
+    print(decimal.Decimal('1.00') / decimal.Decimal('3.00'))
+    ```
 
+2. Fraction Type分数类型
+    - 也可处理浮点类型的数值不确定性
+    ``` python
+    from fractions import Fraction
+    x = Fraction(1, 3)
+    y = Fraction(4, 6)
+    print(x, y)
+    print(x + y)
+    print(x * y)
+    # 分数对象也可以用浮点数字符串来创建
+    print(Fraction('.25'))
+    ```
 
+3. Fraction和Decimal都提供了得到精确结果的方式，但这需要付出一些速度和代码冗余性的代价。
 
+4. 分数转换和混用类型
+    - 浮点数对象的as_integer_ratio()方法：将一个float用分数表示出来，返回的是一个二元元组。
+    ``` python
+    print((2.5).as_integer_ratio())
+    f = 2.5
+    z = Fraction(*f.as_integer_ratio()) # 这里的*是一种特殊的语法syntax，可以把一个元组展开为独立的参数。18章会更详细
+    print(z)
+    print(float(z))
 
+    print(Fraction.from_float(1.75)) # 分数的from_float方法
+    print(Fraction(*(1.75).as_integer_ratio()))
+    # 表达式允许某些类型的互用
+    print(x + 2) # Fraction + int -> Fraction
+    print(x + 2.0) # Fraction + float -> float
+    print(x + (1./3)) # Fraction + float -> float
+    print(x + Fraction(4, 3)) # Fraction + Fraction -> Fraction
+    # 尽管可以把浮点数转换为分数，但会出现精度损失
+    print(4.0 / 3)
+    print((4.0 / 3).as_integer_ratio())
+    a = Fraction(*(4.0 / 3).as_integer_ratio())
+    print(6004799503160661 / 4503599627370496) # 非常接近于4/3
+    print(a.limit_denominator(10)) # 限制分母的最大值
 
+5. Sets集合
+    - 集合是无序的unordered，可迭代的iterable，既不是序列sequence也不是映射mapping类型，是一些唯一的、不可变的对象的一个无序集合体。同数学集合。
+    - 集合是无值的字典，可以使用集合字面量形式set literal form，即花括号（大括号）curly braces
+    ``` python
+    # set函数
+    x = set('abcde')
+    print(x)
+    y = set('bdxyz')
+    # 集合通过表达式运算符支持一般的数学集合运算。
+    print(x - y) # Difference
+    print(x | y) # Union
+    print(x & y) # Intersection
+    print(x ^ y) # Symmetric difference (XOR)
+    print(x > y, x < y) # Superset, subset
+    # in测试
+    print('e' in x)
+    # 集合的intersection方法；union方法；add方法；update方法；remove方法；issubst方法
+    z = x.intersection(y)
+    print(z)
+    z.add('SPAM')
+    print(z)
+    z.update(set(['X', 'Y']))
+    print(z)
+    z.remove('b')
+    print(z)
+    S = set([1, 2, 3])
+    print(S.union([3, 4]))
+    print(S.intersection((1, 3, 5)))
+    print(S.issubset(range(-5, 5)))
+    ```
+    - 集合是可迭代的容器，可以用于len、for循环和列表推导的操作
+    - {}是个字典，空的集合需要用函数set来创建
+    - Immutable constraints and frozen sets不可变性限制与冻结集合
+    - 集合只能包含不可变的immutable (a.k.a. “hashable”)对象类型，列表和字典不能嵌入到集合里，但元组可以嵌入集合
+    - 比如print(S.add([1, 2, 3])) 会出来TypeError: unhashable type: 'list'
+    - 若要在另一个集合中存储一个集合，可以用内置函数frozenset创建一个不可变的集合，该集合不可修改，并且可以嵌套到其他集合中。
+    ``` python
+    for item in set('abc'): print(item * 3)
+    S = {1.23}
+    S.add((1, 2, 3))
+    print(S)
+    # Set comprehensions集合推导式
+    print({x ** 2 for x in [1, 2, 3, 4]})
+    print({c * 4 for c in 'spam'})
+    # 集合可以用于提取列表、字符串以及可迭代对象的差异
+    print(set(dir(bytes)) - set(dir(bytearray))) # In bytes but not bytearray
+    print(set(dir(bytearray)) - set(dir(bytes))) # In bytearray but not bytes
+    # 可以借助集合进行顺序无关的等价性测试
+    L1, L2 = [1, 3, 5, 2, 4], [2, 5, 3, 4, 1]
+    print(L1 == L2)
+    print(set(L1) == set(L2))
+    print(sorted(L1))
+    print(sorted(L1) == sorted(L2))
+    print('spam' == 'asmp', set('spam') == set('asmp'), sorted('spam') == sorted('asmp'))
+    ```
 
+6. Booleans布尔型
+    - True和False可看作整数1和0
+    ``` python
+    print(type(True))
+    print(isinstance(True, int)) # isinstance() 函数来判断一个对象是否是一个已知的类型，bool实际上是只是内置整数类型int的子类。
+    print(True == 1)
+    print(True + 4)
+    ```
