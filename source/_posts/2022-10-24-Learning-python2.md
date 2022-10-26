@@ -140,7 +140,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     ```
 
 2. 转义序列***Escape*** Sequences
-    - \n换行符newline character，\t制表符tab character
+    - `\n`换行符newline character，`\t`制表符tab character
     ``` python
     s = 'a\nb\tc'
     print(s)
@@ -169,11 +169,11 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     | \Uhhhhhhhh | 32位的十六进制的Unicode值 |
     | \other | Not an escape (keeps both \ and other) |
 
-3. 原始字符串Raw Strings
+3. ***原始字符串Raw Strings***
     - 例如：`myfile = open('C:\new\text.dat', 'w')`
     - 这里因为有\n、\t存在转义机制，所以要用原始字符串：`myfile = open(r'C:\new\text.dat', 'w')`或者用2个反斜杠代替一个反斜杠：`myfile = open('C:\\new\\text.dat', 'w')`
 
-4. 三引号编写多行块字符串Triple Quotes Code Multiline Block Strings
+4. **三引号编写多行块字符串Triple Quotes Code Multiline Block Strings**
     - 三引号会保留所有包围的文本，包括你以为的注释的文本：
     ``` python
     menu = """spam # comments here added to string!
@@ -260,7 +260,160 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 
 2. 用方法修改字符串
     - `replace`方法：
+    ``` python
+    S = 'spammy'
+    S = S.replace('mm', 'xx')
+    print(S)
+
+    S = 'xxxxSPAMxxxxSPAMxxxx'
+    print(S.replace('SPAM', 'EGGS')) # replace方法会生成一个新的字符串，因为字符串不可变。
+    print(S.replace('SPAM', 'EGGS', 1))
+    ```
+    - `find`方法：
+    ``` python
+    S = 'xxxxSPAMxxxxSPAMxxxx'
+    where = S.find('SPAM')
+    print(where)
+    S = S[:where] + 'EGGS' + S[(where+4):]
+    print(S)
+    ```
+    - `join`方法，join将列表的字符串连在一起，并在元素间用分隔符delimiter隔开：
+    ``` python
+    S = 'spammy'
+    L = list(S)
+    print(L)
+    L[3] = 'x'
+    L[4] = 'x'
+    print(L)
+    S = ''.join(L)
+    print(S)
+    print('SPAM'.join(['eggs', 'sausage', 'ham', 'toast'])) # 用分隔符SPAM加入后面列表
+    ```
+
+3. 用方法解析文本Parsing Text
+    - 方法`split()`将一个字符串从分隔符处切成一系列子串，默认分隔符为空格、制表符或换行符：
+    ``` python
+    line = 'aaa bbb ccc'
+    cols = line.split()
+    print(cols)
+    line = 'bob,hacker,40'
+    print(line.split(','))
+    line = "i'mSPAMaSPAMlumberjack"
+    print(line.split("SPAM"))
+    ```
+
+4. 其他常见字符串方法
+    - 方法`rstrip()`，`upper()`，`isalpha()`，`endswith()`，`startswith()`，`find()`：
+    ``` python
+    line = "The knights who say Ni!\n"
+    print(line.rstrip())
+    print(line.upper())
+    print(line.isalpha()) # isalpha()检测字符串是否只由字母或文字组成
+    print(line.endswith('Ni!\n'))
+    print(line.startswith('The'))
+    print(line.find('Ni')) # find方法返回字符串的索引值
+    ```
+    - 可以使用`help(S.method)`的结果来得到关于方法的更多提示。
+
+### 五、String Formatting Expressions
+1. **字符串格式化表达式String Formatting Expressions**
+    - `'...%s...' % (values)`：这一形式是基于C语言的printf模型，并且在现有编码中广泛使用。
+
+2. **字符串格式化方法调用String formatting method calls**
+    - `'...{}...'.format(values)`：这是Python 3.0新增的技术，起源于C#/.NET中的同名工具。
+
+3. **f字符串f-strings**
+    - `f'...{values}...'`：Python 3.6新增的。
+
+4. 格式化表达式基础
+    - 在%运算符的左侧放置一个或多个需要进行格式化的字符串，如%d，%s；在%运算符的右侧放置一个或多个（内嵌在元组中）对象；
+    - %s的意思是把他们转换为字符串，因此每种对象类型都适用于%s转换，一般只需记得用%s转换就行：
+    ``` python
+    print('That is %d %s bird!' % (1, 'dead')) # 前面的%后面的字母见后面类型码type codes
+    exclamation = 'Ni'
+    print('The knights who say %s!' % exclamation)
+    print('%d %s %g you' % (1, 'spam', 4.0))
+    print('%s -- %s -- %s' % (42, 3.14159, [1, 2, 3]))
+    ```
+
+5. 类型码String formatting type codes
+    | Code | Meaning |
+    | :---- | :---- |
+    | s | 字符串 |
+    | r | Same as s, but uses repr, not str |
+    | c | 字符Character (int or str) |
+    | d | 十进制数字 |
+    | i | 整数 |
+    | u | 与d相同（已废弃：不再是无符号整数） |
+    | o | 八进制整数（以8为底） |
+    | x | 十六进制整数（以16为底） |
+    | X | 与x相同 |
+    | e | 带指数的浮点数 |
+    | E | 与e相同 |
+    | f | 十进制浮点数 |
+    | F | 与f相同 |
+    | g | 浮点数e或f，g根据数字内容选择格式（如果指数小于-4或不小于精度，则使用e，其他则使用f，默认总位数精度为6） |
+    | G | 浮点数E或F |
+    | % | %字面量 Literal % (coded as %%) |
+
+6. 格式化字符串表达式左侧的转换目标支持多种转换操作
+    - 一般结构为：`%[(keyname)][flags][width][.precision]typecode`
+    - `keyname`：为索引在表达式右侧使用的字典所提供的键名称
+    - `flags`：说明格式的标签，如左对齐(-)、数值符号(+)、正数前的空白以及负数前的-(空格)、零填充(0)
+    - `width`：最小字段宽度
+    - `precision`：为浮点数设置小数点后显示的数位
+    - width和precision部分都可以编写成一个*，以指定他们应该从表达式右侧的输入值中的下一项取值。
+    ``` python
+    x = 1234
+    res = 'integers: ...%d...%-6d...%06d' % (x, x, x) # 6位的左对齐格式化和6位补零的格式化
+    print(res)
+    x = 1.23456789
+    print('%e | %f | %g' % (x, x, x))
+    print('%E' % x)
+    print('%-6.2f | %05.2f | %+06.1f' % (x, x, x))
+    print('%s' % x, str(x))
+    ```
+    - 可以在格式化字符中用一个`*`来指定宽度和精度，迫使它们的值从%运算符右边的输入中的下一项获取：
+    ``` python
+    print('%f, %.2f, %.*f' % (1/3.0, 1/3.0, 4, 1/3.0))
+    ```
+
+7. 基于字典的格式化表达式
+    ``` python
+    print('%(qty)d more %(food)s' % {'qty': 1, 'food': 'spam'})
+    ```
+    - 生成类似HTML或XML文本的程序往往利用这一技术:
+    ``` python
+    reply = """
+    Greetings...
+    Hello %(name)s!
+    Your age is %(age)s
+    """
+    values = {'name': 'Bob', 'age': 40}
+    print(reply % values)
+    ```
+    - 内置函数`vars()`，这个函数返回的字典包含了在它被调用的地方所有存在的变量，可以利用这个来访问变量：
+    ``` python
+    food = 'spam'
+    qty = 10
+    print(vars())
+    print('%(qty)d more %(food)s' % vars())
+    ```
+
+### 六、String Formatting Method Calls
+1. 字符串格式化方法基础
+    ``` python
+    template = '{0}, {1} and {2}' # 通过位置
+    print(template.format('spam', 'ham', 'eggs'))
+    template = '{motto}, {pork} and {food}' # 通过键
+    print(template.format(motto='spam', pork='ham', food='eggs')) # 跟上一节的不一样，后面不是字典，见下面
+    template = '{motto}, {0} and {food}' # 通过位置和键
+    print(template.format('ham', motto='spam', food='eggs'))
+    template = '{}, {} and {}' # 通过相对位置
+    print(template.format('spam', 'ham', 'eggs'))
+    ```
     
+
 
 
 
