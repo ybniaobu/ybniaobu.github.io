@@ -378,10 +378,8 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     print('%f, %.2f, %.*f' % (1/3.0, 1/3.0, 4, 1/3.0))
     ```
 
-7. 基于字典的格式化表达式
-    ``` python
-    print('%(qty)d more %(food)s' % {'qty': 1, 'food': 'spam'})
-    ```
+7. 基于字典的格式化表达式    
+    - `print('%(qty)d more %(food)s' % {'qty': 1, 'food': 'spam'})`
     - 生成类似HTML或XML文本的程序往往利用这一技术:
     ``` python
     reply = """
@@ -412,8 +410,117 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     template = '{}, {} and {}' # 通过相对位置
     print(template.format('spam', 'ham', 'eggs'))
     ```
-    
+
+2. 比较：上一节的格式化表达式
+    ``` python
+    template = '%s, %s and %s'
+    print(template % ('spam', 'ham', 'eggs'))
+    template = '%(motto)s, %(pork)s and %(food)s'
+    print(template % dict(motto='spam', pork='ham', food='eggs')) # 通过dict()函数转为字典
+    ```
+    - 格式化方法可以让任意的对象类型在目标上替换，有点像格式化表达式中的%s目标码：
+    ``` python
+    print('{motto}, {0} and {food}'.format(42, motto=3.14, food=[1, 2]))
+    X = '{motto}, {0} and {food}'.format(42, motto=3.14, food=[1, 2])
+    print(X.split(' and ')) # 以空格and空格为分隔符
+    Y = X.replace('and', 'but under no circumstances')
+    print(Y)
+    ```
+
+3. 添加键、属性和偏移量
+    ``` python
+    import sys
+    print('My {1[kind]} runs {0.platform}'.format(sys, {'kind': 'laptop'}))
+    print('My {map[kind]} runs {sys.platform}'.format(sys=sys, map={'kind': 'laptop'}))
+    somelist = list('SPAM')
+    print(somelist)
+    print('first={0[0]}, third={0[2]}'.format(somelist))
+    print('first={0}, last={1}'.format(somelist[0], somelist[-1]))
+    parts = somelist[0], somelist[-1], somelist[1:3]
+    print('first={0}, last={1}, middle={2}'.format(*parts)) # *是一种特殊的语法syntax，可以把一个元组展开为独立的参数。18章会更详细
+    ```
+
+4. 高级格式化方法语法Advanced Formatting Method Syntax
+    - 可以在格式化字符串中添加额外的语法来实现更具体的层级，以下是是一个字符串中的形式化格式，四个部分都为可选的，中间不能有空格：
+    - `{fieldname component !conversionflag :formatspec}`
+    - `fieldname`是辨识参数，位置参数或键值number or keyword；`component`是大于等于零个的.name或[index]；`converionflag`是以!开始的，后面跟着r、s或a，分别调用repr、str或ascii内置函数；`formatspec`是以:开始的，后面跟着文本指定字段宽度、对齐方式、补零、小数精度等细节；
+    - `formatspec`的形式：`[[fill]align][sign][#][0][width][,][.precision][typecode]`
+    - `fill`可以是除{和}之外的任意填充字符；`align`可以是<、>、=、^，分别代表左对齐、右对齐、符号字符后的填充、居中对齐；`sign`可以是+、-或空格；`逗号(,)`请求千分位分隔符；`width`、`precision`和`typecode`与%表达式一样，但`typecode`多一个二进制格式b
+
+5. 高级格式化方法举例
+    ``` python
+    print('{0:10} = {1:10}'.format('spam', 123.4567)) # {0:10}指10字符宽的字段的第一个位置参数
+    print('{0:>10} = {1:<10}'.format('spam', 123.4567)) # >右对齐
+    print('{0.platform:>10} = {1[kind]:<10}'.format(sys, dict(kind='laptop')))
+    # 省略位置参数
+    print('{:10} = {:10}'.format('spam', 123.4567))
+    print('{:>10} = {:<10}'.format('spam', 123.4567))
+    print('{.platform:>10} = {[kind]:<10}'.format(sys, dict(kind='laptop')))
+    # 浮点数
+    print('{0:e}, {1:.3e}, {2:g}'.format(3.14159, 3.14159, 3.14159))
+    print('{0:f}, {1:.2f}, {2:06.2f}'.format(3.14159, 3.14159, 3.14159)) # {2:06.2f}添加一个6字符宽度的字段，并在左边补充0
+    # 十六进制、八进制、二进制
+    print('{0:X}, {1:o}, {2:b}'.format(255, 255, 255))
+    print(bin(255), int('11111111', 2), 0b11111111)
+    print(hex(255), int('FF', 16), 0xFF)
+    print(oct(255), int('377', 8), 0o377)
+    # 格式化的参数可以通过嵌套的格式化语法从参数列表动态获取，很想格式化表达式的*语法（见7-5-4）
+    print('{0:.{1}f}'.format(1 / 3.0, 4))
+    print('%.*f' % (4, 1 / 3.0))
+    # format函数(字符串方法的替代方案)
+    print('{0:.2f}'.format(1.2345))
+    print(format(1.2345, '.2f'))
+    print('%.2f' % 1.2345)
+    # 千分位分隔符
+    print('{0:,d}'.format(999999999999))
+    print('{:,.2f}'.format(296999.2567))
+    ```
+
+6. 与%格式化表达式做比较
+    ``` python
+    print('%s=%s' % ('spam', 42))
+    print('{0}={1}'.format('spam', 42))
+    print('{}={}'.format('spam', 42))
+    # 和上面5进行比较
+    print('%-10s = %10s' % ('spam', 123.4567))
+    print('%10s = %-10s' % ('spam', 123.4567))
+    print('%(plat)10s = %(kind)-10s' % dict(plat=sys.platform, kind='laptop'))
+    print('%e, %.3e, %g' % (3.14159, 3.14159, 3.14159))
+    print('%f, %.2f, %06.2f' % (3.14159, 3.14159, 3.14159))
+    print('%x, %o' % (255, 255))
+    # 其他
+    import sys
+    print('My {1[kind]:<8} runs {0.platform:>8}'.format(sys, {'kind': 'laptop'}))
+    print('My %(kind)-8s runs %(plat)8s' % dict(kind='laptop', plat=sys.platform))
+
+    data = dict(platform=sys.platform, kind='laptop')
+    print('My {kind:<8} runs {platform:>8}'.format(**data)) # **data见第十八章，它把字典解包成一组name=value的关键字参数
+    print('My %(kind)-8s runs %(platform)8s' % data)
+    ```
+
+### 七、Why the Format Method?
+1. 字符串格式化方法支持表达式一些额外的功能
+    - 例如**二进制类型码binary type codes**和**千分位分组thousands groupings**，但字符串表达式不支持二进制，即没有2进制的类型码，见7-5，`print('%b' % ((2 ** 16) - 1))`
+    ``` python
+    print('{0:b}'.format((2 ** 16) - 1))
+    print(bin((2 ** 16) - 1))
+    print('%s' % bin((2 ** 16) - 1))
+    print('{}'.format(bin((2 ** 16) - 1)))
+    print('%s' % bin((2 ** 16) - 1)[2:])
+    # 字符串表达式不支持千分位分组
+    print('{:,d}'.format(999999999999))
+    ```
+
+2. 基于字典，2种方法之间的比较
+    ``` python
+    print('{name} {job} {name}'.format(name='Bob', job='dev'))
+    print('%(name)s %(job)s %(name)s' % dict(name='Bob', job='dev'))
+    D = dict(name='Bob', job='dev')
+    print('{0[name]} {0[job]} {0[name]}'.format(D))
+    print('{name} {job} {name}'.format(**D))
+    print('%(name)s %(job)s %(name)s' % D)
+    ```
 
 
-
-
+## chapter 8 Lists and Dictionaries
+### 一、Lists

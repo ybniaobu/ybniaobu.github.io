@@ -803,6 +803,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     a = Fraction(*(4.0 / 3).as_integer_ratio())
     print(6004799503160661 / 4503599627370496) # 非常接近于4/3
     print(a.limit_denominator(10)) # 限制分母的最大值
+    ```
 
 5. Sets集合
     - 集合是无序的unordered，可迭代的iterable，既不是序列sequence也不是映射mapping类型，是一些唯一的、不可变的对象的一个无序集合体。同数学集合。
