@@ -335,6 +335,13 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     print('%d %s %g you' % (1, 'spam', 4.0))
     print('%s -- %s -- %s' % (42, 3.14159, [1, 2, 3]))
     ```
+    运行结果如下：
+    ```
+    That is 1 dead bird!
+    The knights who say Ni!
+    1 spam 4 you
+    42 -- 3.14159 -- [1, 2, 3]
+    ```
 
 5. 类型码String formatting type codes
     | Code | Meaning |
@@ -373,10 +380,23 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     print('%-6.2f | %05.2f | %+06.1f' % (x, x, x))
     print('%s' % x, str(x))
     ```
+    运行结果如下：
+    ```
+    integers: ...1234...1234  ...001234
+    1.234568e+00 | 1.234568 | 1.23457
+    1.234568E+00
+    1.23   | 01.23 | +001.2
+    1.23456789 1.23456789
+    ```
     - 可以在格式化字符中用一个`*`来指定宽度和精度，迫使它们的值从%运算符右边的输入中的下一项获取：
     ``` python
     print('%f, %.2f, %.*f' % (1/3.0, 1/3.0, 4, 1/3.0))
     ```
+    运行结果如下：
+    ```
+    0.333333, 0.33, 0.3333
+    ```
+
 
 7. 基于字典的格式化表达式    
     - `print('%(qty)d more %(food)s' % {'qty': 1, 'food': 'spam'})`
@@ -439,6 +459,15 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     parts = somelist[0], somelist[-1], somelist[1:3]
     print('first={0}, last={1}, middle={2}'.format(*parts)) # *是一种特殊的语法syntax，可以把一个元组展开为独立的参数。18章会更详细
     ```
+    运行结果如下：
+    ```
+    My laptop runs win32
+    My laptop runs win32
+    ['S', 'P', 'A', 'M']
+    first=S, third=A
+    first=S, last=M
+    first=S, last=M, middle=['P', 'A']
+    ```
 
 4. 高级格式化方法语法Advanced Formatting Method Syntax
     - 可以在格式化字符串中添加额外的语法来实现更具体的层级，以下是是一个字符串中的形式化格式，四个部分都为可选的，中间不能有空格：
@@ -475,6 +504,28 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     print('{0:,d}'.format(999999999999))
     print('{:,.2f}'.format(296999.2567))
     ```
+    运行结果如下：
+    ```
+    spam       =   123.4567
+          spam = 123.4567
+         win32 = laptop
+    spam       =   123.4567
+          spam = 123.4567
+         win32 = laptop
+    3.141590e+00, 3.142e+00, 3.14159
+    3.141590, 3.14, 003.14
+    FF, 377, 11111111
+    0b11111111 255 255
+    0xff 255 255
+    0o377 255 255
+    0.3333
+    0.3333
+    1.23
+    1.23
+    1.23
+    999,999,999,999
+    296,999.26
+    ```
 
 6. 与%格式化表达式做比较
     ``` python
@@ -489,13 +540,28 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     print('%f, %.2f, %06.2f' % (3.14159, 3.14159, 3.14159))
     print('%x, %o' % (255, 255))
     # 其他
-    import sys
     print('My {1[kind]:<8} runs {0.platform:>8}'.format(sys, {'kind': 'laptop'}))
     print('My %(kind)-8s runs %(plat)8s' % dict(kind='laptop', plat=sys.platform))
 
     data = dict(platform=sys.platform, kind='laptop')
     print('My {kind:<8} runs {platform:>8}'.format(**data)) # **data见第十八章，它把字典解包成一组name=value的关键字参数
     print('My %(kind)-8s runs %(platform)8s' % data)
+    ```
+    运行结果如下：
+    ```
+    spam=42
+    spam=42
+    spam=42
+    spam       =   123.4567
+          spam = 123.4567
+         win32 = laptop
+    3.141590e+00, 3.142e+00, 3.14159
+    3.141590, 3.14, 003.14
+    ff, 377
+    My laptop   runs    win32
+    My laptop   runs    win32
+    My laptop   runs    win32
+    My laptop   runs    win32
     ```
 
 ### 七、Why the Format Method?
@@ -510,6 +576,15 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     # 字符串表达式不支持千分位分组
     print('{:,d}'.format(999999999999))
     ```
+    运行结果如下：
+    ```
+    1111111111111111
+    0b1111111111111111
+    0b1111111111111111
+    0b1111111111111111
+    1111111111111111
+    999,999,999,999
+    ```
 
 2. 基于字典，2种方法之间的比较
     ``` python
@@ -520,7 +595,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     print('{name} {job} {name}'.format(**D))
     print('%(name)s %(job)s %(name)s' % D)
     ```
-
+    运行结果全为`Bob dev Bob`。
 
 ## chapter 8 Lists and Dictionaries
 ### 一、Lists
