@@ -148,26 +148,26 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     ```
     - 字符串反斜杠字符合集String backslash characters
 
-    | Escape | Meaning |
-    | :---- | :---- |
-    | \newline | 行的延续，一句代码太长了，直接回车会报错，写个\再换行，就会当做同一行处理 |
-    | \\ | 反斜杠 Backslash (保留一个\) |
-    | \' | 单引号 Single quote (保留 ') |
-    | \" | 双引号 Double quote (保留 ") |
-    | \a | 响铃 Bell |
-    | \b | 退格 Backspace |
-    | \f | 换页 Formfeed |
-    | \n | 换行 Newline (linefeed) |
-    | \r | 回车 Carriage return |
-    | \t | 水平制表符 Horizontal tab |
-    | \v | 垂直制表符 Vertical tab |
-    | \xhh | 十六进制 Character with hex value hh (exactly 2 digits) |
-    | \ooo | 八进制 Character with octal value ooo (up to 3 digits) |
-    | \0 | 空字符：二进制的0字符 |
-    | \N{ id } | Unicode数据库ID（不包括前面的r） |
-    | \uhhhh | 16位十六进制值的Unicode值 Unicode character with 16-bit hex value |
-    | \Uhhhhhhhh | 32位的十六进制的Unicode值 |
-    | \other | Not an escape (keeps both \ and other) |
+| Escape | Meaning |
+| :---- | :---- |
+| \newline | 行的延续，一句代码太长了，直接回车会报错，写个\再换行，就会当做同一行处理 |
+| \\ | 反斜杠 Backslash (保留一个\) |
+| \' | 单引号 Single quote (保留 ') |
+| \" | 双引号 Double quote (保留 ") |
+| \a | 响铃 Bell |
+| \b | 退格 Backspace |
+| \f | 换页 Formfeed |
+| \n | 换行 Newline (linefeed) |
+| \r | 回车 Carriage return |
+| \t | 水平制表符 Horizontal tab |
+| \v | 垂直制表符 Vertical tab |
+| \xhh | 十六进制 Character with hex value hh (exactly 2 digits) |
+| \ooo | 八进制 Character with octal value ooo (up to 3 digits) |
+| \0 | 空字符：二进制的0字符 |
+| \N{ id } | Unicode数据库ID（不包括前面的r） |
+| \uhhhh | 16位十六进制值的Unicode值 Unicode character with 16-bit hex value |
+| \Uhhhhhhhh | 32位的十六进制的Unicode值 |
+| \other | Not an escape (keeps both \ and other) |
 
 3. ***原始字符串Raw Strings***
     - 例如：`myfile = open('C:\new\text.dat', 'w')`
@@ -344,24 +344,25 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     ```
 
 5. 类型码String formatting type codes
-    | Code | Meaning |
-    | :---- | :---- |
-    | s | 字符串 |
-    | r | Same as s, but uses repr, not str |
-    | c | 字符Character (int or str) |
-    | d | 十进制数字 |
-    | i | 整数 |
-    | u | 与d相同（已废弃：不再是无符号整数） |
-    | o | 八进制整数（以8为底） |
-    | x | 十六进制整数（以16为底） |
-    | X | 与x相同 |
-    | e | 带指数的浮点数 |
-    | E | 与e相同 |
-    | f | 十进制浮点数 |
-    | F | 与f相同 |
-    | g | 浮点数e或f，g根据数字内容选择格式（如果指数小于-4或不小于精度，则使用e，其他则使用f，默认总位数精度为6） |
-    | G | 浮点数E或F |
-    | % | %字面量 Literal % (coded as %%) |
+
+| Code | Meaning |
+| :---- | :---- |
+| s | 字符串 |
+| r | Same as s, but uses repr, not str |
+| c | 字符Character (int or str) |
+| d | 十进制数字 |
+| i | 整数 |
+| u | 与d相同（已废弃：不再是无符号整数） |
+| o | 八进制整数（以8为底） |
+| x | 十六进制整数（以16为底） |
+| X | 与x相同 |
+| e | 带指数的浮点数 |
+| E | 与e相同 |
+| f | 十进制浮点数 |
+| F | 与f相同 |
+| g | 浮点数e或f，g根据数字内容选择格式（如果指数小于-4或不小于精度，则使用e，其他则使用f，默认总位数精度为6） |
+| G | 浮点数E或F |
+| % | %字面量 Literal % (coded as %%) |
 
 6. 格式化字符串表达式左侧的转换目标支持多种转换操作
     - 一般结构为：`%[(keyname)][flags][width][.precision]typecode`
@@ -599,3 +600,212 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 
 ## chapter 8 Lists and Dictionaries
 ### 一、Lists
+1. 列表的特性
+    - 任意对象的有序集合；通过偏移访问；可变长度、异构以及任意嵌套Variable-length, heterogeneous, and arbitrarily nestable；
+    - 属于**可变序列**的分类；对象引用数组。
+
+2. 常用列表字面量和操作
+
+| Operation | Interpretation |
+| :---- | :---- |
+| L = [] | 空列表 |
+| L = [123, 'abc', 1.23, {}] | Four items: indexes 0..3 |
+| L1 = ['Bob', 40.0, ['dev', 'mgr']] | 嵌套子列表Nested sublists |
+| L2 = list('spam') | 可迭代对象元素的列表List of an iterable’s items |
+| L2 = list(range(-4, 4)) | list of successive integers |
+| L[i] | 索引 index |
+| L[i][j] | 索引的索引 index of index |
+| L[i:j] | 分片 slice |
+| len(L) | length |
+| L1 + L2 | 拼接 Concatenate |
+| L * 3 | 重复 Repeat |
+| for x in L: print(x) | 迭代 Iteration |
+| 3 in L | 成员关系 membership |
+| L.append(4) | 列表末尾添加新的对象 |
+| L.extend([5,6,7]) | 用新列表扩展原来的列表 |
+| L.insert(i, X) | 插入 |
+| L.index(X) | 查找索引 |
+| L.count(X) | 统计元素出现次数 |
+| L.sort() | 排序 |
+| L.reverse() | 反转 |
+| L.copy() | 复制 |
+| L.clear() | 清除 |
+| L.pop(i) | 弹出并返回元素 |
+| L.remove(X) | 删除元素 |
+| del L[i] | 删除 |
+| del L[i:j] | 删除切片 |
+| L[i:j] = [] | 删除切片 |
+| L[i] = 3 | 索引赋值 |
+| L[i:j] = [4,5,6] | 分片赋值 |
+| L = [x**2 for x in range(5)] | 列表推导List comprehensions |
+| list(map(ord, 'spam')) | 映射 map |
+
+### 二、Lists in Action
+1. 基本列表操作：拼接与重复
+``` python
+print(len([1, 2, 3]))
+print([1, 2, 3] + [4, 5, 6])
+print(['Ni!'] * 4)
+```
+
+2. **列表迭代和推导List Iteration and Comprehensions**
+``` python
+print(3 in [1, 2, 3])
+for x in [1, 2, 3]:
+    print(x, end=' ')
+res = [c * 4 for c in 'SPAM']
+print(res)
+# map()会根据提供的函数对指定序列做映射
+print(list(map(abs, [-1, -2, 0, 1, 2])))
+```
+显式结果如下：
+```
+True
+1 2 3 ['SSSS', 'PPPP', 'AAAA', 'MMMM']
+[1, 2, 0, 1, 2]
+```
+
+3. **索引、分片和矩阵Indexing, Slicing, and Matrixes**
+    - 对列表进行**分片**会返回一个新的列表：
+    ``` python
+    L = ['spam', 'Spam', 'SPAM!']
+    print(L[2])
+    print(L[-2])
+    print(L[1:])
+    ```
+    运行结果如下：
+    ```
+    SPAM!
+    Spam
+    ['Spam', 'SPAM!']
+    ```
+    - **矩阵和嵌套**：
+    ``` python
+    matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    print(matrix[1])
+    print(matrix[1][1])
+    print(matrix[2][0])
+    matrix = [[1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9]]
+    print(matrix[1][1])
+    ```
+
+4. 原位置修改列表
+    - **索引**和**分片**的**赋值**都直接修改列表，而不是生成一个新的列表；
+    - 分片赋值slice assignment可分成2步理解：（1）删除等号左边指定分片；（2）将等号右边插入被删除的部分；
+    - 分片赋值可用于替换、增长、删除
+    ``` python
+    L = ['spam', 'Spam', 'SPAM!']
+    L[1] = 'eggs'
+    print(L)
+    L[0:2] = ['eat', 'more']
+    print(L)
+
+    L = [1, 2, 3, 4, 5, 6, 7]
+    L[2:5] = L[3:6] # 右侧在左侧被执行删除前就被取出来了
+    print(L)
+    L = [1, 2, 3]
+    L[1:2] = [4, 5] # 插入的元素数目不需要与被删除的数目相匹配
+    print(L)
+    L[1:1] = [6, 7] # 将1：1之间的空白切片插入6、7
+    print(L)
+    L[1:2] = []
+    print(L)
+    L = [1]
+    L[:0] = [2, 3, 4] # 在最前面插入
+    print(L)
+    L[len(L):] = [5, 6, 7] # 在最后面插入
+    print(L)
+    L.extend([8, 9, 10])
+    print(L)
+    ```
+    运行结果如下：
+    ``` python
+    ['spam', 'eggs', 'SPAM!']
+    ['eat', 'more', 'SPAM!']
+    [1, 2, 4, 5, 6, 6, 7]
+    [1, 4, 5, 3]
+    [1, 6, 7, 4, 5, 3]
+    [1, 7, 4, 5, 3]
+    [2, 3, 4, 1]
+    [2, 3, 4, 1, 5, 6, 7]
+    [2, 3, 4, 1, 5, 6, 7, 8, 9, 10]
+    ```
+
+5. 列表方法调用
+    - `L.append(X)`跟`L+[X]`类似，不同的是前者原位置修改L，而后者会生成新的列表：
+    ``` python
+    L = ['eat', 'more', 'SPAM!']
+    L.append('please')
+    print(L)
+    ```
+    - `sort`方法，可以传入关键词参数对sort行为进行修改：
+    ``` python
+    L = ['abc', 'ABD', 'aBe']
+    L.sort()
+    print(L)
+    L = ['abc', 'ABD', 'aBe']
+    L.sort(key=str.lower) # 小写后排序
+    print(L)
+    L = ['abc', 'ABD', 'aBe']
+    L.sort(key=str.lower, reverse=True)
+    print(L)
+    ```
+    - `append`和`sort`方法不会返回列表对象，返回值都是`None`。
+    - `sorted`函数，返回一个新的列表：
+    ``` python
+    L = ['abc', 'ABD', 'aBe']
+    print(sorted(L, key=str.lower, reverse=True))
+    L = ['abc', 'ABD', 'aBe']
+    print(sorted([x.lower() for x in L], reverse=True))
+    ```
+
+6. 其他常见列表方法或操作
+    - `extend`方法是循环访问传入的可迭代对象，并逐个把产生的元素添加到列表尾部，而append是直接将传入的可迭代对象添加到尾部。详见第14章。
+    ``` python
+    L = [1, 2]
+    L.extend([3, 4, 5])
+    print(L)
+    ```
+    - `pop`方法弹出并返回最后最后一个元素，并且能够接受被删除并返回的元素的偏移量（默认为-1）：
+    ``` python
+    print(L.pop())
+    print(L)
+    ```
+    - `reverse`方法和`reversed`函数：
+    ``` python
+    L.reverse()
+    print(L)
+    print(reversed(L)) # 结果是一个能够按需产生值的迭代器
+    print(list(reversed(L)))
+    ```
+    - `pop`方法和`append`方法联用，以实现快速的**后进先出栈结构last in-first-out (LIFO) stack structure**，列表的末端作为**栈**的顶端：
+    ``` python
+    L = []
+    L.append(1) # Push onto stack
+    L.append(2)
+    print(L)
+    print(L.pop()) # Pop off stack
+    print(L)
+    ```
+    - `remove`、`insert`、`count`、`index`方法：
+    ``` python
+    L = ['spam', 'eggs', 'ham']
+    print(L.index('eggs')) # 查找某元素的偏移
+    L.insert(1, 'toast') # 在偏移处插入某元素
+    print(L)
+    L.remove('eggs')
+    print(L)
+    print(L.count('spam')) # 计算元素出现的次数
+    ```
+    - `del`语句del statement：
+    ``` python
+    L = ['spam', 'eggs', 'ham', 'toast']
+    del L[0]
+    print(L)
+    del L[1:]
+    print(L)
+    ```
+
+### 三、Dictionaries
