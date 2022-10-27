@@ -4,6 +4,35 @@
   
     
     <entry>
+      <title>Blender偏好设置及插件记录</title>
+      <link href="/2022/10/27/2022-10-27-Blender%E5%81%8F%E5%A5%BD%E8%AE%BE%E7%BD%AE%E5%8F%8A%E6%8F%92%E4%BB%B6%E8%AE%B0%E5%BD%95/"/>
+      <url>/2022/10/27/2022-10-27-Blender%E5%81%8F%E5%A5%BD%E8%AE%BE%E7%BD%AE%E5%8F%8A%E6%8F%92%E4%BB%B6%E8%AE%B0%E5%BD%95/</url>
+      
+        <content type="html"><![CDATA[<blockquote><p>本文章记录blender个人设置的偏好以及安装的插件，方便换电脑时重新设置。<br>blender可以将键位设置Keymap导出为python代码文件，然后导入到其他电脑。</p></blockquote><h1 id="偏好设置-Preferences"><a href="#偏好设置-Preferences" class="headerlink" title="偏好设置 Preferences"></a>偏好设置 Preferences</h1><ol><li><p>界面 Interface - 编辑器 Editors - 状态栏 Status Bar - 场景统计数据 Scene Statistics：显示场景或选中区域的点、线、面数量等等。</p></li><li><p>键位映射 Keymap - 偏好设置 Preferences - 空格键 Spacebar Action - 搜索 Search</p></li></ol>]]></content>
+      
+      
+      <categories>
+          
+          <category> blender </category>
+          
+          <category> blender设置及插件 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> blender </tag>
+            
+            <tag> 3d建模 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>《Learning Python》读书笔记（二）</title>
       <link href="/2022/10/24/2022-10-24-Learning-python2/"/>
       <url>/2022/10/24/2022-10-24-Learning-python2/</url>
@@ -99,6 +128,8 @@
           <category> blender </category>
           
           <category> blender教程 </category>
+          
+          <category> blender快捷键合集 </category>
           
       </categories>
       
