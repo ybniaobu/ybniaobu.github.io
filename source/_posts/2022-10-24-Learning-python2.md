@@ -809,3 +809,144 @@ True
     ```
 
 ### 三、Dictionaries
+1. 字典的特性
+    - 字典有时叫做关联数组associative arrays或散列表hashes；
+    - 通过键而不是偏移量来读取；任意对象的无序集合（以前无序，从python3.6开始，dict的插入变为有序，即字典整体变的有序）；
+    - 长度可变、异构、任意嵌套Variable-length, heterogeneous, and arbitrarily nestable；属于可变映射类型Of the category “mutable mapping”；对象引用表（散列表）。
+
+2. 常见字典字面量和操作
+
+| Operation | Interpretation |
+| :---- | :---- |
+| D = {} | 空字典 |
+| D = {'name': 'Bob', 'age': 40} | 字典 |
+| E = {'cto': {'name': 'Bob', 'age': 40}} | 嵌套 Nesting |
+| D = dict(name='Bob', age=40) | dict函数 |
+| D = dict([('name', 'Bob'), ('age', 40)]) | 键值对 |
+| D = dict(zip(keyslist, valueslist)) | 拉链式键值对zipped key/value pairs |
+| D = dict.fromkeys(['name', 'age']) | 键列表 |
+| D['name'] | 键索引 |
+| E['cto']['age'] |  嵌套索引 |
+| 'age' in D | 成员关系：键存在测试 |
+| D.keys() | 方法：所有键 |
+| D.values() | 所有值 |
+| D.items() | 所有键值元组 |
+| D.copy() | 复制copy (top-level) |
+| D.clear() | 清除 |
+| D.update(D2) | 通过键合并 merge by keys |
+| D.get(key, default) | 通过键获取，如果不存在返回default或None |
+| D.pop(key, default) | 通过键删除，如果不存在返回default或错误 |
+| D.setdefault(key, default) | 通过键获取，如果不存在default设置为None |
+| D.popitem() | 删除/返回键值对 |
+| len(D) | 长度，存储的键值对的对数 |
+| D[key] = 42 | 增加键值对 |
+| del D[key] | 删除键值对 |
+| list(D.keys()) | 查看键 |
+| D = {x: x*2 for x in range(10)} | 字典推导 |
+
+### 四、Dictionaries in Action
+1. 字典的基本操作
+``` python
+D = {'spam': 2, 'ham': 1, 'eggs': 3}
+print(D['spam'])
+print(D)
+print(len(D))
+print('ham' in D) # 直接测试键是否存在
+print(D.keys()) # 返回的是一个可迭代对象
+print(list(D.keys()))
+```
+
+2. 原位置修改字典
+``` python
+D['ham'] = ['grill', 'bake', 'fry'] # 修改元素
+print(D)
+del D['eggs'] # 删除元素
+print(D)
+D['brunch'] = 'Bacon' # 新增元素
+print(D)
+```
+
+3. 其他字典方法
+    - `values`方法和`items`方法，都返回可迭代对象，values返回值，items返回键值对的元组：
+    ``` python
+    D = {'spam': 2, 'ham': 1, 'eggs': 3}
+    print(list(D.values()))
+    print(list(D.items()))
+    ```
+    - `get`方法通过键获取值，若键不存在，则返回默认值None或指定的默认值：
+    ``` python
+    print(D.get('spam')) # get方法通过键获取值，若键不存在，则返回默认值None或指定的默认值
+    print(D.get('toast'))
+    print(D.get('toast', 88))
+    ```
+    - `update`方法，类似于拼接：
+    ``` python
+    D = {'eggs': 3, 'spam': 2, 'ham': 1}
+    D2 = {'toast':4, 'muffin':5}
+    D.update(D2)
+    print(D)
+    ```
+    - `pop`方法删除一个键并返回它的值：
+    ``` python
+    print(D.pop('muffin'))
+    print(D.pop('toast'))
+    print(D)
+    ```
+    - 遍历字典的键列表：
+    ``` python
+    table = {'1975': 'Holy Grail', 
+        '1979': 'Life of Brian',
+        '1983': 'The Meaning of Life'}
+    for year in table:
+        print(f'{year}\t{table[year]}')
+    ```
+    - 推导语法，从值到键；在字典中可能一个值会有多个键与之对应：
+    ``` python
+    table = {'Holy Grail': '1975', 
+        'Life of Brian': '1979',
+        'The Meaning of Life': '1983'}
+    print(list(table.items()))
+    print([title for (title, year) in table.items() if year == '1975']) # 详见14章、32章
+    ```
+    - copy方法在第9章进行讨论。
+
+4. 用整数、元组作键
+``` python
+table = {1975: 'Holy Grail',
+    1979: 'Life of Brian', 
+    1983: 'The Meaning of Life'}
+Matrix = {}
+Matrix[(2, 3, 4)] = 88
+Matrix[(7, 8, 9)] = 99
+print(Matrix)
+```
+
+5. 字典的嵌套
+``` python
+rec = {'name': 'Bob',
+    'jobs': ['developer', 'manager'],
+    'web': 'www.bobs.org/˜Bob',
+    'home': {'state': 'Overworked', 'zip': 12345}}
+print(rec['jobs'][1])
+print(rec['home']['zip'])
+```
+
+6. dict函数创建字典
+``` python
+print(dict(name='Bob', age=40))
+print(dict([('name', 'Bob'), ('age', 40)]))
+# zip函数，详见13、14章
+keyslist = ['name', 'age']
+valueslist = ['Bob', 40]
+print(dict(zip(keyslist, valueslist)))
+print(zip(keyslist, valueslist))
+print(list(zip(['a', 'b', 'c'], [1, 2, 3])))
+print(dict(zip(['a', 'b', 'c'], [1, 2, 3])))
+print({k: v for (k, v) in zip(['a', 'b', 'c'], [1, 2, 3])}) # 字典推导表达式
+print({x: x ** 2 for x in [1, 2, 3, 4]})
+# fromkeys方法将同一值传入键列表，默认值为None
+print(dict.fromkeys(['a', 'b'], 0))
+print(dict.fromkeys('spam'))
+```
+
+7. 字典视图Dictionary views
