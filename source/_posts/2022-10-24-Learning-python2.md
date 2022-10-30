@@ -949,4 +949,73 @@ print(dict.fromkeys(['a', 'b'], 0))
 print(dict.fromkeys('spam'))
 ```
 
-7. 字典视图Dictionary views
+7. 字典视图Dictionary views  
+字典的keys, values和items方法都返回***视图对象view objects***：**视图对象**是**可迭代对象**，每次只产生一个结果项的对象，而不是在内存中立即产生结果列表。
+``` python
+D = dict(a=1, b=2, c=3)
+print(D.keys())
+print(D.values())
+print(D.items())
+print(list(D.keys()), list(D.values()), list(D.items()))
+for k in D.keys(): print(k)
+for key in D: print(key)
+# 对字典的改变会改变视图对象
+D = {'a': 1, 'b': 2, 'c': 3}
+K = D.keys()
+V = D.values()
+del D['b']
+print(list(K), list(V))
+```
+
+8. 字典视图和集合
+    - `keys`方法返回的视图对象类似于集合，支持交集和并集等操作：
+    ``` python
+    D = {'a': 1, 'b': 2, 'c': 3}
+    print(D.keys() & D.keys())
+    print(D.keys() & {'b'})
+    print(D.keys() & {'b': 1})
+    print(D.keys() | {'b', 'c', 'd'})
+    ```
+    运行结果如下：
+    ``` python
+    {'c', 'b', 'a'}
+    {'b'}
+    {'b'}
+    {'a', 'c', 'd', 'b'}
+    ```
+    - `values`视图不支持，因为值不唯一，但`items`可以，因为键值对是唯一的，并且是**可散列的hashable**(具有**不变性的immutable**)：
+    ``` python
+    D = {'a': 1, 'b': 1, 'c': 1}
+    print(D.values() & {1})  # TypeError: unsupported operand type(s) for &: 'dict_values' and 'set'
+    print(D.items() & D.items())
+    ```
+    运行结果如下：
+    ``` python
+    {('c', 1), ('b', 1), ('a', 1)}
+    ```
+    - 如果字典项视图是**可散列**的话，也就是，只包括**不可变的对象**的话，他们类似于集合；Items views are set-like too if they are **hashable**—that is, if they contain only **immutable** objects：
+    ``` python
+    D = {'a': 1}
+    print(list(D.items()))
+    print(D.items() | D.keys())
+    print(D.items() | D)
+    print(D.items() | {('c', 3), ('d', 4)})
+    print(dict(D.items() | {('c', 3), ('d', 4)}))
+    ```
+    运行结果如下：
+    ``` python
+    [('a', 1)]
+    {'a', ('a', 1)}
+    {'a', ('a', 1)}
+    {('c', 3), ('a', 1), ('d', 4)}
+    {'c': 3, 'a': 1, 'd': 4}
+    ```
+    - 视图对象不能用方法：
+    ``` python
+    D = {'b': 2, 'c': 3, 'a': 1}
+    Ks = D.keys()
+    Ks.sort() # AttributeError: 'dict_keys' object has no attribute 'sort'
+    # 要排序用sorted函数
+    for k in sorted(Ks): print(k, D[k])
+    for k in sorted(D): print(k, D[k])
+    ```
