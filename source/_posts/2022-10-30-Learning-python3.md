@@ -19,3 +19,32 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 
 # PART II Types and Operations
 ## chapter 9 Tuples, Files, and Everything Else
+### 一、Tuples
+1. 元组的特性
+任意对象的有序集合；通过偏移量存取；属于**不可变序列**；固定长度、多样性、任意嵌套；对象引用的数组。
+
+2. 元组字面量和运算
+
+| Operation | Interpretation |
+| :---- | :---- |
+| () | 空元组 |
+| T = (0,) | 单个元素的元组 |
+| T = (0, 'Ni', 1.2, 3) | 多元素元组 |
+| T = 0, 'Ni', 1.2, 3 | 同上(无括号) |
+| T = ('Bob', ('dev', 'mgr')) | 嵌套元组 |
+| T = tuple('spam') | 可迭代对象的元素组成的元组 |
+| T[i] | 索引 |
+| T[i][j] | 嵌套索引 |
+| T[i:j] | 切片 |
+| len(T) | 长度 |
+| T1 + T2 | 拼接 |
+| T * 3 | 重复 |
+| for x in T: print(x) | 迭代 |
+| 'spam' in T | 成员关系 |
+| [x ** 2 for x in T] | 列表推导 |
+| T.index('Ni') | 查找方法 |
+| T.count('Ni') | 计数 |
+| namedtuple('Emp', ['name', 'jobs']) | 有名元组拓展类型 |
+
+### 二、Tuples in Action
+
