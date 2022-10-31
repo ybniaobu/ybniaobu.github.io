@@ -15,7 +15,9 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 > 学习完成日期为2022年10月20日。  
 > 本篇主要内容为：共享引用；字符串；列表；字典。
 
-![learning_python.jpg](https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg)
+<div  align="center">  
+<img src="https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg" width = "80%" height = "80%" alt="Learning Python"/>
+</div>
 
 # PART II Types and Operations
 ## chapter 6 The Dynamic Typing Interlude
