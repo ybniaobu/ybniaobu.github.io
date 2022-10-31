@@ -8,14 +8,14 @@
       <link href="/2022/10/30/2022-10-30-Learning-python3/"/>
       <url>/2022/10/30/2022-10-30-Learning-python3/</url>
       
-        <content type="html"><![CDATA[<blockquote><p>该笔记为 <strong>《Learning Python》</strong> 的读书笔记，未经过系统的整理；<br>该书涉及的内容可能过于啰嗦，但包含一些python背后的逻辑和机制，值得初学者观看；<br>该笔记内容过多，所以不展示部分代码的结果，需复制到编辑器中查看；<br>学习完成日期为2022年10月20日。<br>本篇主要内容为：XXXXXXXXXXXXXXXXXXXXXXX</p></blockquote><p><img src="https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg" alt="learning_python.jpg"></p><h1 id="PART-II-Types-and-Operations"><a href="#PART-II-Types-and-Operations" class="headerlink" title="PART II Types and Operations"></a>PART II Types and Operations</h1><h2 id="chapter-9-Tuples-Files-and-Everything-Else"><a href="#chapter-9-Tuples-Files-and-Everything-Else" class="headerlink" title="chapter 9 Tuples, Files, and Everything Else"></a>chapter 9 Tuples, Files, and Everything Else</h2><h3 id="一、Tuples"><a href="#一、Tuples" class="headerlink" title="一、Tuples"></a>一、Tuples</h3><ol><li><p>元组的特性<br>任意对象的有序集合；通过偏移量存取；属于<strong>不可变序列</strong>；固定长度、多样性、任意嵌套；对象引用的数组。</p></li><li><p>元组字面量和运算</p></li></ol><table><thead><tr><th align="left">Operation</th><th align="left">Interpretation</th></tr></thead><tbody><tr><td align="left">()</td><td align="left">空元组</td></tr><tr><td align="left">T &#x3D; (0,)</td><td align="left">单个元素的元组</td></tr><tr><td align="left">T &#x3D; (0, ‘Ni’, 1.2, 3)</td><td align="left">多元素元组</td></tr><tr><td align="left">T &#x3D; 0, ‘Ni’, 1.2, 3</td><td align="left">同上(无括号)</td></tr><tr><td align="left">T &#x3D; (‘Bob’, (‘dev’, ‘mgr’))</td><td align="left">嵌套元组</td></tr><tr><td align="left">T &#x3D; tuple(‘spam’)</td><td align="left">可迭代对象的元素组成的元组</td></tr><tr><td align="left">T[i]</td><td align="left">索引</td></tr><tr><td align="left">T[i][j]</td><td align="left">嵌套索引</td></tr><tr><td align="left">T[i:j]</td><td align="left">切片</td></tr><tr><td align="left">len(T)</td><td align="left">长度</td></tr><tr><td align="left">T1 + T2</td><td align="left">拼接</td></tr><tr><td align="left">T * 3</td><td align="left">重复</td></tr><tr><td align="left">for x in T: print(x)</td><td align="left">迭代</td></tr><tr><td align="left">‘spam’ in T</td><td align="left">成员关系</td></tr><tr><td align="left">[x ** 2 for x in T]</td><td align="left">列表推导</td></tr><tr><td align="left">T.index(‘Ni’)</td><td align="left">查找方法</td></tr><tr><td align="left">T.count(‘Ni’)</td><td align="left">计数</td></tr><tr><td align="left">namedtuple(‘Emp’, [‘name’, ‘jobs’])</td><td align="left">有名元组拓展类型</td></tr></tbody></table><h3 id="二、Tuples-in-Action"><a href="#二、Tuples-in-Action" class="headerlink" title="二、Tuples in Action"></a>二、Tuples in Action</h3>]]></content>
+        <content type="html"><![CDATA[<blockquote><p>该笔记为 <strong>《Learning Python》</strong> 的读书笔记，未经过系统的整理；<br>该书涉及的内容可能过于啰嗦，但包含一些python背后的逻辑和机制，值得初学者观看；<br>该笔记内容过多，所以不展示部分代码的结果，需复制到编辑器中查看；<br>学习完成日期为2022年10月20日。<br>本篇主要内容为：XXXXXXXXXXXXXXXXXXXXXXX</p></blockquote><p><img src="https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg" alt="learning_python.jpg"></p><h1 id="PART-II-Types-and-Operations"><a href="#PART-II-Types-and-Operations" class="headerlink" title="PART II Types and Operations"></a>PART II Types and Operations</h1><h2 id="chapter-9-Tuples-Files-and-Everything-Else"><a href="#chapter-9-Tuples-Files-and-Everything-Else" class="headerlink" title="chapter 9 Tuples, Files, and Everything Else"></a>chapter 9 Tuples, Files, and Everything Else</h2><h3 id="一、Tuples"><a href="#一、Tuples" class="headerlink" title="一、Tuples"></a>一、Tuples</h3><ol><li><p>元组的特性<br>任意对象的有序集合；通过偏移量存取；属于<strong>不可变序列</strong>；固定长度、多样性、任意嵌套；对象引用的数组。</p></li><li><p>元组字面量和运算</p></li></ol><table><thead><tr><th align="left">Operation</th><th align="left">Interpretation</th></tr></thead><tbody><tr><td align="left">()</td><td align="left">空元组</td></tr><tr><td align="left">T &#x3D; (0,)</td><td align="left">单个元素的元组</td></tr><tr><td align="left">T &#x3D; (0, ‘Ni’, 1.2, 3)</td><td align="left">多元素元组</td></tr><tr><td align="left">T &#x3D; 0, ‘Ni’, 1.2, 3</td><td align="left">同上(无括号)</td></tr><tr><td align="left">T &#x3D; (‘Bob’, (‘dev’, ‘mgr’))</td><td align="left">嵌套元组</td></tr><tr><td align="left">T &#x3D; tuple(‘spam’)</td><td align="left">可迭代对象的元素组成的元组</td></tr><tr><td align="left">T[i]</td><td align="left">索引</td></tr><tr><td align="left">T[i][j]</td><td align="left">嵌套索引</td></tr><tr><td align="left">T[i:j]</td><td align="left">切片</td></tr><tr><td align="left">len(T)</td><td align="left">长度</td></tr><tr><td align="left">T1 + T2</td><td align="left">拼接</td></tr><tr><td align="left">T * 3</td><td align="left">重复</td></tr><tr><td align="left">for x in T: print(x)</td><td align="left">迭代</td></tr><tr><td align="left">‘spam’ in T</td><td align="left">成员关系</td></tr><tr><td align="left">[x ** 2 for x in T]</td><td align="left">列表推导</td></tr><tr><td align="left">T.index(‘Ni’)</td><td align="left">查找方法</td></tr><tr><td align="left">T.count(‘Ni’)</td><td align="left">计数</td></tr><tr><td align="left">namedtuple(‘Emp’, [‘name’, ‘jobs’])</td><td align="left">有名元组拓展类型</td></tr></tbody></table><h3 id="二、Tuples-in-Action"><a href="#二、Tuples-in-Action" class="headerlink" title="二、Tuples in Action"></a>二、Tuples in Action</h3><ol><li><p>元组的基本操作</p><figure class="highlight python"><table><tr><td class="code"><pre><span class="line">T = (<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>)</span><br><span class="line"><span class="built_in">print</span>(T[<span class="number">0</span>], T[<span class="number">1</span>:<span class="number">3</span>])</span><br></pre></td></tr></table></figure></li><li><p>逗号和圆括号<br>python允许忽略元组的圆括号，但建议一直使用圆括号；<em>单个元素的元组如果没逗号，不是元组</em>：</p><figure class="highlight python"><table><tr><td class="code"><pre><span class="line">x = (<span class="number">40</span>)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">type</span>(x)) <span class="comment"># 不加逗号，x为整数</span></span><br><span class="line">y = (<span class="number">40</span>,)</span><br><span class="line"><span class="built_in">print</span>(<span class="built_in">type</span>(y))</span><br></pre></td></tr></table></figure></li><li><p>转换、方法或不可变性<br>因为元组是<strong>不可变对象</strong>，需要转为列表再排序：</p><figure class="highlight python"><table><tr><td class="code"><pre><span class="line">T = (<span class="string">&#x27;cc&#x27;</span>, <span class="string">&#x27;aa&#x27;</span>, <span class="string">&#x27;dd&#x27;</span>, <span class="string">&#x27;bb&#x27;</span>)</span><br><span class="line">tmp = <span class="built_in">list</span>(T)</span><br><span class="line">tmp.sort()</span><br><span class="line">T = <span class="built_in">tuple</span>(tmp)</span><br><span class="line"><span class="built_in">print</span>(T)</span><br></pre></td></tr></table></figure></li></ol>]]></content>
       
       
       <categories>
           
           <category> python </category>
           
-          <category> python入门.读书笔记 </category>
+          <category> python读书笔记 </category>
           
       </categories>
       
@@ -44,7 +44,7 @@
           
           <category> C# </category>
           
-          <category> C#入门.读书笔记 </category>
+          <category> C#读书笔记 </category>
           
       </categories>
       
@@ -68,7 +68,7 @@
       <link href="/2022/10/27/2022-10-27-Blender%E5%81%8F%E5%A5%BD%E8%AE%BE%E7%BD%AE%E5%8F%8A%E6%8F%92%E4%BB%B6%E8%AE%B0%E5%BD%95/"/>
       <url>/2022/10/27/2022-10-27-Blender%E5%81%8F%E5%A5%BD%E8%AE%BE%E7%BD%AE%E5%8F%8A%E6%8F%92%E4%BB%B6%E8%AE%B0%E5%BD%95/</url>
       
-        <content type="html"><![CDATA[<blockquote><p>本文章记录blender个人设置的偏好以及安装的插件，方便换电脑时重新设置。<br>blender可以将键位设置Keymap导出为python代码文件，然后导入到其他电脑。</p></blockquote><h1 id="偏好设置-Preferences"><a href="#偏好设置-Preferences" class="headerlink" title="偏好设置 Preferences"></a>偏好设置 Preferences</h1><ol><li><p>界面 Interface - 编辑器 Editors - 状态栏 Status Bar - 场景统计数据 Scene Statistics：显示场景或选中区域的点、线、面数量等等。</p></li><li><p>键位映射 Keymap - 偏好设置 Preferences - 空格键 Spacebar Action - 搜索 Search</p></li><li><p>插件 - Node：Node Wrangler</p></li></ol>]]></content>
+        <content type="html"><![CDATA[<blockquote><p>本文章记录blender个人设置的偏好以及安装的插件，方便换电脑时重新设置。<br>blender可以将键位设置Keymap导出为python代码文件，然后导入到其他电脑。</p></blockquote><h1 id="偏好设置-Preferences"><a href="#偏好设置-Preferences" class="headerlink" title="偏好设置 Preferences"></a>偏好设置 Preferences</h1><ol><li><p>界面 Interface - 编辑器 Editors - 状态栏 Status Bar - 场景统计数据 Scene Statistics：显示场景或选中区域的点、线、面数量等等。</p></li><li><p>键位映射 Keymap - 偏好设置 Preferences - 空格键 Spacebar Action - 搜索 Search</p></li><li><p>插件 Add-ons - Node：Node Wrangler</p></li></ol>]]></content>
       
       
       <categories>
@@ -104,7 +104,7 @@
           
           <category> python </category>
           
-          <category> python入门.读书笔记 </category>
+          <category> python读书笔记 </category>
           
       </categories>
       
@@ -158,7 +158,7 @@
           
           <category> python </category>
           
-          <category> python入门.读书笔记 </category>
+          <category> python读书笔记 </category>
           
       </categories>
       
@@ -218,7 +218,7 @@
           
           <category> python </category>
           
-          <category> python入门.读书笔记 </category>
+          <category> python读书笔记 </category>
           
       </categories>
       
@@ -247,7 +247,7 @@
           
           <category> python </category>
           
-          <category> python入门.读书笔记 </category>
+          <category> python读书笔记 </category>
           
       </categories>
       
