@@ -2,7 +2,7 @@
 title: 《Learning Python》读书笔记（一）
 date: 2022-09-17 17:24:20
 categories: 
-  - [python, python入门.读书笔记]
+  - [python, python读书笔记]
 tags: 
   - python
   - 读书笔记

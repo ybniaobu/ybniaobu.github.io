@@ -2,7 +2,7 @@
 title: 《Learning Python》读书笔记（三）
 date: 2022-10-30 13:36:03
 categories: 
-  - [python, python入门.读书笔记]
+  - [python, python读书笔记]
 tags:
   - python
   - 读书笔记
@@ -47,4 +47,27 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 | namedtuple('Emp', ['name', 'jobs']) | 有名元组拓展类型 |
 
 ### 二、Tuples in Action
+1. 元组的基本操作
+``` python
+T = (1, 2, 3, 4)
+print(T[0], T[1:3])
+```
 
+2. 逗号和圆括号  
+python允许忽略元组的圆括号，但建议一直使用圆括号；*单个元素的元组如果没逗号，不是元组*：
+``` python
+x = (40)
+print(type(x)) # 不加逗号，x为整数
+y = (40,)
+print(type(y))
+```
+
+3. 转换、方法或不可变性  
+因为元组是**不可变对象**，需要转为列表再排序：
+``` python
+T = ('cc', 'aa', 'dd', 'bb')
+tmp = list(T)
+tmp.sort()
+T = tuple(tmp)
+print(T)
+```
