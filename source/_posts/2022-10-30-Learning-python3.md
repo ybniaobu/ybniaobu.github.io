@@ -255,4 +255,140 @@ print(bin(data[4:8][0]))
     print(objects)
     ```
 
-5. 
+5. 存储原生对象：pickle模块 (Storing Native Python Objects: pickle)  
+`pickle模块`能够让我们直接在文件中存储任何python对象的高级工具，同时并不需要对字符串进行来回转换。可视为通用的数据格式化和解析工具；pickle模块会执行所谓的对象序列化，也就是对象与字节字符串之间的相互转换：
+``` python
+D = {'a': 1, 'b': 2}
+F = open('9-Tuples, Files, and Everything Else\datafile.pkl', 'wb')
+import pickle
+pickle.dump(D, F)
+F = open('9-Tuples, Files, and Everything Else\datafile.pkl', 'rb')
+E = pickle.load(F)
+print(E)
+```
+
+6. 用JSON格式存储Python对象：json标准库  
+由于JSON与Python中字典和列表在语法上的相似性，因此`json标准库`能够很容易地在python对象与JSON格式之间来回转换：
+``` python
+name = dict(first='Bob', last='Smith')
+rec = dict(name=name, job=['dev', 'mgr'], age=40.5)
+print(rec)
+import json
+S = json.dumps(rec)
+print(S)
+O = json.loads(S)
+print(O)
+print(O == rec)
+
+json.dump(rec, fp=open(r'9-Tuples, Files, and Everything Else\testjson.txt', 'w'), indent=4)
+print(open(r'9-Tuples, Files, and Everything Else\testjson.txt').read())
+P = json.load(open(r'9-Tuples, Files, and Everything Else\testjson.txt'))
+print(P)
+```
+
+7. 存储打包二进制数据：struct模块  
+`struct模块`能够构造并解析打包二进制数据，要生成一个打包二进制数据文件，可以用'wb'（写入二进制）模式打开它，并将一个格式化字符串和几个对象传给struct，python会创建一个我们通常写入文件的二进制bytes数据字节码，主要由不可打印字符的十六进制转义组成：
+``` python
+F = open('9-Tuples, Files, and Everything Else\data.bin', 'wb')
+import struct
+data = struct.pack('>i4sh', 7, b'spam', 8)
+print(data)
+F.write(data)
+F.close()
+
+F = open('9-Tuples, Files, and Everything Else\data.bin', 'rb')
+data = F.read()
+print(data)
+values = struct.unpack('>i4sh', data)
+print(values)
+```
+
+8. 文件上下文管理器File Context Managers  
+*它可以把文件处理代码包装到一个逻辑层中，以确保在退出后自动关闭文件，而不是依赖于垃圾回收时的自动关闭*，详见34章：
+``` python
+with open(r'C:\code\data.txt') as myfile:
+    for line in myfile:
+```
+
+### 五、Core Types Review and Summary
+1. 类型分类和要点
+    - 字符串、列表和元组都拥有如拼接、长度和索引等序列操作；
+    - 只有可变对象（列表、字典和集合）可以在原位置修改；不能原位置修改数字、字符串或元组；
+    - 文件只导出方法，因此可变性并不真的适用它们；
+    - 数字包括整数、浮点数、复数、小数和分数；
+    - 字符串包括str，以及bytes字节串；bytearray字符串类型是可变的；
+    - 集合是一个没有值只有键的字典，不能映射，没有顺序，因此不是映射或序列类型，frozenset是集合的一种拥有不可变性的变体。
+
+2. 对象类型
+
+| 对象类型 | 分类 | 是否可变 |
+| :---- | :---- | :---- |
+| 数字 | 数值 | 否 |
+| 字符串 | 序列 | 否 |
+| 列表 | 序列 | 是 |
+| 字典 | 映射 | 是 |
+| 元组 | 序列 | 否 |
+| 文件 | 拓展 | N/A |
+| 集合 | 集合 | 是 |
+| frozenset | 集合 | 否 |
+| bytearray | 序列 | 是 |
+
+3. 对象灵活性  
+列表、字典和元组可以包括任何种类的对象；集合可以包含任意的**不可变类型immutable对象（可哈希的hashable）**；列表、字典和元组可以任意嵌套；列表、字典和集合可以动态地扩大和缩小。
+``` python
+L = ['abc', [(1, 2), ([3], 4)], 5]
+print(L[1])
+print(L[1][1])
+print(L[1][1][0])
+print(L[1][1][0][0])
+```
+
+4. 引用vs复制
+    - 由于赋值会产生相同对象的多个引用，因此原位置修改可变对象时，可能会影响其他程序，特别是当涉及嵌套时，关系会复杂：
+    ``` python
+    X = [1, 2, 3]
+    L = ['a', X, 'b']
+    D = {'x':X, 'y':2}
+    上面为第一行的列表创建了3个引用，由于列表是可变的，修改对象会改变另外2个
+    X[1] = 'surprise'
+    print(L)
+    print(D)
+    ```
+    - 复制的方法：i、无参数分片表达式(L[:])；ii、字典、集合或列表的copy方法；iii、list、dict、set函数；iv、copy标准库模块。补：无参数的分片和字典的copy方法只能进行顶层复制，即不能复制嵌套的数据结构，如果要复制深层嵌套的数据结构，要用copy模块的deepcopy方法，见6-2章节。
+    ``` python
+    L = [1,2,3]
+    D = {'a':1, 'b':2}
+    A = L[:]
+    B = D.copy()
+    A[1] = 'Ni'
+    B['c'] = 'spam'
+    print(L, D)
+    print(A, B)
+    # 就3中最开始的例子来说，用分片即可避免共同引用
+    X = [1, 2, 3]
+    L = ['a', X[:], 'b']
+    D = {'x':X[:], 'y':2}
+    ```
+
+5. 比较、等价性和真值Comparisons, Equality, and Truth  
+当嵌套对象存在时，python能够自动遍历数据结构，并从左到右地应用比较，这被称为**递归比较recursive comparison**，见第19章。就核心类型而言，递归功能是默认实现的。例如，比较列表对象将自动比较所有内容：
+- ==运算符测试值的等价性；is表达式测试对象的同一性：
+``` python
+L1 = [1, ('a', 3)]
+L2 = [1, ('a', 3)]
+print(L1 == L2, L1 is L2) # L1和L2相等但不是同一个对象
+```
+- 理论上下面应该是不同对象相同值，因为python内部会对临时存储并重复使用字符串做优化，所以事实上内存中只有一个字符串'spam'：
+``` python
+S1 = 'spam'
+S2 = 'spam'
+print(S1 == S2, S1 is S2)
+```
+- 相对大小比较也能递归地应用于嵌套的数据结构：
+``` python
+L1 = [1, ('a', 3)]
+L2 = [1, ('a', 2)]
+print(L1 < L2, L1 == L2, L1 > L2)
+```
+
+6. 比较不同类型
