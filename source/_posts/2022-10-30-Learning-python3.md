@@ -364,7 +364,7 @@ print(L[1][1][0][0])
     B['c'] = 'spam'
     print(L, D)
     print(A, B)
-    # 就3中最开始的例子来说，用分片即可避免共同引用
+    # 就中最开始的例子来说，用分片即可避免共同引用
     X = [1, 2, 3]
     L = ['a', X[:], 'b']
     D = {'x':X[:], 'y':2}
@@ -372,23 +372,140 @@ print(L[1][1][0][0])
 
 5. 比较、等价性和真值Comparisons, Equality, and Truth  
 当嵌套对象存在时，python能够自动遍历数据结构，并从左到右地应用比较，这被称为**递归比较recursive comparison**，见第19章。就核心类型而言，递归功能是默认实现的。例如，比较列表对象将自动比较所有内容：
-- ==运算符测试值的等价性；is表达式测试对象的同一性：
-``` python
-L1 = [1, ('a', 3)]
-L2 = [1, ('a', 3)]
-print(L1 == L2, L1 is L2) # L1和L2相等但不是同一个对象
-```
-- 理论上下面应该是不同对象相同值，因为python内部会对临时存储并重复使用字符串做优化，所以事实上内存中只有一个字符串'spam'：
-``` python
-S1 = 'spam'
-S2 = 'spam'
-print(S1 == S2, S1 is S2)
-```
-- 相对大小比较也能递归地应用于嵌套的数据结构：
-``` python
-L1 = [1, ('a', 3)]
-L2 = [1, ('a', 2)]
-print(L1 < L2, L1 == L2, L1 > L2)
-```
+    - ==运算符测试值的等价性；is表达式测试对象的同一性：
+    ``` python
+    L1 = [1, ('a', 3)]
+    L2 = [1, ('a', 3)]
+    print(L1 == L2, L1 is L2) # L1和L2相等但不是同一个对象
+    ```
+    - 理论上下面应该是不同对象相同值，因为python内部会对临时存储并重复使用字符串做优化，所以事实上内存中只有一个字符串'spam'：
+    ``` python
+    S1 = 'spam'
+    S2 = 'spam'
+    print(S1 == S2, S1 is S2)
+    ```
+    - 相对大小比较也能递归地应用于嵌套的数据结构：
+    ``` python
+    L1 = [1, ('a', 3)]
+    L2 = [1, ('a', 2)]
+    print(L1 < L2, L1 == L2, L1 > L2)
+    ```
 
 6. 比较不同类型
+    - 数字比较数值的相对大小；
+    - 字符串按照字母字典顺序比较（按照ord函数返回字符集编码顺序）字符从左到右比较（'abc'<'ac'）；
+    - 列表和元组从左到右，而是对嵌套结构是递归的（[2]>[1,2]）；
+    - 集合相对大小采用子集超集的标准；
+    - 字典通过比较后的(key,value)来判断是否相同，但不支持相对大小比较。
+
+7. True和False  
+***整数0为真，整数1为假；空数据结构为假，非空数据结构为真***，比如`if X != ''`:是为了测试对象是否包括内容：
+``` python
+print(bool(1))
+print(bool('spam'))
+print(bool({}))
+```
+
+8. None对象
+`None`为一个特殊对象，可被认为是假。一般起到一个空占位符的作用；但`None`不意味着未定义，`None`是一个对象，而不是没有内容。
+
+9. 类型测试
+    - 严格来说，对象的类型本身，也属于type类型的对象：
+    ``` python
+    print(type(type(1)))
+    ```
+    - 类型测试及`isinstance函数`：
+    ``` python
+    print(type([1]) == type([]))
+    print(type([1]) == list)
+    print(isinstance([1], list))
+    ```
+    - `types模块`提供了不能作为内置类型使用的类型的名称：
+    ``` python
+    import types
+    def f(): pass
+    print(type(f) == types.FunctionType)
+    ```
+
+### 六、Built-in Type Gotchas
+1. 序列重复
+    - 序列重复就是多次将序列加在自己身上：
+    ``` python
+    L = [4, 5, 6]
+    X = L * 4
+    Y = [L] * 4
+    print(X)
+    print(Y)
+    ```
+    - 由于L在赋值给Y时是被嵌套的，因此Y中包含了指向原本L的列表的引用：
+    ``` python
+    L[1] = 0
+    print(X)
+    print(Y)
+    ```
+    - 解决上面的问题与之前一样，复制个副本：
+    ``` python
+    L = [4, 5, 6]
+    Y = [list(L)] * 4
+    L[1] = 0
+    print(Y)
+    ```
+    - 尽管Y与L不再共用同一个列表对象，但Y中的嵌套的列表都指向同一对象：
+    ``` python
+    Y[0][1] = 99 # 所有四个都被改变了
+    print(Y)
+    ```
+    - 避免上述共享，需要保证每个嵌套都有一个单独副本：
+    ``` python
+    L = [4, 5, 6]
+    Y = [list(L) for i in range(4)]
+    print(Y)
+    Y[0][1] = 99 # 这样就只改变了第一个
+    print(Y)
+    ```
+
+2. 循环数据结构Cyclic Data Structures
+如果一个复合对象包含指向自身的引用，就称之为循环对象。python在对象中检测到循环，都会打印成[...]，除非真的需要，不建议使用循环引用：
+``` python
+L = ['grail']
+L.append(L)
+print(L)
+```
+
+3. 不可变类型不可以在原位置改变
+不能在原位置改变不可变对象，必须通过分片、拼接等操作来创建一个新的对象，再赋值回原来的引用
+
+
+# PART III Statements and Syntax
+## chapter 10 Introducing Python Statements
+### 一、Python’s Statements
+1. Python程序结构  
+程序由模块构成；模块包含语句；语句包含表达式；表达式创建并处理对象  
+Programs are composed of modules；Modules contain statements；Statements contain expressions；Expressions create and process objects
+
+2. Python’s Statements语句
+
+| Statement | Role | Example |
+| :---- | :---- | :---- |
+| 赋值语句 | 创建引用reference | a, b = 'good', 'bad' |
+| 调用和其他表达式 | 运行函数 | log.write("spam, ham") |
+| print语句 | 打印对象 | print('The Killer', joke) |
+| if/elif语句 | 选择行为 | if "python" in text: print(text) |
+| for语句 | 迭代 | for x in mylist: print(x) |
+| while语句 | 循环loop | while X > Y: print('hello') |
+| pass | 空占位符Empty placeholder | while True: pass |
+| break | 退出循环 | while True: if exittest(): break |
+| continue | 循环继续 | while True: if skiptest(): continue |
+| def | 函数与方法 | def f(a, b, c=1, *d): print(a+b+c+d[0]) |
+| return | 函数结果 | def f(a, b, c=1, *d): return a+b+c+d[0] |
+| yield | 生成器函数 | def gen(n): for i in n: yield i*2 |
+| global | 命名空间Namespaces | def function(): global x |
+| nonlocal | 非局部声明 | def outer(): x = 'old' def function(): nonlocal x; x = 'new' |
+| import | 获取模块 | import sys |
+| from | 获取模块属性 | from sys import stdin |
+| class | 构建对象 | class Subclass(Superclass): |
+| try/except/finally | 捕捉异常Catching exceptions | try: |
+| raise | 触发异常 | raise EndSearch(location) |
+| assert | 调试异常Debugging checks | assert X > Y, 'X too small' |
+| with/as | 上下文管理器 | with open('data') as myfile: |
+| del | 删除引用 | del data[k] |
