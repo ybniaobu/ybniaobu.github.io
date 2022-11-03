@@ -480,7 +480,7 @@ print(L)
 ## chapter 10 Introducing Python Statements
 ### 一、Python’s Statements
 1. Python程序结构  
-程序由模块构成；模块包含语句；语句包含表达式；表达式创建并处理对象  
+*程序由模块构成；模块包含语句；语句包含表达式；表达式创建并处理对象*  
 Programs are composed of modules；Modules contain statements；Statements contain expressions；Expressions create and process objects
 
 2. Python’s Statements语句
@@ -509,3 +509,185 @@ Programs are composed of modules；Modules contain statements；Statements conta
 | assert | 调试异常Debugging checks | assert X > Y, 'X too small' |
 | with/as | 上下文管理器 | with open('data') as myfile: |
 | del | 删除引用 | del data[k] |
+
+3. **语句分隔符**：即分号，同一行出现多个语句时使用：
+`a = 1; b = 2; print(a + b)`
+
+## chapter 11 Assignments, Expressions, and Prints
+### 一、Assignment Statements
+1. 赋值语句形式Assignment Statement Forms
+
+| Operation | Interpretation |
+| :---- | :---- |
+| spam = 'Spam' | 基础模式 |
+| spam, ham = 'yum', 'YUM' | 元组赋值（基于位置） |
+| [spam, ham] = ['yum', 'YUM'] | 列表赋值（基于位置） |
+| a, b, c, d = 'spam' | 序列赋值 |
+| a, *b = 'spam' | 扩展序列解包Extended sequence unpacking |
+| spam = ham = 'lunch' | 多目标赋值 |
+| spams += 42 | 增量赋值Augmented assignments |
+
+2. 序列赋值
+    - 序列赋值右侧可以接受任意类型的序列（可迭代对象），只要长度等于左侧序列即可：
+    ``` python
+    [a, b, c] = (1, 2, 3)
+    print(a, c)
+    (a, b, c) = "ABC"
+    print(a, c)
+    ```
+    - 赋值内嵌序列：
+    ``` python
+    ((a, b), c) = ('SP', 'AM')
+    print(a, b, c)
+    ```
+    - 序列解包赋值：
+    ``` python
+    red, green, blue = range(3)
+    print(red, blue)
+    ```
+    - 循环中把序列分割为开头和剩余两部分：
+    ``` python
+    L = [1, 2, 3, 4]
+    while L:
+        front, L = L[0], L[1:]
+        print(front, L)
+    ```
+
+3. 拓展序列解包Extended Sequence Unpacking
+    - 带星号的名称（*X）会被赋值***一个列表***，收集序列剩下的没被赋值给其他名称的所有项：
+    ``` python
+    seq = [1, 2, 3, 4]
+    a, *b = seq # a匹配第一项，b匹配剩下的内容
+    print(a, b)
+    *a, b = seq
+    print(a, b)
+    a, *b, c = seq
+    print(a, b, c)
+    ```
+    运行结果如下：
+    ``` python
+    1 [2, 3, 4]
+    [1, 2, 3] 4
+    1 [2, 3] 4
+    ```
+    - 拓展的序列解包对于任意可迭代对象都有效：
+    ``` python
+    a, *b, c = 'spam'
+    print(a, b, c)
+    a, *b, c = range(4)
+    print(a, b, c)
+    ```
+    运行结果如下：
+    ``` python
+    s ['p', 'a'] m
+    0 [1, 2] 3
+    ```
+    - 和分片的区别：
+    ``` python
+    S = 'spam'
+    print(S[0], S[1:3], S[3])
+    ```
+    运行结果如下：
+    ``` python
+    s pa m
+    ```
+    - 循环：
+    ``` python
+    L = [1, 2, 3, 4]
+    while L:
+        front, *L = L
+        print(front, L)
+    ```
+    运行结果如下：
+    ``` python
+    1 [2, 3, 4]
+    2 [3, 4]
+    3 [4]
+    4 []
+    ```
+    - *带星号的名称有可能只匹配到单个的项，但总会向其赋值一个列表*：
+    ``` python
+    seq = [1, 2, 3, 4]
+    a, b, c, *d = seq
+    print(a, b, c, d)
+    ```
+    运行结果如下：
+    ``` python
+    1 2 3 [4]
+    ```
+    - 若无剩下的内容，则被赋值一个空列表：
+    ``` python
+    a, b, c, d, *e = seq
+    print(a, b, c, d, e)
+    a, b, *e, c, d = seq
+    print(a, b, c, d, e)
+    *a, = seq
+    print(a)
+    a, *b, c = seq
+    print(a, b, c)
+    ```
+    运行结果如下：
+    ``` python
+    1 2 3 4 []
+    1 2 3 4 []
+    [1, 2, 3, 4]
+    1 [2, 3] 4
+    ```
+
+4. 增量赋值
+在X += Y中，代码只需运行一次。但X = X + Y，X会出现2次，也必须执行2次；
+增量赋值有自动选择的优化技术。对于支持原位置改变的对象，自动选择原位置修改，而不是更慢的复制运算：
+``` python
+L = [1, 2]
+L = L + [3] # 拼接会创建一个新对象
+L.append(4) # 原位置改变，会更快
+L.extend([5, 6]) # 原位置改变，会更快
+# 而增量赋值会自动调用较快的extend方法，而不是使用较慢的+拼接运算
+L += [7, 8]
+# 所以+=不在所有情况都等于+和=，对于列表+=更像extend，能接受任意序列
+L = []
+L += 'spam'
+print(L)
+# +=对于列表就是原位置修改
+L = [1, 2]
+M = L
+L = L + [3, 4]
+print(L, M)
+L = [1, 2]
+M = L
+L += [3, 4]
+print(L, M)
+```
+
+### 二、Expression Statements
+1. 常见的表达式语句
+
+| Operation | Interpretation |
+| :---- | :---- |
+| spam(eggs, ham) | 函数调用 |
+| spam.ham(eggs) | 方法调用 |
+| spam | 在交互式解释器打印 |
+| print(a, b, c) | print语句 |
+| yield x ** 2 | yield表达式语句 |
+
+表达式作为语句（让表达式独占一行），这样不会存储表达式结果。
+
+print也会像其他函数调用一样返回一个值（返回值为None，为不返回任何有意义内容的函数的默认返回值）：
+``` python
+x = print('spam')
+print(x)
+```
+
+2. 表达式语句用于原位置修改
+``` python
+L = [1, 2]
+L.append(3) # 表达式语句
+print(L)
+# 但新手可能会写成赋值语句
+L = L.append(4)
+print(L) # 返回None对象
+```
+
+### 三、Print Operations
+1. 打印操作  
+python的打印操作与文件和流的概念紧密相连：
