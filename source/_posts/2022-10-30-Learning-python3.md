@@ -660,23 +660,21 @@ print(L, M)
 ```
 
 ### 二、Expression Statements
-1. 常见的表达式语句
+1. 常见的表达式语句  
+    | Operation | Interpretation |
+    | :---- | :---- |
+    | spam(eggs, ham) | 函数调用 |
+    | spam.ham(eggs) | 方法调用 |
+    | spam | 在交互式解释器打印 |
+    | print(a, b, c) | print语句 |
+    | yield x ** 2 | yield表达式语句 |
 
-| Operation | Interpretation |
-| :---- | :---- |
-| spam(eggs, ham) | 函数调用 |
-| spam.ham(eggs) | 方法调用 |
-| spam | 在交互式解释器打印 |
-| print(a, b, c) | print语句 |
-| yield x ** 2 | yield表达式语句 |
-
-表达式作为语句（让表达式独占一行），这样不会存储表达式结果。
-
-print也会像其他函数调用一样返回一个值（返回值为None，为不返回任何有意义内容的函数的默认返回值）：
-``` python
-x = print('spam')
-print(x)
-```
+    表达式作为语句（让表达式独占一行），这样不会存储表达式结果。  
+    print也会像其他函数调用一样返回一个值（返回值为None，为不返回任何有意义内容的函数的默认返回值）：
+    ``` python
+    x = print('spam')
+    print(x)
+    ```
 
 2. 表达式语句用于原位置修改
 ``` python
@@ -690,4 +688,42 @@ print(L) # 返回None对象
 
 ### 三、Print Operations
 1. 打印操作  
-python的打印操作与文件和流的概念紧密相连：
+python的打印操作与文件和流的概念紧密相连：  
+（1）文件对象方法：print将对象写入**stdout流**，同时加入一些自动的格式化；  
+（2）**标准输出流standard output stream（常称为stdout）**：是发送一个程序文本输出的默认位置。加上**标准输入流standard input**和**标准出错流error streams**，为脚本启动时所创建的3种数据连接；  
+（3）标准输出流在python中可以作为内置的sys模块中的stdout文件对象来使用。  
+
+2. print函数
+    - print内置函数的调用通常独占一行，但它不会返回值（返回None）；
+    - 调用形式：`print([object, ...][, sep=' '][, end='\n'][, file=sys.stdout][, flush=False])`
+    - print内置函数打印一个或多个对象，在中间用字符串`sep`来分隔，`sep`默认一个单个的空格，在结尾加上字符串`end`，通过`file`来指定输出流，并按照`flush`来决定是否刷新输出缓冲区：
+    ``` python
+    x = 'spam'
+    y = 99
+    z = ['eggs']
+    print(x, y, z)
+    print(x, y, z, sep=', ')
+    print(x, y, z, end=''); print(x, y, z)
+    print(x, y, z, sep='...', file=open('11-Assignments, Expressions, and Prints\data.txt', 'w')) # print to a file
+    print(x, y, z) # back to stdout
+    print(open('11-Assignments, Expressions, and Prints\data.txt').read())
+    ```
+
+3. 打印流重定向
+    - 打印都默认将文本发送到标准输出流，也可以发送到其他地方；
+    - print提供了sys.stdout对象的简单接口，再加上一些默认的格式设置；
+    - 也可以通过下面编写打印操作：
+    ``` python
+    import sys
+    sys.stdout.write('hello world\n')
+    ```
+    - 上述程序显示调用了`sys.stdout`的`write方法`。而print操作隐藏了大部分细节：`print(X, Y)`等价于`import sys`和`sys.stdout.write(str(X) + ' ' + str(Y) + '\n')`
+    - 可以把sys.stdout重新赋值给标准输出流以外的对象：
+    ``` python
+    import sys
+    sys.stdout = open('11-Assignments, Expressions, and Prints\log.txt', 'a') # redirect prints to a file
+    print(x, y, x) # shows up in log.txt
+    ```
+    - 在这里把`sys.stdout`重设成一个已打开的名为log.txt的文件对象，该文件以附加模式打开。重设后，print会将文本写至文件log.txt的末尾，而不是原本的输出流。print语句会持续调用`sys.stdout`的`write`方法。通过这种方式赋值`sys.stdout`会让程序中所有的print都被重新定向。
+
+4. 恢复输出流定向
