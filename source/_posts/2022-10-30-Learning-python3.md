@@ -13,7 +13,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 > 该书涉及的内容可能过于啰嗦，但包含一些python背后的逻辑和机制，值得初学者观看；  
 > 该笔记内容过多，所以不展示部分代码的结果，需复制到编辑器中查看；  
 > 学习完成日期为2022年10月20日。  
-> 本篇主要内容为：XXXXXXXXXXXXXXXXXXXXXXX
+> 本篇主要内容为：元组；文件；Python语句（statement）；赋值语句；表达式语句；print函数；if语句。
 
 <div  align="center">  
 <img src="https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg" width = "80%" height = "80%" alt="Learning Python"/>
@@ -823,11 +823,23 @@ else:
     print([] or 3) # 假或真
     print([] or {}) # 假或假
     ```
+    运行结果如下：
+    ``` python
+    2 3
+    3
+    {}
+    ```
     - 对于`and`测试，python会从左到右计算操作对象，当遇到假的对象就停止运算：
     ``` python
     print(2 and 3, 3 and 2) # 真和真
     print([] and {}) # 假和假
     print(3 and []) # 真和假
+    ```
+    运行结果如下：
+    ``` python
+    3 2
+    []
+    []
     ```
 
 5. if/else三元表达式Ternary Expression  
