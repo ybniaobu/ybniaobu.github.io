@@ -727,3 +727,126 @@ python的打印操作与文件和流的概念紧密相连：
     - 在这里把`sys.stdout`重设成一个已打开的名为log.txt的文件对象，该文件以附加模式打开。重设后，print会将文本写至文件log.txt的末尾，而不是原本的输出流。print语句会持续调用`sys.stdout`的`write`方法。通过这种方式赋值`sys.stdout`会让程序中所有的print都被重新定向。
 
 4. 恢复输出流定向
+    - 先把sys.stdout存储到一个对象里：
+    ``` python
+    import sys
+    temp = sys.stdout # 先把sys.stdout存储到一个对象里
+    sys.stdout = open('11-Assignments, Expressions, and Prints\log.txt', 'a')
+    print('spam')
+    print(1, 2, 3)
+    sys.stdout.close() # Flush output to disk
+    sys.stdout = temp # Restore original stream
+    print('back here')
+    print(open('11-Assignments, Expressions, and Prints\log.txt').read())
+    ```
+    - 这样手动保存和恢复原始输出流需要额外工作，所以python引入了print拓展，`file`关键字允许一个单次的print调用将文本发送给一个文件的`write方法`，而不是费力地重设`sys.stdout`。print拓展的重定向是临时的，之后的print还是会继续打印到标准输出流。
+    ``` python
+    log2= open('11-Assignments, Expressions, and Prints\log2.txt', 'w') # 同上见test2.py
+    print(1, 2, 3, file=log2)
+    print(4, 5, 6, file=log2)
+    log2.close()
+    print(7, 8, 9)
+    print(open('11-Assignments, Expressions, and Prints\log2.txt').read())
+    ```
+
+5. 标准错误流（standard error stream）sys.stderr
+    - 拓展的print形式也常用于把错误消息打印到标准错误流`sys.stderr`：
+    ``` python
+    import sys
+    sys.stderr.write(('Bad!' * 8) + '\n') # 标准错误流的write方法
+    print('Bad!' * 8, file=sys.stderr)
+    ```
+
+6. 理解print语句和sys.stdout之间的等价性
+    - print语句只是把文本传送给`sys.stdout.write方法`，所以可以把`sys.stdout`赋值给一个对象，来捕获程序中待打印的文本，并通过该对象的write方法处理文本：
+    ``` python
+    class FileFaker:
+        def write(self, string):
+            Do something with printed text in string
+    import sys
+    sys.stdout = FileFaker()
+    print(someObjects) # Sends to class write method
+    ```
+    - `sys.stdout`是什么不重要，只要它有一个名为write的方法(接口)即可，详见第六部分类。
+
+
+## chapter 12 if Tests and Syntax Rules
+### 一、if Statements
+1. 基础示例
+``` python
+if 1: # 1是布尔真值，即True
+    print('true')
+
+if not 1:
+    print('true')
+else:
+    print('false')
+```
+
+2. 多路分支  
+Python会执行第一次测试为真的语句，当所有的测试都为假时执行else部分：
+``` python
+x = 'killer rabbit'
+if x == 'roger':
+    print("shave and a haircut")
+elif x == 'bugs':
+    print("what's up doc?")
+else:
+    print('Run away! Run away!')
+```
+
+3. 语句分隔符：行与行间连接符
+    - 如果使用语法括号对，语句可横跨数行，比如封闭的()、{}、[]；
+    - 如果语句以反斜杠`\`结尾，可横跨数行；
+    - 三重引号字符串可横跨数行：
+    ``` python
+    L = ["Good",
+    "Bad",
+    "Ugly"]
+    # 反斜杠来继续多行（不常用）：
+    if a == b and c == d and \
+        d == e and f == g:
+    print('olde')
+    # 因为任何表达式都可以包含在括号内：
+    if (a == b and c == d and
+        d == e and e == f):
+    print('new')
+    ```
+
+4. 真值和布尔测试
+    - 所有对象都有一个固有的布尔真/假值，任何非零数字或非空对象都为真，数字零、空对象以及None都为假；
+    - 比较相等测试会递归地应用到数据结构；
+    - 布尔`and`和`or`运算符会在结果确定的时候立即停止计算（‘短路’）；
+    - 对于`or`测试，python会从左到右计算操作对象，然后返回第一个为真的对象，一旦得出结果就使表达式其余部分短路（终止）：
+    ``` python
+    print(2 or 3, 3 or 2) # 真或真
+    print([] or 3) # 假或真
+    print([] or {}) # 假或假
+    ```
+    - 对于`and`测试，python会从左到右计算操作对象，当遇到假的对象就停止运算：
+    ``` python
+    print(2 and 3, 3 and 2) # 真和真
+    print([] and {}) # 假和假
+    print(3 and []) # 真和假
+    ```
+
+5. if/else三元表达式Ternary Expression  
+`A = Y if X else Z`：当X为真时，执行表达式Y，否则执行Z
+``` python
+A = 't' if 'spam' else 'f'
+print(A)
+A = 't' if '' else 'f'
+print(A)
+```
+
+6. `filter函数`或列表推导来筛选真的对象
+``` python
+L = [1, 0, 2, 0, 'spam', '', 'ham', []]
+print(list(filter(bool, L)))
+print([x for x in L if x])
+```
+
+7. `any`和`all`内置函数用于检测是否存中或者所有元素都为真
+``` python
+print(any(L), all(L))
+```
