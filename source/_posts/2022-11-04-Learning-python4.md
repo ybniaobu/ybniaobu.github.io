@@ -299,3 +299,90 @@ for line in open('13-while and for Loops/test.txt'): # 文件迭代器
     - 在第21章会介绍一种计时技术，可以衡量替代方案的相对速度。
 
 4. 手动迭代：iter和next
+    - 内置函数`next`，自动调用对象的`_next_方法`：
+    ``` python
+    f = open('14-Iterations and Comprehensions/script2.py')
+    print(next(f))
+    print(next(f))
+    ```
+    - 迭代协议还有一点：*for循环在开始时，会首先把可迭代对象传入内置函数iter，并由此拿到一个迭代器，返回的迭代器有_next_方法*；
+    - iter函数也是在内部调用_iter_方法。
+
+5. 完整的迭代协议
+    - (1) **可迭代对象The iterable object**：迭代的被调对象，其`_iter_方法`被`iter函数`调用
+    - (2) **迭代器对象The iterator object**：可迭代对象的返回结果，在迭代过程中实际提供值的对象。其`_next_方法`被`next`运行，并在结束时触发`StopIteration异常`。
+    ``` python
+    L = [1, 2, 3]
+    I = iter(L)
+    print(I.__next__())
+    print(I.__next__())
+    print(I.__next__())
+    ```
+    - `iter`这一步对于文件不是必须的，因为文件对象自身就是迭代器：
+    ``` python
+    f = open('14-Iterations and Comprehensions/script2.py')
+    print(iter(f) is f)
+    print(iter(f) is f.__iter__())
+    ```
+    - 对于列表等可迭代对象但自身不是迭代器的，需要调用iter来启动迭代：
+    ``` python
+    L = [1, 2, 3]
+    print(iter(L) is L)
+    I = iter(L)
+    print(I.__next__())
+    print(next(I))
+    ```
+
+6. 其他内置类型可迭代对象Other Built-in Type Iterables
+    - 字典在迭代上下文中会自动返回键：
+    ``` python
+    D = {'a':1, 'b':2, 'c':3}
+    I = iter(D)
+    print(next(I))
+    print(next(I))
+    print(next(I))
+
+    for key in D:
+        print(key, D[key])
+    ```
+
+### 二、List Comprehensions
+1. 简单介绍
+    - 列表推导会产生新的列表对象，并且比for循环语句运行更快，因为在解释器内部由C语言的速度执行：
+    ``` python
+    L = [1, 2, 3, 4, 5]
+    L = [x + 10 for x in L]
+    print(L)
+    ```
+
+2. 在文件上使用列表推导
+    - 列表推导也有垃圾回收机制，在表达式运行结束后，将临时文件对象关闭，对于Cpython以外的python版本，需要手动关闭文件：
+    ``` python
+    lines = [line.rstrip() for line in open('14-Iterations and Comprehensions\script2.py')]
+    print(lines)
+    lines = [line.rstrip().upper() for line in open('14-Iterations and Comprehensions\script2.py')] # 方法链式调用是有效的
+    print(lines)
+    ```
+
+3. 拓展的列表推导语法
+    - 筛选分句：if：
+    ``` python
+    lines = [line.rstrip() for line in open('14-Iterations and Comprehensions\script2.py') if line[0] == 'p']
+    print(lines)
+    # 更复杂的例子：
+    lines = [line.rstrip() for line in open('14-Iterations and Comprehensions\script2.py') if line.rstrip()[-1].isdigit()]
+    print(lines)
+    ```
+    - 嵌套循环：for
+    ``` python
+    L = [x + y for x in 'abc' for y in 'lmn']
+    print(L)
+    # 其等价形式：
+    res = []
+    for x in 'abc':
+        for y in 'lmn':
+            res.append(x + y)
+    print(res)
+    ```
+
+### 三、Other Iteration Contexts
