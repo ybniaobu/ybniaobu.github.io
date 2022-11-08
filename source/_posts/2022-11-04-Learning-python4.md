@@ -13,7 +13,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 > 该书涉及的内容可能过于啰嗦，但包含一些python背后的逻辑和机制，值得初学者观看；  
 > 该笔记内容过多，所以不展示部分代码的结果，需复制到编辑器中查看；  
 > 学习完成日期为2022年10月20日。  
-> 本篇主要内容为：XXXXXXXXXXXXXXXXXXXXXXXXXX
+> 本篇主要内容为：while和for循环；可迭代对象、迭代器和推导；Python文档资源
 
 <div  align="center">  
 <img src="https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg" width = "80%" height = "80%" alt="Learning Python"/>
@@ -386,3 +386,281 @@ for line in open('13-while and for Loops/test.txt'): # 文件迭代器
     ```
 
 ### 三、Other Iteration Contexts
+1. 其他迭代上下文
+    - 用户定义的类也可以实现迭代协议。
+    - `map`把一个函数调用应用于传入的可迭代对象中的每一项，`内置函数map`当作用于一个文件时，也利用了文件对象的迭代器来逐行扫描，通过`_iter_`获取一个迭代器并每次调用`_next_方法`：
+    ``` python
+    M = map(str.upper, open('script.py'))
+    print(M)
+    print(list(M))
+    ```
+
+2. 其他可处理可迭代对象的内置函数、方法或工具
+    - `sorted`排序可迭代对象中的每项，返回的是一个新的list：  
+    `print(sorted(open('script.py')))`
+    - `zip`能够组合可迭代对象中的每项：  
+    `print(list(zip(open('script.py'), open('script.py'))))`
+    - `enumerate`把可迭代对象中的项与它们的相对位置进行匹配：  
+    `print(list(enumerate(open('script.py'))))`
+    - `filter`按照一个函数是否为真来选择可迭代对象中的项：  
+    `print(list(filter(bool, open('script.py'))))`
+    - 字符串`join方法`：  
+    `print('&&'.join(open('script.py')))`
+    - 序列赋值：
+    ``` python
+    a, b, c, d = open('script.py')
+    print(a, d)
+    a, *b = open('script.py')
+    print(a, b)
+    ```
+    - in成员测试：
+    ``` python
+    print('y = 2\n' in open('script.py'))
+    print('x = 2\n' in open('script.py'))
+    ```
+    - 分片赋值：
+    ``` python
+    L = [11, 22, 33, 44]
+    L[1:3] = open('script.py')
+    print(L)
+    ```
+    - 列表的`extend方法`：
+    ``` python
+    L = [11]
+    L.extend(open('script.py'))
+    print(L)
+    ```
+    - `append`不能自动迭代：
+    ``` python
+    L = [11]
+    L.append(open('script.py'))
+    print(L)
+    print(list(L[1]))
+    ```
+    - 字典推导表达式：
+    ``` python
+    print({ix: line for ix, line in enumerate(open('script.py'))})
+    print({ix: line for (ix, line) in enumerate(open('script.py')) if line[0] == 'p'})
+    ```
+    - `*arg`形式，可以把对象的值解包成单个参数，也接受任何可迭代对象：
+    ``` python
+    def f(a, b, c, d): print(a, b, c, d, sep='&')
+    f(*[1, 2, 3, 4])
+    f(*open('script.py'))
+    ```
+
+### 四、New Iterables in Python 3.X
+1. range可迭代对象
+    - range对象支持迭代、索引以及len函数：
+    ``` python
+    M = map(lambda x: 2 ** x, range(3))
+    for i in M: print(i)
+
+    R = range(10)
+    print(R)
+    I = iter(R) # Make an iterator from the range iterable
+    print(next(I))
+    print(next(I))
+    print(next(I))
+
+    print(len(R))
+    print(R[0])
+    print(R[-1])
+    print(next(I))
+    print(I.__next__())
+    ```
+
+2. map、zip和filter可迭代对象
+    - 与range不同，上述对象本身就是迭代器，无需用`iter()`转换；
+    - `map函数`：
+    ``` python
+    M = map(abs, (-1, 0, 1))
+    print(M)
+    print(next(M))
+    print(next(M))
+    print(next(M))
+    for x in M: print(x) # 结果为空，因为在遍历其结果一次后，就用尽了map iterator is now empty
+
+    M = map(abs, (-1, 0, 1)) # Make a new iterable/iterator to scan again
+    for x in M: print(x) # Iteration contexts auto call next()
+
+    print(list(map(abs, (-1, 0, 1))))
+    ```
+    - `zip函数`：
+    ``` python
+    Z = zip((1, 2, 3), (10, 20, 30))
+    print(Z)
+    print(list(Z))
+    for pair in Z: print(pair) # Exhausted after one pass
+
+    Z = zip((1, 2, 3), (10, 20, 30))
+    for pair in Z: print(pair)
+
+    Z = zip((1, 2, 3), (10, 20, 30))
+    print(next(Z))
+    print(next(Z))
+    ```
+    - `filter函数`，传入一个函数返回得到True的各项，filter可以接受一个可迭代对象处理，并返回一个可迭代对象：
+    ``` python
+    print(filter(bool, ['spam', '', 'ni']))
+    print(list(filter(bool, ['spam', '', 'ni'])))
+    ```
+
+3. **多遍迭代器vs单遍迭代器 Multiple Versus Single Pass Iterators**
+    - range不是自己的迭代器，并且支持在其结果上的多个迭代器：
+    ``` python
+    R = range(3)
+    I1 = iter(R)
+    print(next(I1))
+    print(next(I1))
+    I2 = iter(R)
+    print(next(I2))
+    print(next(I1))
+    ```
+    运行结果如下：
+    ``` python
+    0
+    1
+    0
+    2
+    ```
+    - 相反，zip、map和filter不支持同一结果上的多个活跃迭代器，因此iter调用是可选的，它们的iter结果就是它们自身：
+    ``` python
+    Z = zip((1, 2, 3), (10, 11, 12))
+    I1 = iter(Z)
+    I2 = iter(Z)
+    print(next(I1))
+    print(next(I1))
+    print(next(I2))
+    ```
+    运行结果如下：
+    ``` python
+    (1, 10)
+    (2, 11)
+    (3, 12)
+    ```
+
+4. 字典视图可迭代对象Dictionary View Iterables
+    - 字典的`keys`、`values`和`items`方法会返回可迭代的视图对象：
+    ``` python
+    D = dict(a=1, b=2, c=3)
+    print(D)
+    K = D.keys()
+    print(K)
+    I = iter(K)
+    print(next(I))
+    print(next(I))
+    for k in D.keys(): print(k)
+    ```
+    - 字典本身就是可迭代对象，带有返回键的迭代器：
+    ``` python
+    I = iter(D)
+    print(next(I))
+    print(next(I))
+    ```
+
+
+## chapter 14 Iterations and Comprehensions
+### 一、Python Documentation Sources
+1. Python文档资源  
+井号注释；dir函数；文档字符串：\_\_doc\_\_；PyDoc: help函数；PyDoc: HTML报告；Sphinx第三方工具；标准手册集；网络资源；已出版的书籍
+
+2. 井号注释  
+文档字符串docstrings是较大型功能性的文档的最优选择，#注释更适用于较小代码的文档。
+
+3. dir函数
+    - `dir函数`可以抓取对象内所有可用属性，可以向其传入对象、模块、内置类型或者数据类型的名字：
+    ``` python
+    import sys
+    print(dir(sys))
+    print(len(dir(sys)))
+    print(len([x for x in dir(sys) if not x.startswith('__')])) # 双下划线开头意味着与解释器相关
+    print(len([x for x in dir(sys) if not x[0] == '_'])) # 单下划线开头意味着非正式的私有属性实现
+    ```
+    - 查看列表和字符串的属性，可以向dir传入空列表和空字符串：
+    ``` python
+    print(dir([]))
+    print(dir(''))
+    print(len(dir([])), len([x for x in dir([]) if not x.startswith('__')]))
+    print(len(dir('')), len([x for x in dir('') if not x.startswith('__')]))
+    print([a for a in dir(list) if not a.startswith('__')])
+    print([a for a in dir(dict) if not a.startswith('__')])
+    ```
+    - 可以传入一个类型名称而不是字面量：
+    ``` python
+    print(dir(str) == dir(''))
+    print(dir(list) == dir([]))
+    ```
+
+4. 文档字符串：__doc__
+    - Python会自动装载文档字符串的文本，使其成为相应对象的`__doc__属性`：
+    ``` python
+    import docstrings
+    print(docstrings.__doc__)
+    print(docstrings.square.__doc__)
+    print(docstrings.Employee.__doc__)
+    ```
+    docstrings.py代码如下：
+    ``` python
+    """
+    Module documentation
+    Words Go Here
+    """
+    spam = 40
+    def square(x):
+        """
+        function documentation
+        can we have your liver then?
+        """
+        return x ** 2 # square
+
+    class Employee:
+        "class documentation"
+        pass
+
+    print(square(4))
+    print(square.__doc__)
+    ```
+    - 内置文档字符串Built-in docstrings：
+    ``` python
+    import sys
+    print(sys.__doc__)
+    print(sys.getrefcount.__doc__)
+    print(int.__doc__)
+    print(map.__doc__)
+    ```
+
+5. PyDoc：help函数
+    - 标准的PyDoc工具是一段Python程序，用于提取文档字符串及相关的结构化信息；
+    - 最主要的PyDoc接口是内置的help函数同PyDoc基于GUI和基于Web的HTML报告接口：
+    ``` python
+    import sys
+    help(sys.getrefcount)
+    help(sys) # 按空格键移动到下一页，按回车键移动到下一行，按Q键退出
+    ```
+    - help也可以传入内置函数、方法以及类型名称：
+    ``` python
+    help(str.replace)
+    help(''.replace)
+    ```
+    - help函数也可以用于自己的模块：
+    ``` python
+    import docstrings
+    help(docstrings.square)
+    help(docstrings.Employee)
+    help(docstrings)
+    ```
+
+6. PyDoc：HTML报告
+    - PyDoc的全浏览器模式，可以通过开始菜单中的模块文档启动（Python 3.10 Module Docs (64-bit)）；也可以通过命令行`pydoc -g`启动；可以任意选择下面三种命令：  
+    `c:\code> python -m pydoc -b`  
+    `c:\code> py -m pydoc -b`  
+    `c:\code> C:\python33\python -m pydoc -b`  
+
+7. Sphinx：更强大的方式为python系统编写文档  
+详见http://sphinx-doc.org
+
+8. 标准手册集The Standard Manual Set
+    - 可以通过开始菜单中的Python 3.10 Manuals (64-bit)启动；
+    - 也可以从IDLE的help选项菜单中打开；
+    - 还可以从http://www.python.org 官方网站获取
