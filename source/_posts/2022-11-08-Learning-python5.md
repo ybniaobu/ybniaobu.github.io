@@ -387,3 +387,293 @@ def times(x, y):
     - 声明nonlocal名称的时候，必须以及存在于该外层函数的作用域中，不能由内嵌def中的第一次赋值来创建。
 
 2. nonlocal基础
+    - `nonlocal`语句除了允许修改外层def中的名称外，还会强制引用的发起。nonlocal使得对该语句列出的名称的查找从外层的def的作用域开始，而不是从该函数的局部作用域开始。当执行到nonlocal语句时，nonlocal中列出的名称必须在一个外层的def中被提前定义过，否则将引发一个错误；
+    - nonlocal将作用域查找限制为只在外层的def中，不会继续进入到全局或内置作用域。
+
+3. nonlocal应用
+    - 下面代码中，tester创建并返回函数nested以便随后调用，而nested中的state引用遵从常规的作用域查找规则：
+    ``` python
+    def tester(start):
+        state = start
+        def nested(label):
+            print(label, state)
+        return nested
+
+    F = tester(0)
+    F('spam')
+    F('ham')
+    ```
+    运行结果如下：
+    ``` python
+    spam 0
+    ham 0
+    ```
+    - 使用nonlocal进行修改，即使通过名称F调用返回的nested函数时，tester已经返回并退出了，这也是有效的：
+    ``` python
+    def tester(start):
+        state = start
+        def nested(label):
+            nonlocal state # state，即nonlocal名称必须在外层def作用域中被赋值过，否则会得到一个错误。在全局作用域被赋值也会错误。
+            print(label, state)
+            state += 1
+        return nested
+
+    F = tester(0)
+    F('spam')
+    F('ham')
+    F('eggs')
+    ```
+    运行结果如下：
+    ``` python
+    spam 0
+    ham 1
+    eggs 2
+    ```
+    - 可以多次调用tester工厂（闭包）函数，以便在内存中获得其状态的多个副本：
+    ``` python
+    G = tester(42)
+    G('spam')
+    G('eggs')
+    F('bacon')
+    ```
+
+
+### 五、Why nonlocal? - State Retention Options
+1. 为什么选nonlocal  
+nonlocal增强了对外层作用域的引用：允许在内存中保持可更改状态的多个副本。
+
+2. 全局变量的状态：只有一个副本
+    ``` python
+    def tester(start):
+        global state 
+        state = start 
+        def nested(label):
+            global state
+            print(label, state)
+            state += 1
+        return nested
+    
+    F = tester(0)
+    F('spam')
+    F('eggs')
+    ```
+    运行结果如下：
+    ``` python
+    spam 0
+    eggs 1
+    ```
+    - 上述代码可能会引起全局作用域的名称冲突，并且只允许模块作用域中保存状态信息的单个共享副本；
+    - 如果再次调用tester，将会重置模块的state变量，而先前的调用的state会被覆盖：
+    ``` python
+    G = tester(42)
+    G('toast')
+    G('bacon')
+    F('ham')
+    ```
+    运行结果如下：
+    ``` python
+    toast 42
+    bacon 43
+    ham 44
+    ```
+
+3. 类的状态：显式属性（预习）
+    - 同嵌套函数和nonlocal一样，类支持所保存的数据存在多个副本：
+    ``` python
+    class tester:
+        def __init__(self, start):
+            self.state = start
+        def nested(self, label):
+            print(label, self.state)
+            self.state += 1
+
+    F = tester(0)
+    F.nested('spam')
+    F.nested('ham')
+
+    G = tester(42)
+    G.nested('toast')
+    G.nested('bacon')
+    F.nested('eggs')
+    print(F.state)
+    ```
+    - 预习：运算符重载把类对象用作可调用函数。__call__拦截了一个实例上的直接调用，因此无需调用方法（详见第30章）：
+    ``` python
+    class tester:
+        def __init__(self, start):
+            self.state = start
+        def __call__(self, label): 
+            print(label, self.state) 
+            self.state += 1
+    
+    H = tester(99)
+    H('juice')
+    H('pancakes')
+    ```
+
+4. **函数属性Function Attributes**的状态
+    - 可以使用函数属性来达到与nonlocal相同的效果。函数属性允许状态变量从内嵌函数的外部被访问，就像类属性那样（内嵌函数的属性必须在内嵌的def之后初始化）：
+    ``` python
+    def tester(start):
+        def nested(label):
+            print(label, nested.state)
+            nested.state += 1
+        nested.state = start # 因为要先定义内嵌函数nested()，否则nested.state的nested函数就没有来源
+        return nested
+
+    F = tester(0)
+    F('spam')
+    F('ham')
+    print(F.state)
+    ```
+    - 也支持调用多个副本：
+    ``` python
+    G = tester(42)
+    G('eggs')
+    F('ham')
+    print(G.state)
+    print(F is G)
+    ```
+    - 函数属性详见第19章。
+
+5. 可变对象State with mutables的状态
+    ``` python
+    def tester(start):
+        def nested(label):
+            print(label, state[0])
+            state[0] += 1
+        state = [start]
+        return nested
+    ```
+    - 这里利用了列表的可变性，而且与函数属性一样依赖于原位置对象修改不会将一个名称归类为局部。
+
+
+## chapter 18 Arguments
+### 一、Argument-Passing Basics
+1. 参数传递基础
+    - 参数的传递是通过自动将对象赋值给局部变量名来实现，参数都是通过指针传入的；
+    - 在函数内部赋值参数名不会影响调用者作用域的变量；
+    - 改变函数的可变对象也许会对调用者有影响。
+
+2. 参数和共享引用
+    ``` python
+    def f(a):
+        a = 99
+        print(a)
+    b = 88
+    f(b)
+    print(b)
+    ```
+    - 上述，在f(b)调用函数的时候，变量a被赋值了对象88；
+    - 但是a只存在于被调用的函数之中，在被调函数中修改a（即a=99）对于主动调用函数的地方没有影响。
+
+3. 可变对象的原位置修改
+    ``` python
+    def changer(a, b):
+        a = 2
+        b[0] = 'spam'
+        print(a, b)
+    X = 1
+    L = [1, 2]
+    changer(X, L)
+    print(X, L)
+    ```
+    - L和b引用了相同对象。
+
+4. 避免修改可变参数
+    - 可以通过`list.copy`或者无参数切片，来复制列表，创建一个副本：
+    ``` python
+    L = [1, 2]
+    changer(X, L[:])
+    print(X, L)
+    # 或者在函数内部复制
+    def changer(a, b):
+        b = b[:]
+        a = 2
+        b[0] = 'spam'
+    ```
+
+### 二、Special Argument-Matching Modes
+1. 特殊的参数匹配模式  
+默认情况下，参数按照从左到右的位置进行匹配。也可以通过*形式参数名*、*提供默认值的参数值*和*对额外参数使用容器collectors*三种方法来指定匹配。
+
+2. 参数匹配基础
+    - **位置参数Positionals**：从左到右；
+    - **关键字参数Keywords**：通过参数名进行匹配；
+    - **默认值参数Defaults**；
+    - **可变长参数Varargs**收集：收集任意多的基于位置或关键字的参数：*或**开头的特殊参数；
+    - **可变长参数Varargs解包unpacking**：传入任意多的基于位置或关键字的参数。
+
+3. 参数匹配语法
+
+| Syntax | Location | Interpretation |
+| :---- | :---- | :---- |
+| func(value) | 调用 | 常规参数：位置匹配 |
+| func(name=value) | 调用 | 关键字参数：名称匹配 | 
+| func(*iterable) | 调用 | 将iterable中所有对象作为独立的基于位置的参数传入 |
+| func(**dict) | 调用 | 将dict中所有的键/值对作为独立的关键字参数传入 |
+| def func(name) | 函数定义 | 常规参数：位置或名称匹配 |
+| def func(name=value) | 函数定义 | 默认值参数 |
+| def func(*name) | 函数定义 | 将剩下的基于位置的参数匹配并收集到一个元组中 |
+| def func(**name) | 函数定义 | 将剩下的关键字参数匹配并收集到一个字典中 |
+| def func(*other, name) | 函数定义 | 在调用中必须通过关键字传入的参数 |
+| def func(*, name=value) | 函数定义 | 在调用中必须通过关键字传入的参数 |
+
+4. 更深入的细节
+    - 如果组合使用特殊参数匹配模式，需遵循下面顺序规则：
+        - 函数调用的参数顺序：位置参数；关键字参数；*iterable形式的组合；**dict形式；
+        - 函数定义的参数顺序：一般参数；默认值参数；*name；keyword-only参数；**name。
+    - Python内部大致是使用以下的步骤来赋值前匹配参数的：
+        - 通过位置分配物关键字参数；
+        - 通过匹配名称分配关键字参数；
+        - 将剩下的非关键字参数分配到*name元组中；
+        - 将剩下的关键字参数分配到**name字典中；
+        - 把默认值分配给在头部未得到匹配的参数。
+    - 函数头部可以有个*注解值annotation values*，其指定形式为name:value，详见第19章函数注解。
+
+5. 关键字参数和默认值参数的示例
+    - 位置参数：
+    ``` python
+    def f(a, b, c): print(a, b, c)
+    f(1, 2, 3)
+    ```
+    - 关键字参数Keywords：
+    ``` python
+    f(c=3, b=2, a=1)
+    ```
+    - 混用位置参数和关键字参数：
+    ``` python
+    f(1, c=3, b=2) # 只能先位置参数再关键字参数
+    ```
+    - 默认值参数Defaults：
+    ``` python
+    def f(a, b=2, c=3): print(a, b, c)
+    f(1)
+    f(a=1)
+    ```
+    - 当函数传递2个值时，只有c得到默认值，当且仅当3个值传递时，不会使用默认值：
+    ``` python
+    f(1, 4)
+    f(1, 4, 5)
+    ```
+    - 关键字参数和默认值参数混用：
+    ``` python
+    f(1, c=6)
+    ```
+
+6. 混合使用关键字参数和默认值参数
+    ``` python
+    def func(spam, eggs, toast=0, ham=0):
+        print((spam, eggs, toast, ham))
+
+    func(1, 2)
+    func(1, ham=1, eggs=0) 
+    func(spam=1, eggs=0) 
+    func(toast=1, eggs=2, spam=3) 
+    func(1, 2, 3, 4)
+    ```
+    - 如果默认值参数是一个可变对象（比如def f(a=[])）。这个参数会保留上次调用的值，详见第21章陷阱。
+
+7. 可变长参数Arbitrary Arguments的实例
+    - **\*** 和 **\*\*** 旨在让函数支持接受任意多的参数：
+    
