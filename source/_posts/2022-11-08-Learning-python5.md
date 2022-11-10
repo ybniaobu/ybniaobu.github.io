@@ -13,7 +13,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 > 该书涉及的内容可能过于啰嗦，但包含一些python背后的逻辑和机制，值得初学者观看；  
 > 该笔记内容过多，所以不展示部分代码的结果，需复制到编辑器中查看；  
 > 学习完成日期为2022年10月20日。  
-> 本篇主要内容为：XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+> 本篇主要内容为：函数；作用域；参数；匿名函数。
 
 <div  align="center">  
 <img src="https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg" width = "80%" height = "80%" alt="Learning Python"/>
@@ -621,8 +621,8 @@ nonlocal增强了对外层作用域的引用：允许在内存中保持可更改
 
 4. 更深入的细节
     - 如果组合使用特殊参数匹配模式，需遵循下面顺序规则：
-        - 函数调用的参数顺序：位置参数；关键字参数；*iterable形式的组合；**dict形式；
-        - 函数定义的参数顺序：一般参数；默认值参数；*name；keyword-only参数；**name。
+        - *函数调用的参数顺序：位置参数；关键字参数；*iterable形式的组合；**dict形式*；
+        - *函数定义的参数顺序：一般参数；默认值参数；*name；keyword-only参数；**name*。
     - Python内部大致是使用以下的步骤来赋值前匹配参数的：
         - 通过位置分配物关键字参数；
         - 通过匹配名称分配关键字参数；
@@ -676,4 +676,453 @@ nonlocal增强了对外层作用域的引用：允许在内存中保持可更改
 
 7. 可变长参数Arbitrary Arguments的实例
     - **\*** 和 **\*\*** 旨在让函数支持接受任意多的参数：
+    - (1) 函数定义：收集参数
+    ``` python
+    def f(*args): print(args)
+    # "*"将所有基于位置的参数收集到新的元组
+    f()
+    f(1)
+    f(1, 2, 3, 4)
+    # "**"将关键字参数收集到一个新的字典中
+    def f(**args): print(args)
+    f()
+    f(a=1, b=2)
+    # 混用"*"和"**"
+    def f(a, *pargs, **kargs): print(a, pargs, kargs)
+    f(1, 2, 3, x=1, y=2)
+    ```
+    运行结果如下：
+    ``` python
+    ()
+    (1,)
+    (1, 2, 3, 4)
+    {}
+    {'a': 1, 'b': 2}
+    1 (2, 3) {'x': 1, 'y': 2}
+    ```
+    - (2) 函数调用：解包参数
+    ``` python
+    def func(a, b, c, d): print(a, b, c, d)
+    args = (1, 2)
+    args += (3, 4)
+    func(*args) # Same as func(1, 2, 3, 4) 解包参数
+    # 上面不能直接func(args) 因为它会以为整个（1，2，3，4）都是a，就没有b、c、d了
+    args = {'a': 1, 'b': 2, 'c': 3}
+    args['d'] = 4
+    func(**args) # Same as func(a=1, b=2, c=3, d=4) 解包键值对
+    # 混用
+    func(*(1, 2), **{'d': 4, 'c': 3})
+    func(1, *(2, 3), **{'d': 4})
+    func(1, c=3, *(2,), **{'d': 4})
+    func(1, *(2,), c=3, **{'d':4})
+    ```
+    运行结果如下：
+    ``` python
+    1 2 3 4
+    1 2 3 4
+    1 2 3 4
+    1 2 3 4
+    1 2 3 4
+    1 2 3 4
+    ```
+    - 注意1，在调用时的\*pargs形式是一个迭代上下文，接受迭代工具，解包参数；但在头部中的\*pargs，只是将额外参数绑定到一个元组；
+    - 注意2，**扩展序列解包**（主要区分）赋值创建列表而非元组：
+    ``` python
+    x, *y = 'spam'
+    print(x, y)
+    ```
+    运行结果如下：
+    ``` python
+    s ['p', 'a', 'm']
+    ```
+
+8. keyword-only参数
+    - `keyword-only参数`为出现在*args之后的参数，必须使用关键字语法调用：
+    ``` python
+    def kwonly(a, *b, c): print(a, b, c) # 这里的c因为在*b后面，所以只能使用关键字参数
+    kwonly(1, 2, c=3)
+    ```
+    - *可以在参数列表中使用一个"*"字符，使之后的参数只能作为关键字参数传入*：
+    ``` python
+    def kwonly(a, *, b, c): print(a, b, c)
+    kwonly(1, c=3, b=2)
+    kwonly(c=3, b=2, a=1)
+    ```
+
+9. 顺序规则
+    - 有名参数不能出现在\*\*args的后面，\*\*也不能单独出现在参数列表中，这2种做法都会产生语法错误；
+    - 也就是*顺序必须是参数（位置或关键字），\*args，keyword-only参数，\*\*args*：
+    ``` python
+    def f(a, *b, c=6, **d): print(a, b, c, d)
+    f(1, 2, 3, x=4, y=5)
+    f(1, 2, 3, x=4, y=5, c=7)
+    f(1, 2, 3, c=7, x=4, y=5)
+    def f(a, c=6, *b, **d): print(a, b, c, d)
+    f(1, 2, 3, x=4)
+    ```
+    - 在函数调用中也是类似的情况：
+    ``` python
+    def f(a, *b, c=6, **d): print(a, b, c, d)
+    f(1, *(2, 3), **dict(x=4, y=5))
+    f(1, *(2, 3), c=7, **dict(x=4, y=5))
+    f(1, c=7, *(2, 3), **dict(x=4, y=5))
+    f(1, *(2, 3), **dict(x=4, y=5, c=7))
+    ```
+
+
+## chapter 19 Advanced Function Topics
+### 一、Function Design Concepts
+1. 函数设计概念
+    - 函数的内聚性cohesion：将任务分解成有目的性的函数；
+    - 函数的耦合性coupling：函数之间相互通信；
+    - guidelines：
+        - 耦合性：在输入时使用参数，输出时使用return语句；
+        - 耦合性：只在真正必要的情况下使用全局变量；
+        - 耦合性：不要改变可变类型的参数，除非调用者希望这么做；
+        - 内聚性：每一个函数都应该有一个单一的、统一的目标；
+        - 大小：每一个函数应该相对较小；
+        - 耦合性：避免直接改变其他模块文件中的变量。
+
+### 二、Recursive Functions
+1. 用递归求和（**Recursive Functions递归函数**）
+    - 当以这种方式使用递归的时候，对于函数调用的每一个打开的层级来说，在运行时的调用栈上都有自己的一个函数局部作用域的副本，每个层级的L都是不同的：
+    ``` python
+    def mysum(L):
+        print(L)
+        if not L:
+            return 0
+        else:
+            return L[0] + mysum(L[1:])
+
+    print(mysum([1, 2, 3, 4, 5]))
+    ```
+    - 将上面函数分为2个：
+    ``` python
+    def mysum(L):
+        if not L: return 0
+        return nonempty(L)
     
+    def nonempty(L):
+        return L[0] + mysum(L[1:])
+
+    print(mysum([1.1, 2.2, 3.3, 4.4]))
+    ```
+
+2. 循环vs递归
+    - Python强调循环这样的简单过程式语句，循环语句更为自然；
+    - while语句：
+    ``` python
+    L = [1, 2, 3, 4, 5]
+    sum = 0
+    while L:
+        sum += L[0]
+        L = L[1:]
+    print(sum)
+    ```
+    - for循环：
+    ``` python
+    L = [1, 2, 3, 4, 5]
+    sum = 0
+    for x in L: sum += x
+    print(sum)
+    ```
+    - 有了循环语句，就不需要在调用栈上为每次迭代都保留一个局部作用域的副本，并避免相关的开销（详见第21章计时器）。
+
+3. 处理任意结构
+    - 递归能够遍历任意结构，比如嵌套子列表结构：[1, [2, [3, 4], 5], 6, [7, 8]]
+    ``` python
+    def sumtree(L):
+        tot = 0
+        for x in L:
+            if not isinstance(x, list):
+                tot += x
+            else:
+                tot += sumtree(x)
+        return tot
+
+    L = [1, [2, [3, 4], 5], 6, [7, 8]]
+    print(sumtree(L))
+    ```
+
+4. 递归Recursion vs 队列queue和栈stacks
+    - 在内部，Python通过每一次递归调用时把信息压入调用栈来实现递归；
+    - 实际上，不使用递归调用而实现递归风格的过程式编程是可能的；
+    - 例1：
+    ``` python
+    def sumtree(L):
+        tot = 0
+        items = list(L)
+        while items:
+            print(items)
+            front = items.pop(0)
+            if not isinstance(front, list):
+                tot += front
+            else:
+                items.extend(front) # extend方法可处理可迭代器，详见8-2和14-3，注意extend和append方法的不同
+        return tot
+    L = [1, [2, [3, 4], 5], 6, [7, 8]]
+    print(sumtree(L))
+    ```
+    - 上述代码采用**广度优先**的方式**breadth-first fashion**遍历了列表，形成了一个**先进先出的队列first-in-first-out queue**。
+    - 例2：
+    ``` python
+    def sumtree(L):
+        tot = 0
+        items = list(L)
+        while items:
+            print(items)
+            front = items.pop(0)
+            if not isinstance(front, list):
+                tot += front
+            else:
+                items[:0] = front
+        return tot
+    L = [1, [2, [3, 4], 5], 6, [7, 8]]
+    print(sumtree(L))
+    ```
+    - 上述代码执行**深度优先**遍历**depth-first traversal**，形成**后进先出的栈last-in-first-out stack**。
+
+5. 标准python限制了运行时调用栈的深度
+    - 可以使用sys模块来扩大这一上限：
+    ``` python
+    import sys
+    print(sys.getrecursionlimit())
+    sys.setrecursionlimit(10000)
+    print(sys.getrecursionlimit())
+    ```
+
+### 三、Function Objects: Attributes and Annotations
+1. 函数本身是对象，存储在内存块里，也支持**属性attribute**存储和**注解annotation**
+
+2. 间接函数调用：“一等”对象
+    - 函数对象可以赋值给其他的名称、传递给其他函数、嵌入到数据结构中、从一个函数返回给另一个函数；
+    - 函数和其他对象一样，属于一个通用类别，被称为first-class object model。
+    - 函数赋值给其他的名称：
+    ``` python
+    def echo(message):
+        print(message)
+    x = echo
+    x('Indirect call!')
+    ```
+    - 函数作为参数传入其他函数：
+    ``` python
+    def indirect(func, arg):
+        func(arg)
+    indirect(echo, 'Argument call!')
+    ```
+    - 函数对象存入数据结构：
+    ``` python
+    schedule = [ (echo, 'Spam!'), (echo, 'Ham!') ]
+    for (func, arg) in schedule:
+        func(arg)
+    ```
+    - 闭包closure：
+    ``` python
+    def make(label):
+        def echo(message):
+            print(label + ':' + message)
+        return echo
+
+    F = make('Spam')
+    F('Ham!')
+    F('Eggs!')
+    ```
+
+3. 函数自省Function Introspection
+    - **自省工具Introspection tools**允许我们探索实现细节，函数已经附加了代码对象，代码对象提供了函数局部变量和参数等方面的细节：
+    ``` python
+    def func(a):
+        b = 'spam'
+        return b * a
+    print(func.__code__)
+    print(dir(func.__code__))
+    print(func.__code__.co_varnames)
+    print(func.__code__.co_argcount)
+    ```
+    - 编写者可以利用这些信息来管理函数。
+
+4. 函数属性Function Attributes
+    - 函数对象除了系统定义的属性，还可以*附加任意用户定义的属性*：
+    ``` python
+    print(func)
+    func.count = 0
+    func.count += 1
+    print(func.count)
+    func.handles = 'Button-Press'
+    print(func.handles)
+    print(dir(func)) # 属性多了count和handles
+    ```
+    - 这些属性可以直接把状态信息附加到函数对象，而不必使用全局、非局部和类等技术。
+
+5. 函数注解Function Annotations
+    - **函数注解**编写在def头部行，对于参数，注解在参数的冒号后；对于返回值，在->后：
+    ``` python
+    def func(a: float, b: float, c: float) -> int:
+        return a + b + c
+    print(func(1, 2, 3))
+    print(func.__annotations__)
+    ```
+    - 编写了注解仍然可以对参数使用默认值：
+    ``` python
+    def func(a: float = 4, b: float = 5, c: float = 6) -> int:
+        return a + b + c
+    ```
+    - 注解只在def语句有效，对lambda表达式无效。
+
+### 四、Anonymous Functions: lambda
+1. lambda表达式基础
+    - `lambda argument1, argument2,... argumentN : expression using arguments`
+    - lambda是一个表达式，而不是语句，可以选择性地被赋值给一个变量名；
+    - lambda的主体是一个单独的表达式，而不是代码块；
+    - 可以使用lambda表达式，通过显式地将结果赋值给一个变量名，用变量名调用函数：
+    ``` python
+    f = lambda x, y, z: x + y + z
+    print(f(2, 3, 4))
+    ```
+    - lambda也可以使用默认参数：
+    ``` python
+    x = (lambda a="fee", b="fie", c="foe": a + b + c)
+    print(x("wee"))
+    ```
+    - lambda的代码与def一样都遵循LEGB规则：
+    ``` python
+    def knights():
+        title = 'Sir'
+        action = (lambda x: title + ' ' + x)
+        return action
+    act = knights()
+    msg = act('robin')
+    print(msg)
+    print(act)
+    ```
+
+2. 为什么使用lambda
+    - lambda起到一个函数速写的作用：
+    ``` python
+    L = [lambda x: x ** 2,
+        lambda x: x ** 3,
+        lambda x: x ** 4]
+
+    for f in L:
+        print(f(2))
+    print(L[0](3))
+    ```
+
+3. 多分支switch语句
+    - 用字典或其他数据结构构建动作表：
+    ``` python
+    key = 'got'
+    print({'already': (lambda: 2 + 2),
+        'got': (lambda: 2 * 4),
+        'one': (lambda: 2 ** 6)}[key]())
+    ```
+    - 不使用lambda，用def：
+    ``` python
+    def f1(): return 2 + 2
+    def f2(): return 2 * 4
+    def f3(): return 2 ** 6
+    key = 'one'
+    print({'already': f1, 'got': f2, 'one': f3}[key]())
+    ```
+
+4. lambda中嵌套选择逻辑或执行循环
+    ``` python
+    lower = (lambda x, y: x if x < y else y)
+    print(lower('bb', 'aa'))
+
+    import sys
+    showall = lambda x: list(map(sys.stdout.write, x))
+    t = showall(['spam\n', 'toast\n', 'eggs\n'])
+
+    showall = lambda x: [sys.stdout.write(line) for line in x]
+    t = showall(('bright\n', 'side\n', 'of\n', 'life\n'))
+    ```
+
+5. 作用域：lambda也能嵌套
+    ``` python
+    action = (lambda x: (lambda y: x + y))
+    act = action(99) # lambda先获取变量x
+    print(act(3))
+    print(((lambda x: (lambda y: x + y))(99))(4))
+    ```
+
+6. lambda回调（Callbacks）
+    - 你到一个商店买东西，刚好你要的东西没有货，于是你在店员那里留下了你的电话，过了几天店里有货了，店员就打了你的电话，然后你接到电话后就到店里去取了货。在这个例子里，你的电话号码就叫回调函数，你把电话留给店员就叫登记回调函数，店里后来有货了叫做触发了回调关联的事件，店员给你打电话叫做调用回调函数，你到店里去取货叫做响应回调事件。
+    - Python的tkinker GUI API定义内联的回调函数
+    - 例如：下面的代码创建了一个按钮，按钮按下会打印一行消息：
+    ``` python
+    import sys
+    from tkinter import Button, mainloop
+    x = Button(
+        text='Press me',
+        command=(lambda: sys.stdout.write('Spam\n')))
+    x.pack()
+    mainloop()
+    ```
+    - 回调处理器通过传递一个lambda函数作为command的关键字参数来注册的。
+
+### 五、Functional Programming Tools
+1. 函数式编程工具
+    - Python混合支持多种编程范式：过程式procedural（使用基础语句）；面向对象式object-oriented（使用类）；函数式functional；
+    - Python提供了一整套进行函数式编程的内置工具，把函数作用于序列和其他可迭代对象：
+    - 比如`map`：在可迭代对象的各项上调用函数的工具；`filter`：使用一个测试函数来过滤项；`reduce`：把函数作用在成对的项上来允许结果。
+
+2. 在可迭代对象上映射函数：map
+    ``` python
+    counters = [1, 2, 3, 4]
+    def inc(x): return x + 10
+    print(list(map(inc, counters)))
+    print(list(map((lambda x: x + 10), counters)))
+    ```
+    - 编写自己的映射工具：
+    ``` python
+    def mymap(func, seq):
+        res = []
+        for x in seq: res.append(func(x))
+        return res
+
+    print(mymap(inc, [1, 2, 3]))
+    ```
+    - map可用于多个序列：
+    ``` python
+    print(list(map(pow, [1, 2, 3], [2, 3, 4])))
+    ```
+
+3. 选择可迭代对象中的元素：filter
+    - filter也返回可迭代对象：
+    ``` python
+    print(list(filter((lambda x: x > 0), range(-5, 5))))
+    ```
+
+4. 合并可迭代对象中的元素：reduce
+    - reduce位于functools模块，接受并处理一个迭代器，返回一个结果（非迭代器）：
+    ``` python
+    from functools import reduce
+    print(reduce((lambda x, y: x + y), [1, 2, 3, 4]))
+    print(reduce((lambda x, y: x * y), [1, 2, 3, 4]))
+    ```
+    - 用for循环模拟reduce：
+    ``` python
+    L = [1,2,3,4]
+    res = L[0]
+    for x in L[1:]:
+        res = res + x
+    print(res)
+    ```
+    - 编写自己的reduce函数：
+    ``` python
+    def myreduce(function, sequence):
+        tally = sequence[0]
+        for next in sequence[1:]:
+            tally = function(tally, next)
+        return tally
+
+    print(myreduce((lambda x, y: x + y), [1, 2, 3, 4, 5]))
+    print(myreduce((lambda x, y: x * y), [1, 2, 3, 4, 5]))
+    ```
+    - 内置的operator模块，提供了内置表达式对应的函数：
+    ``` python
+    import operator, functools
+    print(functools.reduce(operator.add, [2, 4, 6]))
+    print(functools.reduce((lambda x, y: x + y), [2, 4, 6]))
+    ```
