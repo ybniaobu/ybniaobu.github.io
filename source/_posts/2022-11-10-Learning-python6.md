@@ -709,12 +709,10 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     - from只是把名称从一个模块复制到另一个模块，但是不会对模块名本身进行赋值；
     - 所以从概念上来说，以下2段代码是等价的
         - `from module import name1, name2`；
-        - ``` python
-            import module  
+        - import module  
             name1 = module.name1  
             name2 = module.name2  
             del module
-            ```
     - 跟所有赋值语句一样，from语句会在导入者中创建新的变量，而这些变量在初始化时引用了被导入文件中的同名对象，不过，只复制了名称，没复制引用的对象。
 
 6. Potential Pitfalls潜在陷阱 of the from Statement
