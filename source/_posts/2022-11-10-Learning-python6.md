@@ -13,7 +13,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 > 该书涉及的内容可能过于啰嗦，但包含一些python背后的逻辑和机制，值得初学者观看；  
 > 该笔记内容过多，所以不展示部分代码的结果，需复制到编辑器中查看；  
 > 学习完成日期为2022年10月20日。  
-> 本篇主要内容为：XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+> 本篇主要内容为：列表推导表达式；生成器函数；生成器表达式；计时器；模块基础。
 
 <div  align="center">  
 <img src="https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg" width = "80%" height = "80%" alt="Learning Python"/>
@@ -618,7 +618,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
         不常用，python允许用户把需要的目录写在后缀名为.pth的文本文件中一行一行列出来，作为PYTHONPATH设置的一种替代方案；可以把文件放在python安装目录的顶层（C:\Python33）或者标准库所在位置的sitepackages子目录（C:\Python33\Lib\site-packages）。
         - 第三方扩展应用的site-packages主目录（自动的）；  
         python会自动将标准库的site-packages子目录添加到模块搜索路径。
-        - 以上5个组件组合成了sys.path。
+        - 以上5个组件组合成了`sys.path`。
 
 2. Configuring the Search Path配置搜索路径
     - 可以通过【我的电脑】-【属性】-【高级系统设置】-【环境变量】-【新建】，变量名写PYTHONPATH，变量值就是你要导入模块的路径；或者在python安装目录下创建.pth文本文件。
@@ -643,4 +643,200 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 
 ## chapter 23 Module Coding Basics
 ### 一、Module Creation and Usage
-1. import语句
+1. `import语句`和`from语句`
+    ``` python
+    import module
+    module.method()
+
+    from module import method
+    method()
+    ```
+
+2. `from*语句`
+    - 当我们使用*代替特定名称时，会取得模块顶层被赋值的所有名称的副本：
+    ``` python
+    from module import *
+    method()
+    ```
+
+3. Imports Happen Only Once导入只发生一次
+    - simple.py如下：
+    ``` python
+    print('hello')
+    spam = 1
+    ```
+    - 导入执行从头到尾执行一次module文件：
+    ``` python
+    import simple # 执行了代码，打印了hello
+    print(simple.spam)
+    ```
+    - 第二次导入并不会重新执行该模块的代码，只是从内部模块表取出已创建的模块对象：
+    ``` python
+    simple.spam = 2
+    import simple
+    print(simple.spam)
+    ```
+    - 如果需要再一次运行，需要内置函数`reload`，见后面。
+
+4. import和from是赋值语句
+    - import和from是可执行语句，可以被嵌套在if测试里，在def里等等；
+    - import和from是隐式的赋值语句；
+    - *import将整个模块对象赋值给一个单独名称*；
+    - *from将一个或多个名称赋值给另一个模块中的同名对象*；
+    - *以from复制的名称会变成对共享对象的引用，所以要小心共享的可变对象*：
+    - 比如small.py，如下：
+    ``` python
+    x = 1
+    y = [1, 2]
+    ```
+    导入small.py：
+    ``` python
+    from small import x, y
+    x = 42 # Changes local x only
+    y[0] = 42
+    import small
+    print(small.x)
+    print(small.y)
+    ```
+    - 若想修改另一文件的全局变量名，必须用import：
+    ``` python
+    import small
+    small.x = 42 # Changes x in other module
+    print(small.x)
+    ```
+
+5. import and from Equivalence等价性
+    - from只是把名称从一个模块复制到另一个模块，但是不会对模块名本身进行赋值；
+    - 所以从概念上来说，以下2段代码是等价的
+        - `from module import name1, name2`；
+        - ``` python
+            import module  
+            name1 = module.name1  
+            name2 = module.name2  
+            del module
+            ```
+    - 跟所有赋值语句一样，from语句会在导入者中创建新的变量，而这些变量在初始化时引用了被导入文件中的同名对象，不过，只复制了名称，没复制引用的对象。
+
+6. Potential Pitfalls潜在陷阱 of the from Statement
+    - 因为from语句会让变量的位置更隐式和模糊，所以推荐使用import而不是from，虽然使用from也没什么太多可怕的后果。
+
+
+### 二、Module Namespaces
+1. 模块命名空间
+    - 理解模块的一种方式就是把它看作名称的封装；
+    - 模块就是命名空间，存在于一个模块内的名称被称为模块对象的属性。
+        - 模块语句会在首次导入时执行：模块被导入时，python会建立空的模块对象，并逐一执行该模块文件内的语句；
+        - 顶层的赋值语句会创建模块属性：在导入时，文件顶层（即不在def与class之内）的赋值名称语句会建立对象的属性，存储在模块的命名空间里；
+        - 模块的命名空间可以通过属性__dict__会dir(M)获取；
+        - 模块是一个独立的作用域：模块文件的作用域在模块导入后就成为模块对象属性的命名空间。
+    - 模块在首次导入，从头到尾执行语句：
+    ``` python
+    # module2.py
+    print('starting to load...')
+    import sys
+    name = 42
+
+    def func(): pass
+
+    class klass: pass
+
+    print('done loading.')
+    ```
+    ``` python
+    import module2
+    ```
+    - 模块被加载后，它的作用域就变成了返回的模块对象的一个属性命名空间：
+    ``` python
+    print(module2.sys)
+    print(module2.name)
+    print(module2.func)
+    print(module2.klass)
+    ```
+
+2. 命名空间字典：__dict__
+    - 在内部，模块命名空间被存储为字典对象：
+    ``` python
+    print(list(module2.__dict__.keys()))
+    ```
+    - 里面的__file__指明模块是从哪个文件加载，__name__指明导入者的名称。
+
+3. Attribute Name Qualification属性名称的点号运算  
+**qualification点号运算** (a.k.a. attribute fetch属性获取) syntax object.attribute
+
+4. 导入vs作用域
+    - moda.py：
+    ``` python
+    X = 88
+    def f():
+        global X
+        X = 99
+    ```
+    ``` python
+    X = 11
+
+    import moda 
+    moda.f() 
+    print(X, moda.X)
+    ```
+    - moda.f()修改了moda中的X，而不是这个文件的X。moda.f的全局作用域一定是所在文件；
+    - 一段代码的作用域完全由该代码在文件中所处的实际位置决定。作用域绝不会被函数调用或模块导入影响。
+
+5. 命名空间的嵌套Namespace Nesting
+    - 虽然导入不会使命名空间发送向上的嵌套，但确实会发生向下的嵌套。
+    ``` python
+    # mod3.py
+    X = 3
+    ```
+    ``` python
+    # mod2.py
+    X = 2
+    import mod3
+
+    print(X, end=' ')
+    print(mod3.X)
+    ```
+    ``` python
+    X = 1
+    import mod2 # 打印出2 3
+
+    print(X, end=' ') # 打印1
+    print(mod2.X, end=' ') # 打印2
+    print(mod2.mod3.X) # 打印3
+    ```
+    - 无法编写`import mod2.mod3`。这会启用包导入，在下一章介绍。
+
+
+### 三、Reloading Modules
+1. Reloading Modules
+    - 要强制使模块代码重新载入并重新运行，要调用`reload内置函数`。
+
+2. reload基础
+    - reload是函数，不是语句；reload传入的参数是一个存在的模块对象；reload在python 3.X中位于模块之中，需要导入才能使用；
+    - 一般的用法是导入一个模块，在文本编辑器内修改其代码，然后将其重新加载；
+    - 当调用reload时，Python会重读模块文件的源代码，重新执行其顶层语句；
+    - reload会在原位置修改模块对象，reload并不会删除并重新创建模块对象。
+        - reload会在模块当前命名空间内执行模块文件的新代码：覆盖其现有命名空间而不是删除重建；
+        - 文件中顶层赋值语句会将名称替换为新的值；
+        - 重新加载只会对以后使用from的用户程序造成影响，之前使用from来读取属性的程序不会受到重新加载影响；
+        - 重新加载会影响所以使用import读取了模块的用户程序；
+        - 重新加载只适用于单一的模块。
+
+3. reload示例
+    - 要用python解释器演示，上述函数打印出来后，不要关掉解释器，此时修改changer.py文件的代码，然后调用reload：
+    ``` python
+    # changer.py
+    message = "First version"
+    def printer():
+        print(message)
+    ```
+    ``` python
+    import changer
+    changer.printer()
+    ```
+    修改后：
+    ``` python
+    from importlib import reload
+    reload(changer) # reload会返回模块对象<module 'changer' from XXXXXXXXXX>
+    changer.printer() # 这时候会显示修改后的结果
+    ```
+    - 除了在交互式命令行下重新加载模块外，模块重新加载在较大程序也十分有用，重新加载使程序能够提供高度动态的接口。
