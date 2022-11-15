@@ -22,7 +22,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 # PART IV Functions and Generators
 ## chapter 20 Comprehensions and Generations
 ### 一、List Comprehensions and Functional Tools
-1. list comprehensions apply an arbitrary expression to items in an iterable, rather than applying a function.
+1. list comprehensions apply an arbitrary expression to items in an iterable, rather than applying a function. 
 
 2. List Comprehensions Versus map
     - 用循环收集字符串中字符的ASCII编码：
