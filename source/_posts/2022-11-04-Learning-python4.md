@@ -592,7 +592,7 @@ for line in open('13-while and for Loops/test.txt'): # 文件迭代器
     print(dir(list) == dir([]))
     ```
 
-4. 文档字符串：__doc__
+4. 文档字符串：\_\_doc\_\_
     - Python会自动装载文档字符串的文本，使其成为相应对象的`__doc__属性`：
     ``` python
     import docstrings

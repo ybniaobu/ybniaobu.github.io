@@ -593,37 +593,37 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     - 包括表达式运算符Expression Operators；内置数学函数；工具模块
     - 下面的运算符从上到下优先级逐渐升高：
 
-    | Operators | Description |
-    | :-----| :-----|
-    | yield x | 生成器函数send协议 |
-    | lambda args: expression | 创建匿名函数 |
-    | x if y else z | 三元选择表达式（仅当y为真时，x才会被计算）Ternary selection |
-    | x or y | 逻辑或（仅当x为假时，y才会被计算）Logical OR |
-    | x and y | 逻辑与（仅当x为真时，y才会被计算）Logical AND |
-    | not x | 逻辑非Logical negation |
-    | x in y, x not in y | 成员关系 (iterables, sets) |
-    | x is y, x is not y | 对象同一性测试 |
-    | x < y, x <= y, x > y, x >= y | 大小比较、集合的子集和超集subset and superset |
-    | x == y, x != y | 值等价性运算符 |
-    | x | y | 按位与、集合交集Bitwise OR, set union |
-    | x ^ y | 按位异或、集合对称差集Bitwise XOR, set symmetric difference |
-    | x & y | 按位与、集合交集Bitwise AND, set intersection |
-    | x << y, x >> y | 将x左移或右移y位Shift x left or right by y bits |
-    | x + y | 加法、拼接Addition, concatenation |
-    | x – y | 减法、集合差集Subtraction, set difference |
-    | x * y | 乘法、重复Multiplication, repetition |
-    | x % y | 取余数、格式化字符串Remainder, format |
-    | x / y, x // y | 真除法、向下取整除法Division: true and floor |
-    | −x, +x | 取负、取正Negation, identity |
-    | ˜x | 按位非（取反码）Bitwise NOT (inversion) |
-    | x ** y | 幂运算（指数）Power (exponentiation) |
-    | x[i] | 索引（序列、映射等）Indexing (sequence, mapping, others) |
-    | x[i:j:k] | 分片Slicing |
-    |x(...) | 调用（函数、方法、类，其他可调用对象）Call (function, method, class, other callable) |
-    | x.attr | 属性引用Attribute reference |
-    | (...) | 元组、表达式、生成器表达式 Tuple, expression, generator expression |
-    | [...] | 列表、列表推导List, list comprehension |
-    | {...} | 字典、集合、集合与字典推导Dictionary, set, set and dictionary comprehensions |
+| Operators | Description |
+| :---- | :---- |
+| yield x | 生成器函数send协议 |
+| lambda args: expression | 创建匿名函数 |
+| x if y else z | 三元选择表达式（仅当y为真时，x才会被计算）Ternary selection |
+| x or y | 逻辑或（仅当x为假时，y才会被计算）Logical OR |
+| x and y | 逻辑与（仅当x为真时，y才会被计算）Logical AND |
+| not x | 逻辑非Logical negation |
+| x in y, x not in y | 成员关系 (iterables, sets) |
+| x is y, x is not y | 对象同一性测试 |
+| x < y, x <= y, x > y, x >= y | 大小比较、集合的子集和超集subset and superset |
+| x == y, x != y | 值等价性运算符 |
+| x &#124; y | 按位与、集合交集Bitwise OR, set union |
+| x ^ y | 按位异或、集合对称差集Bitwise XOR, set symmetric difference |
+| x & y | 按位与、集合交集Bitwise AND, set intersection |
+| x << y, x >> y | 将x左移或右移y位Shift x left or right by y bits |
+| x + y | 加法、拼接Addition, concatenation |
+| x – y | 减法、集合差集Subtraction, set difference |
+| x * y | 乘法、重复Multiplication, repetition |
+| x % y | 取余数、格式化字符串Remainder, format |
+| x / y, x // y | 真除法、向下取整除法Division: true and floor |
+| −x, +x | 取负、取正Negation, identity |
+| ˜x | 按位非（取反码）Bitwise NOT (inversion) |
+| x ** y | 幂运算（指数）Power (exponentiation) |
+| x[i] | 索引（序列、映射等）Indexing (sequence, mapping, others) |
+| x[i:j:k] | 分片Slicing |
+|x(...) | 调用（函数、方法、类，其他可调用对象）Call (function, method, class, other callable) |
+| x.attr | 属性引用Attribute reference |
+| (...) | 元组、表达式、生成器表达式 Tuple, expression, generator expression |
+| [...] | 列表、列表推导List, list comprehension |
+| {...} | 字典、集合、集合与字典推导Dictionary, set, set and dictionary comprehensions |
 
 4. 运算符重载和多态Operator overloading and polymorphism
     - Python itself automatically overloads some operators, such that they perform different actions depending on the type of built-in objects being processed.

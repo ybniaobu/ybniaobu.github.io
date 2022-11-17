@@ -660,23 +660,24 @@ print(L, M)
 ```
 
 ### 二、Expression Statements
-1. 常见的表达式语句  
-    | Operation | Interpretation |
-    | :---- | :---- |
-    | spam(eggs, ham) | 函数调用 |
-    | spam.ham(eggs) | 方法调用 |
-    | spam | 在交互式解释器打印 |
-    | print(a, b, c) | print语句 |
-    | yield x ** 2 | yield表达式语句 |
+1、常见的表达式语句  
 
-    表达式作为语句（让表达式独占一行），这样不会存储表达式结果。  
-    print也会像其他函数调用一样返回一个值（返回值为None，为不返回任何有意义内容的函数的默认返回值）：
-    ``` python
-    x = print('spam')
-    print(x)
-    ```
+| Operation | Interpretation |
+| :---- | :---- |
+| spam(eggs, ham) | 函数调用 |
+| spam.ham(eggs) | 方法调用 |
+| spam | 在交互式解释器打印 |
+| print(a, b, c) | print语句 |
+| yield x ** 2 | yield表达式语句 |
 
-2. 表达式语句用于原位置修改
+表达式作为语句（让表达式独占一行），这样不会存储表达式结果。  
+print也会像其他函数调用一样返回一个值（返回值为None，为不返回任何有意义内容的函数的默认返回值）：
+``` python
+x = print('spam')
+print(x)
+```
+
+2、 表达式语句用于原位置修改
 ``` python
 L = [1, 2]
 L.append(3) # 表达式语句

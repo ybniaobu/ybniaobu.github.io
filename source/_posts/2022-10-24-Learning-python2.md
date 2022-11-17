@@ -151,26 +151,26 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     ```
     - 字符串反斜杠字符合集String backslash characters
 
-| Escape | Meaning |
-| :---- | :---- |
-| \newline | 行的延续，一句代码太长了，直接回车会报错，写个\再换行，就会当做同一行处理 |
-| \\ | 反斜杠 Backslash (保留一个\) |
-| \' | 单引号 Single quote (保留 ') |
-| \" | 双引号 Double quote (保留 ") |
-| \a | 响铃 Bell |
-| \b | 退格 Backspace |
-| \f | 换页 Formfeed |
-| \n | 换行 Newline (linefeed) |
-| \r | 回车 Carriage return |
-| \t | 水平制表符 Horizontal tab |
-| \v | 垂直制表符 Vertical tab |
-| \xhh | 十六进制 Character with hex value hh (exactly 2 digits) |
-| \ooo | 八进制 Character with octal value ooo (up to 3 digits) |
-| \0 | 空字符：二进制的0字符 |
-| \N{ id } | Unicode数据库ID（不包括前面的r） |
-| \uhhhh | 16位十六进制值的Unicode值 Unicode character with 16-bit hex value |
-| \Uhhhhhhhh | 32位的十六进制的Unicode值 |
-| \other | Not an escape (keeps both \ and other) |
+| Escape | Meaning | 
+| :---- | :---- | 
+| \newline | 行的延续，一句代码太长了，直接回车会报错，写个\再换行，就会当做同一行处理 | 
+| \\ | 反斜杠 Backslash (保留一个\\) | 
+| \' | 单引号 Single quote (保留 ') | 
+| \" | 双引号 Double quote (保留 ") | 
+| \a | 响铃 Bell | 
+| \b | 退格 Backspace | 
+| \f | 换页 Formfeed | 
+| \n | 换行 Newline (linefeed) | 
+| \r | 回车 Carriage return | 
+| \t | 水平制表符 Horizontal tab | 
+| \v | 垂直制表符 Vertical tab | 
+| \xhh | 十六进制 Character with hex value hh (exactly 2 digits) | 
+| \ooo | 八进制 Character with octal value ooo (up to 3 digits) | 
+| \0 | 空字符：二进制的0字符 | 
+| \N{ id } | Unicode数据库ID（不包括前面的r） | 
+| \uhhhh | 16位十六进制值的Unicode值 Unicode character with 16-bit hex value | 
+| \Uhhhhhhhh | 32位的十六进制的Unicode值 |  
+| \other | Not an escape (keeps both \ and other) | 
 
 3. ***原始字符串Raw Strings***
     - 例如：`myfile = open('C:\new\text.dat', 'w')`
@@ -400,7 +400,6 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
     ```
     0.333333, 0.33, 0.3333
     ```
-
 
 7. 基于字典的格式化表达式    
     - `print('%(qty)d more %(food)s' % {'qty': 1, 'food': 'spam'})`
