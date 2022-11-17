@@ -1,9 +1,9 @@
-<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>《C#图解教程》读书笔记（一） | 鸟布的博客</title><meta name="keywords" content="读书笔记,.net,C#"><meta name="author" content="鸟布"><meta name="copyright" content="鸟布"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="该笔记为 《C#图解教程》 的读书笔记，未经过系统的整理；学习完成日期为XXXX年XX月XX日。本篇主要内容为：XXXXXXXXXXXXXXXXXXXXXXX        第一章 C#和.NET框架.NET框架的组成.NET框架（.NET Framework）由三个部分组成：       执行环境称为CLR（Common Language Runtime 公共语言运行库）；CLR管理程序的执行">
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>《C#图解教程》读书笔记（一） | 鸟布的博客</title><meta name="keywords" content="读书笔记,.net,C#"><meta name="author" content="鸟布"><meta name="copyright" content="鸟布"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="该笔记为 《C#图解教程》 的读书笔记，未经过系统的整理； 学习完成日期为XXXX年XX月XX日。 本篇主要内容为：XXXXXXXXXXXXXXXXXXXXXXX       第一章 C#和.NET框架 .NET框架的组成 .NET框架（.NET Framework）由三个部分组成：      执行环境称为CLR（Common Language Runtime 公共语言运行库）；CLR管理程序的">
 <meta property="og:type" content="article">
 <meta property="og:title" content="《C#图解教程》读书笔记（一）">
 <meta property="og:url" content="https://ybniaobu.github.io/2022/10/28/2022-10-28-C_sharp%E5%9B%BE%E8%A7%A3%E6%95%99%E7%A8%8B/index.html">
 <meta property="og:site_name" content="鸟布的博客">
-<meta property="og:description" content="该笔记为 《C#图解教程》 的读书笔记，未经过系统的整理；学习完成日期为XXXX年XX月XX日。本篇主要内容为：XXXXXXXXXXXXXXXXXXXXXXX        第一章 C#和.NET框架.NET框架的组成.NET框架（.NET Framework）由三个部分组成：       执行环境称为CLR（Common Language Runtime 公共语言运行库）；CLR管理程序的执行">
+<meta property="og:description" content="该笔记为 《C#图解教程》 的读书笔记，未经过系统的整理； 学习完成日期为XXXX年XX月XX日。 本篇主要内容为：XXXXXXXXXXXXXXXXXXXXXXX       第一章 C#和.NET框架 .NET框架的组成 .NET框架（.NET Framework）由三个部分组成：      执行环境称为CLR（Common Language Runtime 公共语言运行库）；CLR管理程序的">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://s2.loli.net/2022/10/28/YztgSrJ6BTOWRLU.jpg">
 <meta property="article:published_time" content="2022-10-28T01:42:57.000Z">
@@ -145,87 +145,107 @@
     }
     detectApple()
     })(window)</script><meta name="generator" content="Hexo 6.2.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/images/wechat%20avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">14</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">9</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('https://s2.loli.net/2022/10/28/YztgSrJ6BTOWRLU.jpg')"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">鸟布的博客</a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">《C#图解教程》读书笔记（一）</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2022-10-28T01:42:57.000Z" title="发表于 2022-10-28 09:42:57">2022-10-28</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2022-11-16T06:24:17.019Z" title="更新于 2022-11-16 14:24:17">2022-11-16</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/C/">C#</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/C/C-%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/">C#读书笔记</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">5.3k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>19分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="《C#图解教程》读书笔记（一）"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><blockquote>
-<p>该笔记为 <strong>《C#图解教程》</strong> 的读书笔记，未经过系统的整理；<br>学习完成日期为XXXX年XX月XX日。<br>本篇主要内容为：XXXXXXXXXXXXXXXXXXXXXXX</p>
+<p>该笔记为 <strong>《C#图解教程》</strong> 的读书笔记，未经过系统的整理；<br>
+学习完成日期为XXXX年XX月XX日。<br>
+本篇主要内容为：XXXXXXXXXXXXXXXXXXXXXXX</p>
 </blockquote>
 <div  align="center">  
 <img src="https://s2.loli.net/2022/10/31/VLR94de6aqA3WPw.jpg" width = "80%" height = "80%" alt="C#图解教程"/>
 </div>
-
-<h1 id="第一章-C-和-NET框架"><a href="#第一章-C-和-NET框架" class="headerlink" title="第一章 C#和.NET框架"></a>第一章 C#和.NET框架</h1><h2 id="NET框架的组成"><a href="#NET框架的组成" class="headerlink" title=".NET框架的组成"></a>.NET框架的组成</h2><p>.NET框架（.NET Framework）由三个部分组成：</p>
+<h1>第一章 C#和.NET框架</h1>
+<h2 id="NET框架的组成">.NET框架的组成</h2>
+<p>.NET框架（.NET Framework）由三个部分组成：</p>
 <div  align="center">  
 <img src="https://s2.loli.net/2022/10/31/sjP4eQIFqxNv65C.png" width = "30%" height = "30%" alt=".NET框架的组成"/>
 </div>
-
 <p>执行环境称为<strong>CLR</strong>（Common Language Runtime 公共语言运行库）；CLR管理程序的执行，包括内存管理和垃圾收集（GC garbage collector 垃圾收集器）；代码安全验证；代码执行、线程管理及异常处理。</p>
 <p>严格来说，.NET框架由<strong>CLR</strong>和<strong>FCL</strong>（Framework Class Library 框架类库）组成，FCL是BCL的超集。</p>
 <p><strong>BCL</strong>（Base Class Library 基类库）是.NET框架使用的一个大的类库。包括通用基础类：比如文件操作、字符串操作、安全和加密；集合类：实现了列表、字典、散列表（hash tables）以及位数组（bit arrays）；线程和同步类：用于创建多线程程序；XML类：用于创建、读取及操作XML文档。</p>
 <blockquote>
-<p>以下内容摘《C#播放器指南》一书。  </p>
-<p>BCL包含所有的内置类型、数组、异常、数学库、基本文件I&#x2F;O、安全性、集合、反射、联网、字符串操作、线程等等。一般规则是任何以System开头的名称空间都是BCL的一部分。</p>
+<p>以下内容摘《C#播放器指南》一书。</p>
+<p>BCL包含所有的内置类型、数组、异常、数学库、基本文件I/O、安全性、集合、反射、联网、字符串操作、线程等等。一般规则是任何以System开头的名称空间都是BCL的一部分。</p>
 <p>除了BCL之外，微软还随.NET框架提供了更多的类。通常，这些附加内容涵盖了广泛的功能领域，例如数据库访问或图形用户界面(Windows窗体或WPF)。包括BCL在内的整个集合被称为框架类库FCL。</p>
 </blockquote>
-<h2 id="编译为CIL"><a href="#编译为CIL" class="headerlink" title="编译为CIL"></a>编译为CIL</h2><p>.NET语言的解释器接受源代码文件，并生成名为<strong>程序集Assembly</strong>的输出文件：</p>
+<h2 id="编译为CIL">编译为CIL</h2>
+<p>.NET语言的解释器接受源代码文件，并生成名为<strong>程序集Assembly</strong>的输出文件：</p>
 <div  align="center">  
 <img src="https://s2.loli.net/2022/10/31/Q9dpN3izqSuKmGD.png" width = "45%" height = "45%" alt="编译过程"/>
 </div>
-
 <p><strong>程序集</strong>中的代码不是本机代码，而是<strong>CIL</strong>（Common Intermediate Language 公共中间语言）</p>
 <p>程序集的信息中包括：程序的CIL；程序中使用的类型的元数据（Metadata）；对其他程序集引用的元数据。</p>
-<h2 id="编译成本机代码（Native-Code）并执行"><a href="#编译成本机代码（Native-Code）并执行" class="headerlink" title="编译成本机代码（Native Code）并执行"></a>编译成本机代码（Native Code）并执行</h2><p>程序的CIL直到被调用运行时才会被编译成本机代码。在运行时，CLR执行以下步骤：<br>（1）检查程序集的安全特性；<br>（2）在内存中分配空间；<br>（3）把程序集中的可执行代码发给即时编译器（just-in-time JIT compiler），把其中一部分编译成本机代码。</p>
+<h2 id="编译成本机代码（Native-Code）并执行">编译成本机代码（Native Code）并执行</h2>
+<p>程序的CIL直到被调用运行时才会被编译成本机代码。在运行时，CLR执行以下步骤：<br>
+（1）检查程序集的安全特性；<br>
+（2）在内存中分配空间；<br>
+（3）把程序集中的可执行代码发给即时编译器（just-in-time JIT compiler），把其中一部分编译成本机代码。</p>
 <div  align="center">  
 <img src="https://s2.loli.net/2022/10/31/AtdGz26FTm4voMn.png" width = "40%" height = "40%" alt="运行时被编译成本机代码"/>
 </div>
-
 <p>程序集中的可执行代码只有在被需要时由JIT编译器编译，然后就被缓存cache起来以备在后来的程序中执行。这意味着不被调用的代码不会被编译成本机代码，而且被调用到的代码只被编译一次。</p>
 <p>一旦CIL被编译成本机代码，CLR就在运行时管理它，执行如释放无主内存、检查参数类型、管理异常等任务。在CLR控制之下的代码称为托管代码（managed code）；而不在CLR控制之下运行的代码为非托管代码。</p>
-<h2 id="CLR"><a href="#CLR" class="headerlink" title="CLR"></a>CLR</h2><p>.NET框架的核心组件是<strong>CLR</strong>，它在操作系统顶层，负责管理程序的执行：</p>
+<h2 id="CLR">CLR</h2>
+<p>.NET框架的核心组件是<strong>CLR</strong>，它在操作系统顶层，负责管理程序的执行：</p>
 <div  align="center">  
 <img src="https://s2.loli.net/2022/11/01/iltGr4vmNuyMsA1.png" width = "50%" height = "50%" alt="CLR概览"/>
 </div>
-
 <p>CLR还通过访问BCL得到广泛的编程功能，包括如Web服务和数据服务之类的功能。</p>
-<h2 id="CLI"><a href="#CLI" class="headerlink" title="CLI"></a>CLI</h2><p>每种编程语言都有一组内置的类型，包括整数、浮点数和字符等对象。但是这些类型因为编程语言和平台的不同而不同，这种缺乏统一性需要一组标准促进有序协作。</p>
+<h2 id="CLI">CLI</h2>
+<p>每种编程语言都有一组内置的类型，包括整数、浮点数和字符等对象。但是这些类型因为编程语言和平台的不同而不同，这种缺乏统一性需要一组标准促进有序协作。</p>
 <p><strong>CLI</strong>（Common Language Infrastructure 公共语言基础结构）就是一组标准，它把.NET框架的所有组件连结成了一个系统。</p>
 <div  align="center">  
 <img src="https://s2.loli.net/2022/11/01/Qq9xHIoUvszDgZh.png" width = "55%" height = "55%" alt="CLI组成"/>
 </div>
-
 <ol>
-<li><p>公共类型系统<br><strong>CTS</strong>（Common Type System 公共类型系统），它定义了一组内置类型；.NET兼容编程语言提供的类型通常映射到CTS已定义的内置类型集的某个特殊子集；<em><strong>CTS让所有类型都继承自公共的基类——object</strong></em>；CTS确保用户定义的类型和系统类型能够被任何.NET兼容的语言使用。</p>
+<li>
+<p>公共类型系统<br>
+<strong>CTS</strong>（Common Type System 公共类型系统），它定义了一组内置类型；.NET兼容编程语言提供的类型通常映射到CTS已定义的内置类型集的某个特殊子集；<em><strong>CTS让所有类型都继承自公共的基类——object</strong></em>；CTS确保用户定义的类型和系统类型能够被任何.NET兼容的语言使用。</p>
 </li>
-<li><p>公共语言规范<br><strong>CLS</strong>（Common Language Specification 公共语言规范）详细说明了.NET兼容编程语言的规则、属性和行为，包括数据类型、类结构和参数传递）。</p>
+<li>
+<p>公共语言规范<br>
+<strong>CLS</strong>（Common Language Specification 公共语言规范）详细说明了.NET兼容编程语言的规则、属性和行为，包括数据类型、类结构和参数传递）。</p>
 </li>
 </ol>
-<h1 id="第二章-C-和-NET-Core"><a href="#第二章-C-和-NET-Core" class="headerlink" title="第二章 C#和.NET Core"></a>第二章 C#和.NET Core</h1><h2 id="NET-Core的由来"><a href="#NET-Core的由来" class="headerlink" title=".NET Core的由来"></a>.NET Core的由来</h2><p>为了更好地解决Web开发以及Linux或macOS的开发，微软用.NET框架搭建了一个基于云的、跨平台的、开源衍生产品，这个新框架即 <strong>.NET Core</strong>。微软也收购了Xamarin以解决Android和IOS等移动平台的开发问题。</p>
+<h1>第二章 C#<a target="_blank" rel="noopener" href="http://xn--0tr.NET">和.NET</a> Core</h1>
+<h2 id="NET-Core的由来">.NET Core的由来</h2>
+<p>为了更好地解决Web开发以及Linux或macOS的开发，微软用.NET框架搭建了一个基于云的、跨平台的、开源衍生产品，这个新框架即 <strong>.NET Core</strong>。微软也收购了Xamarin以解决Android和IOS等移动平台的开发问题。</p>
 <div  align="center">  
 <img src="https://s2.loli.net/2022/11/01/UBiFr2XZNK4nJuE.png" width = "70%" height = "70%" alt=".NET生态系统"/>
 </div>
-
 <p>.NET Core主要目标为多平台支持；快速开发和升级；更小的应用程序占用空间；更简单的部署；更少的版本问题；开源社区的支持；改进的应用程序性能。</p>
-<h1 id="第三章-C-编程概述"><a href="#第三章-C-编程概述" class="headerlink" title="第三章 C#编程概述"></a>第三章 C#编程概述</h1><h2 id="一个简单的C-程序"><a href="#一个简单的C-程序" class="headerlink" title="一个简单的C#程序"></a>一个简单的C#程序</h2><figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">Simple</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">class</span> <span class="title">Program</span>   <span class="comment">// declare a class</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>()</span></span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;Hi there!&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>行1 ：告诉编译器这个程序使用<strong>System命名空间</strong>的类型；<br>行3 ：声明新的名为<strong>Simple的命名空间</strong>，在这部分声明的任何类型都是该命名空间的成员（第4行到第12行）；<br>行5 ：声明新的名为<strong>Program的类类型</strong>，在这部分声明的任何成员都是组成这个类的成员（第6行到第11行）；<br>行7 ：声明一个名称为<strong>Main的方法</strong>作为<strong>类Program</strong>的成员，<strong>Main是一个特殊函数</strong>，编译器用它作为程序的起始点；<br>行9 ：包含了一条简单的语句，组成了<strong>Main的方法</strong>：简单语句以一个分号结束，这条语句使用<strong>命名空间System</strong>中的一个名为<strong>Console的类</strong>将消息输出到屏幕窗口，若没有第一条的<strong>using语句</strong>，编译器就不知道在哪里寻找<strong>类Console</strong>。</p>
+<h1>第三章 C#编程概述</h1>
+<h2 id="一个简单的C-程序">一个简单的C#程序</h2>
+<figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">Simple</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">class</span> <span class="title">Program</span>   <span class="comment">// declare a class</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>()</span></span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;Hi there!&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>行1 ：告诉编译器这个程序使用<strong>System命名空间</strong>的类型；<br>
+行3 ：声明新的名为<strong>Simple的命名空间</strong>，在这部分声明的任何类型都是该命名空间的成员（第4行到第12行）；<br>
+行5 ：声明新的名为<strong>Program的类类型</strong>，在这部分声明的任何成员都是组成这个类的成员（第6行到第11行）；<br>
+行7 ：声明一个名称为<strong>Main的方法</strong>作为<strong>类Program</strong>的成员，<strong>Main是一个特殊函数</strong>，编译器用它作为程序的起始点；<br>
+行9 ：包含了一条简单的语句，组成了<strong>Main的方法</strong>：简单语句以一个分号结束，这条语句使用<strong>命名空间System</strong>中的一个名为<strong>Console的类</strong>将消息输出到屏幕窗口，若没有第一条的<strong>using语句</strong>，编译器就不知道在哪里寻找<strong>类Console</strong>。</p>
 <p><em>C#程序由一个或多个类型声明组成，命名空间是与某个名称相关联的一组类型声明</em>。上述代码创建了一个名称为Simple的新命名空间，并在其中声明了其类型（类Program），还使用了System命名空间中定义的Console类。</p>
 <blockquote>
 <p><em><strong>补充 ：使用 Visual Studio Code 创建 .NET 控制台应用程序（摘自官方.NET文档）</strong></em></p>
 <p><strong>先决条件</strong>：.NET 6 SDK以及已安装 C# 扩展 的 Visual Studio Code</p>
-<p><strong>创建应用</strong>：<br>1、在合适位置创建文件夹，并打开vscode打开该文件夹。默认情况下，文件夹名称将是项目名称和命名空间名称；<br>2、在vscode中选择Terminal - New Terminal；<br>3、在“终端”中输入以下命令：<code>dotnet new console --framework net6.0</code>；<br>4、此时创建了一个在控制台窗口中显示“Hello World”的简单应用程序：</p>
+<p><strong>创建应用</strong>：<br>
+1、在合适位置创建文件夹，并打开vscode打开该文件夹。默认情况下，文件夹名称将是项目名称和命名空间名称；<br>
+2、在vscode中选择Terminal - New Terminal；<br>
+3、在“终端”中输入以下命令：<code>dotnet new console --framework net6.0</code>；<br>
+4、此时创建了一个在控制台窗口中显示“Hello World”的简单应用程序：</p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line">Console.WriteLine(<span class="string">&quot;Hello, World!&quot;</span>);</span><br></pre></td></tr></table></figure>
-
 <p>首次创建程序时，Visual Studio Code 会提示添加缺少的资产，以生成和调试应用。 选择“是”，Visual Studio Code 会创建一个包含“launch.json”和“tasks.json”文件的“.vscode”文件夹。</p>
 <div  align="center">  
 <img src="https://s2.loli.net/2022/11/04/qmQSHOwfJIvMb8Y.png" width = "55%" height = "55%"/>
 </div>
-
 <p>如果未收到提示，或者意外将其关闭而未选择“是”，可以按如下操作步骤：</p>
 <div  align="center">  
 <img src="https://s2.loli.net/2022/11/04/PtDE7zaYQeFGokC.png" width = "35%" height = "35%"/>
 </div>
-
-<p>也可以从菜单中选择Run - Add Configurations，在“选择环境”提示符下，选择“.NET 5+ 和 .NET Core”。<br>总之最后要见到 .vscode 中的 launch.json 和 tasks.json 文件。</p>
-<p><strong>运行应用</strong>：<br>在“终端”中运行以下命令：<code>dotnet run</code><br>程序显示“Hello World!”并终止。</p>
+<p>也可以从菜单中选择Run - Add Configurations，在“选择环境”提示符下，选择“.NET 5+ 和 .NET Core”。<br>
+总之最后要见到 .vscode 中的 launch.json 和 tasks.json 文件。</p>
+<p><strong>运行应用</strong>：<br>
+在“终端”中运行以下命令：<code>dotnet run</code><br>
+程序显示“Hello World!”并终止。</p>
 </blockquote>
-<h2 id="标识符-Identifiers"><a href="#标识符-Identifiers" class="headerlink" title="标识符 Identifiers"></a>标识符 Identifiers</h2><p><strong>标识符</strong>是用于命名的字符串。  </p>
+<h2 id="标识符-Identifiers">标识符 Identifiers</h2>
+<p><strong>标识符</strong>是用于命名的字符串。</p>
 <p>某些字符能否在标识符的特定位置出现是有规定的：</p>
 <ul>
 <li>字母和下划线可以出现在任何位置；</li>
@@ -233,291 +253,322 @@
 <li>@字符只能放在标识符的首位，不推荐将@作为常用字符。</li>
 </ul>
 <p>标识符区分大小写，比如变量名myVar和MyVar是不同的标识符。第8章将介绍推荐的C#命名约定。</p>
-<h2 id="关键字-Keywords"><a href="#关键字-Keywords" class="headerlink" title="关键字 Keywords"></a>关键字 Keywords</h2><p><strong>关键字</strong>不能作为标识符，除非以@字符开始。<br>所有C#关键字全部都以小写字母组成。</p>
+<h2 id="关键字-Keywords">关键字 Keywords</h2>
+<p><strong>关键字</strong>不能作为标识符，除非以@字符开始。<br>
+所有C#关键字全部都以小写字母组成。</p>
 <p><em>表：C#关键字</em></p>
 <table>
 <thead>
 <tr>
-<th align="left"></th>
-<th align="left"></th>
-<th align="left"></th>
-<th align="left"></th>
-<th align="left"></th>
-<th align="left"></th>
-<th align="left"></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
 </tr>
 </thead>
-<tbody><tr>
-<td align="left">abstract</td>
-<td align="left">const</td>
-<td align="left">extern</td>
-<td align="left">int</td>
-<td align="left">out</td>
-<td align="left">short</td>
-<td align="left">typeof</td>
+<tbody>
+<tr>
+<td style="text-align:left">abstract</td>
+<td style="text-align:left">const</td>
+<td style="text-align:left">extern</td>
+<td style="text-align:left">int</td>
+<td style="text-align:left">out</td>
+<td style="text-align:left">short</td>
+<td style="text-align:left">typeof</td>
 </tr>
 <tr>
-<td align="left">as</td>
-<td align="left">continue</td>
-<td align="left">false</td>
-<td align="left">interface</td>
-<td align="left">override</td>
-<td align="left">sizeof</td>
-<td align="left">uint</td>
+<td style="text-align:left">as</td>
+<td style="text-align:left">continue</td>
+<td style="text-align:left">false</td>
+<td style="text-align:left">interface</td>
+<td style="text-align:left">override</td>
+<td style="text-align:left">sizeof</td>
+<td style="text-align:left">uint</td>
 </tr>
 <tr>
-<td align="left">base</td>
-<td align="left">decimal</td>
-<td align="left">finally</td>
-<td align="left">internal</td>
-<td align="left">params</td>
-<td align="left">stackalloc</td>
-<td align="left">ulong</td>
+<td style="text-align:left">base</td>
+<td style="text-align:left">decimal</td>
+<td style="text-align:left">finally</td>
+<td style="text-align:left">internal</td>
+<td style="text-align:left">params</td>
+<td style="text-align:left">stackalloc</td>
+<td style="text-align:left">ulong</td>
 </tr>
 <tr>
-<td align="left">bool</td>
-<td align="left">default</td>
-<td align="left">fixed</td>
-<td align="left">is</td>
-<td align="left">private</td>
-<td align="left">static</td>
-<td align="left">unchecked</td>
+<td style="text-align:left">bool</td>
+<td style="text-align:left">default</td>
+<td style="text-align:left">fixed</td>
+<td style="text-align:left">is</td>
+<td style="text-align:left">private</td>
+<td style="text-align:left">static</td>
+<td style="text-align:left">unchecked</td>
 </tr>
 <tr>
-<td align="left">break</td>
-<td align="left">delegate</td>
-<td align="left">float</td>
-<td align="left">lock</td>
-<td align="left">protected</td>
-<td align="left">string</td>
-<td align="left">unsafe</td>
+<td style="text-align:left">break</td>
+<td style="text-align:left">delegate</td>
+<td style="text-align:left">float</td>
+<td style="text-align:left">lock</td>
+<td style="text-align:left">protected</td>
+<td style="text-align:left">string</td>
+<td style="text-align:left">unsafe</td>
 </tr>
 <tr>
-<td align="left">byte</td>
-<td align="left">do</td>
-<td align="left">for</td>
-<td align="left">long</td>
-<td align="left">public</td>
-<td align="left">struct</td>
-<td align="left">ushort</td>
+<td style="text-align:left">byte</td>
+<td style="text-align:left">do</td>
+<td style="text-align:left">for</td>
+<td style="text-align:left">long</td>
+<td style="text-align:left">public</td>
+<td style="text-align:left">struct</td>
+<td style="text-align:left">ushort</td>
 </tr>
 <tr>
-<td align="left">case</td>
-<td align="left">double</td>
-<td align="left">foreach</td>
-<td align="left">namespace</td>
-<td align="left">readonly</td>
-<td align="left">switch</td>
-<td align="left">using</td>
+<td style="text-align:left">case</td>
+<td style="text-align:left">double</td>
+<td style="text-align:left">foreach</td>
+<td style="text-align:left">namespace</td>
+<td style="text-align:left">readonly</td>
+<td style="text-align:left">switch</td>
+<td style="text-align:left">using</td>
 </tr>
 <tr>
-<td align="left">catch</td>
-<td align="left">else</td>
-<td align="left">goto</td>
-<td align="left">new</td>
-<td align="left">ref</td>
-<td align="left">this</td>
-<td align="left">virtual</td>
+<td style="text-align:left">catch</td>
+<td style="text-align:left">else</td>
+<td style="text-align:left">goto</td>
+<td style="text-align:left">new</td>
+<td style="text-align:left">ref</td>
+<td style="text-align:left">this</td>
+<td style="text-align:left">virtual</td>
 </tr>
 <tr>
-<td align="left">char</td>
-<td align="left">enum</td>
-<td align="left">if</td>
-<td align="left">null</td>
-<td align="left">return</td>
-<td align="left">throw</td>
-<td align="left">void</td>
+<td style="text-align:left">char</td>
+<td style="text-align:left">enum</td>
+<td style="text-align:left">if</td>
+<td style="text-align:left">null</td>
+<td style="text-align:left">return</td>
+<td style="text-align:left">throw</td>
+<td style="text-align:left">void</td>
 </tr>
 <tr>
-<td align="left">checked</td>
-<td align="left">event</td>
-<td align="left">implicit</td>
-<td align="left">object</td>
-<td align="left">sbyte</td>
-<td align="left">true</td>
-<td align="left">volatile</td>
+<td style="text-align:left">checked</td>
+<td style="text-align:left">event</td>
+<td style="text-align:left">implicit</td>
+<td style="text-align:left">object</td>
+<td style="text-align:left">sbyte</td>
+<td style="text-align:left">true</td>
+<td style="text-align:left">volatile</td>
 </tr>
 <tr>
-<td align="left">class</td>
-<td align="left">explicit</td>
-<td align="left">in</td>
-<td align="left">operator</td>
-<td align="left">sealed</td>
-<td align="left">try</td>
-<td align="left">when while</td>
+<td style="text-align:left">class</td>
+<td style="text-align:left">explicit</td>
+<td style="text-align:left">in</td>
+<td style="text-align:left">operator</td>
+<td style="text-align:left">sealed</td>
+<td style="text-align:left">try</td>
+<td style="text-align:left">when while</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p><strong>上下文关键字 Contextual Keywords</strong>是仅在特定的语言结构中充当关键字的标识符，上下文关键字可以在代码的其他部分被用作标识符。</p>
 <p><em>表：C#的上下文关键字</em></p>
 <table>
 <thead>
 <tr>
-<th align="left"></th>
-<th align="left"></th>
-<th align="left"></th>
-<th align="left"></th>
-<th align="left"></th>
-<th align="left"></th>
-<th align="left"></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
 </tr>
 </thead>
-<tbody><tr>
-<td align="left">add</td>
-<td align="left">ascending</td>
-<td align="left">async</td>
-<td align="left">await</td>
-<td align="left">by</td>
-<td align="left">descending</td>
-<td align="left">dynamic</td>
+<tbody>
+<tr>
+<td style="text-align:left">add</td>
+<td style="text-align:left">ascending</td>
+<td style="text-align:left">async</td>
+<td style="text-align:left">await</td>
+<td style="text-align:left">by</td>
+<td style="text-align:left">descending</td>
+<td style="text-align:left">dynamic</td>
 </tr>
 <tr>
-<td align="left">equals</td>
-<td align="left">from</td>
-<td align="left">get</td>
-<td align="left">global</td>
-<td align="left">group</td>
-<td align="left">in</td>
-<td align="left">into</td>
+<td style="text-align:left">equals</td>
+<td style="text-align:left">from</td>
+<td style="text-align:left">get</td>
+<td style="text-align:left">global</td>
+<td style="text-align:left">group</td>
+<td style="text-align:left">in</td>
+<td style="text-align:left">into</td>
 </tr>
 <tr>
-<td align="left">join</td>
-<td align="left">let</td>
-<td align="left">on</td>
-<td align="left">orderby</td>
-<td align="left">partial</td>
-<td align="left">remove</td>
-<td align="left">select</td>
+<td style="text-align:left">join</td>
+<td style="text-align:left">let</td>
+<td style="text-align:left">on</td>
+<td style="text-align:left">orderby</td>
+<td style="text-align:left">partial</td>
+<td style="text-align:left">remove</td>
+<td style="text-align:left">select</td>
 </tr>
 <tr>
-<td align="left">set</td>
-<td align="left">value</td>
-<td align="left">var</td>
-<td align="left">where</td>
-<td align="left">yield</td>
-<td align="left"></td>
-<td align="left"></td>
+<td style="text-align:left">set</td>
+<td style="text-align:left">value</td>
+<td style="text-align:left">var</td>
+<td style="text-align:left">where</td>
+<td style="text-align:left">yield</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
 </tr>
-</tbody></table>
-<h2 id="Main：程序的起始点"><a href="#Main：程序的起始点" class="headerlink" title="Main：程序的起始点"></a>Main：程序的起始点</h2><p>每个C#程序必须有一个类带有**Main方法(函数)**。</p>
+</tbody>
+</table>
+<h2 id="Main：程序的起始点">Main：程序的起始点</h2>
+<p>每个C#程序必须有一个类带有<strong>Main方法(函数)</strong>。</p>
 <ul>
 <li>每个C#程序的可执行起始点在Main中的第一条指令；</li>
 <li>Main必须首字母大写。</li>
 </ul>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"> </span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    Statements</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="空白-Whitespace"><a href="#空白-Whitespace" class="headerlink" title="空白 Whitespace"></a>空白 Whitespace</h2><p>程序中的空白指没有可视化输出的字符。在源代码中使用的空白会被编译器忽略。</p>
+<h2 id="空白-Whitespace">空白 Whitespace</h2>
+<p>程序中的空白指没有可视化输出的字符。在源代码中使用的空白会被编译器忽略。</p>
 <p>空白字符包括：空格(Space)；制表符(Tab)；换行符(New line)；回车符(Carriage return)</p>
 <p>比如，下面的代码会被编译器同等对待：</p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line">Main()</span><br><span class="line">&#123;</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Hi, there!&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 连在一起</span></span><br><span class="line">Main()&#123;Console.WriteLine(<span class="string">&quot;Hi, there!&quot;</span>);&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="语句-Statements"><a href="#语句-Statements" class="headerlink" title="语句 Statements"></a>语句 Statements</h2><p>此处为简单介绍，详细见第10章。</p>
+<h2 id="语句-Statements">语句 Statements</h2>
+<p>此处为简单介绍，详细见第10章。</p>
 <p><strong>简单语句</strong>以一个<strong>分号</strong>结束，下面的代码即2条简单语句组成的序列：</p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="built_in">int</span> var1 = <span class="number">5</span>;</span><br><span class="line">System.Console.WriteLine(<span class="string">&quot;The value of var1 is &#123;0&#125;&quot;</span>, var1);</span><br></pre></td></tr></table></figure>
-
-<h2 id="块-Blocks"><a href="#块-Blocks" class="headerlink" title="块 Blocks"></a>块 Blocks</h2><p><strong>块</strong>是一个由成对大括号包围的0条或多条语句序列，它在语法上相当于一条语句。</p>
+<h2 id="块-Blocks">块 Blocks</h2>
+<p><strong>块</strong>是一个由成对大括号包围的0条或多条语句序列，它在语法上相当于一条语句。</p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> var1 = <span class="number">5</span>;</span><br><span class="line">    System.Console.WriteLine(<span class="string">&quot;The value of var1 is &#123;0&#125;&quot;</span>, var1);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>语法上只需要一条语句，若需要执行的动作无法用一条简单语句表达时，考虑用块；<br>有些特定的程序结构只能使用块；<br>简单语句以分号结束，块后面不跟分号。</p>
-<h2 id="从程序中输出文本"><a href="#从程序中输出文本" class="headerlink" title="从程序中输出文本"></a>从程序中输出文本</h2><p><strong>控制台窗口console window</strong>是一种简单的命令提示窗口。BCL提供了一个名为Console的类（在System命名空间中），该类包含了讲数据输入和输出到控制台窗口的方法。</p>
-<h3 id="Write"><a href="#Write" class="headerlink" title="Write"></a>Write</h3><p>Write是Console类的成员，示例：</p>
+<p>语法上只需要一条语句，若需要执行的动作无法用一条简单语句表达时，考虑用块；<br>
+有些特定的程序结构只能使用块；<br>
+简单语句以分号结束，块后面不跟分号。</p>
+<h2 id="从程序中输出文本">从程序中输出文本</h2>
+<p><strong>控制台窗口console window</strong>是一种简单的命令提示窗口。BCL提供了一个名为Console的类（在System命名空间中），该类包含了讲数据输入和输出到控制台窗口的方法。</p>
+<h3 id="Write">Write</h3>
+<p>Write是Console类的成员，示例：</p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line">System.Console.Write (<span class="string">&quot;This is text1. &quot;</span>);</span><br><span class="line">System.Console.Write (<span class="string">&quot;This is text2. &quot;</span>);</span><br><span class="line">System.Console.Write (<span class="string">&quot;This is text3. &quot;</span>);</span><br></pre></td></tr></table></figure>
 <p>在控制台窗口输出如下：</p>
 <figure class="highlight console"><table><tr><td class="code"><pre><span class="line">This is text1. This is text2. This is text3.</span><br></pre></td></tr></table></figure>
-
 <p>注意：Write没有在字符串后面添加换行符，所以三个语句都输出在同一行。</p>
-<h3 id="WriteLine"><a href="#WriteLine" class="headerlink" title="WriteLine"></a>WriteLine</h3><p>WriteLine也是Console类的成员，但会在每个输出字符串的结尾添加一个换行符。</p>
-<p>上面的代码用WriteLine替换掉Write，输出会变为多行：  </p>
+<h3 id="WriteLine">WriteLine</h3>
+<p>WriteLine也是Console类的成员，但会在每个输出字符串的结尾添加一个换行符。</p>
+<p>上面的代码用WriteLine替换掉Write，输出会变为多行：</p>
 <figure class="highlight console"><table><tr><td class="code"><pre><span class="line">This is text1.</span><br><span class="line">This is text2.</span><br><span class="line">This is text3.</span><br></pre></td></tr></table></figure>
-
-<h3 id="格式字符串-The-Format-String"><a href="#格式字符串-The-Format-String" class="headerlink" title="格式字符串 The Format String"></a>格式字符串 The Format String</h3><p>Write或WriteLine语句可以有一个以上的参数，格式如下：<br><code>Console.WriteLine( FormatString, SubVal0, SubVal1, SubVal2, ... );</code></p>
+<h3 id="格式字符串-The-Format-String">格式字符串 The Format String</h3>
+<p>Write或WriteLine语句可以有一个以上的参数，格式如下：<br>
+<code>Console.WriteLine( FormatString, SubVal0, SubVal1, SubVal2, ... );</code></p>
 <p>第一个参数必须总是字符串，称为<strong>格式字符串</strong>；格式字符串可以包括<strong>代替标记Substitution markers</strong>。代替标记包含大括号和一个整数，整数就是替换值的数字位置。</p>
 <p>例如：下面的语句有2个替代标记，{0}和{1}；以及2个替换值，即3和6。</p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line">Console.WriteLine(<span class="string">&quot;Two sample integers are &#123;0&#125; and &#123;1&#125;.&quot;</span>, <span class="number">3</span>, <span class="number">6</span>);</span><br></pre></td></tr></table></figure>
 <p>C# 6.0 还引入了<strong>字符串插值string interpolation</strong>，前提是前面加上$符号：</p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="built_in">int</span> var1 = <span class="number">3</span>;</span><br><span class="line"><span class="built_in">int</span> var2 = <span class="number">6</span>;</span><br><span class="line">Console.WriteLine(<span class="string">$&quot;Two sample integers are <span class="subst">&#123;var1&#125;</span> and <span class="subst">&#123;var2&#125;</span>.&quot;</span>);</span><br></pre></td></tr></table></figure>
-
-<h3 id="多重标记和值"><a href="#多重标记和值" class="headerlink" title="多重标记和值"></a>多重标记和值</h3><p>可以使用任意数量的替代标记和任意数量的值，比如：</p>
+<h3 id="多重标记和值">多重标记和值</h3>
+<p>可以使用任意数量的替代标记和任意数量的值，比如：</p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line">Console.WriteLine(<span class="string">&quot;Three integers are &#123;1&#125;, &#123;0&#125; and &#123;1&#125;.&quot;</span>, <span class="number">3</span>, <span class="number">6</span>);</span><br></pre></td></tr></table></figure>
 <p>但标记不能引用超出替换值列表长度的值，如果引用，不会产生编译错误compile error，但会产生运行错误runtime error（称为<strong>异常exception</strong>）。比如：<code>Console.WriteLine(&quot;Two integers are &#123;0&#125; and &#123;2&#125;.&quot;, 3, 6);</code>中位置2不存在，3是位置0，6是位置1。</p>
-<h3 id="格式化数字字符串"><a href="#格式化数字字符串" class="headerlink" title="格式化数字字符串"></a>格式化数字字符串</h3><p>指定数字格式，例如：</p>
+<h3 id="格式化数字字符串">格式化数字字符串</h3>
+<p>指定数字格式，例如：</p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line">Console.WriteLine(<span class="string">&quot;The value: &#123;0&#125;.&quot;</span> , <span class="number">500</span>);</span><br><span class="line">Console.WriteLine(<span class="string">&quot;The value: &#123;0:C&#125;.&quot;</span>, <span class="number">500</span>); <span class="comment">// 格式化为货币</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">int</span> myInt = <span class="number">500</span>;</span><br><span class="line">Console.WriteLine(<span class="string">$&quot;The value: <span class="subst">&#123;myInt&#125;</span>.&quot;</span>);</span><br><span class="line">Console.WriteLine(<span class="string">$&quot;The value: <span class="subst">&#123;myInt:C&#125;</span>.&quot;</span>);</span><br></pre></td></tr></table></figure>
 <p>上述2种代码，都在控制台窗口产生同样输出：</p>
 <figure class="highlight console"><table><tr><td class="code"><pre><span class="line">The value: 500.</span><br><span class="line">The value: ￥500.00.</span><br></pre></td></tr></table></figure>
 <p>大括号内的<strong>格式说明符format specifier</strong>的语法由三个字段fields组成：<strong>索引号index或者字符串插值变量string interpolation variable</strong>、<strong>对齐说明符alignment specifier</strong>和<strong>格式字段format field</strong>。</p>
 <p>语法为：<code>&#123; index,alignment:format &#125;</code></p>
-<p><em>index或string interpolation</em>：必需项，指定列表中的某一项；<br><em>alignment</em>：可选，指定字段宽度，以及是否是左对齐或是右对齐；<br><em>format</em>：可选，指定项的格式。<br><em>注意</em>：对齐前面是逗号，格式前面是冒号。</p>
-<p><em><strong>（1）对齐说明符</strong></em><br>由一个正整数或者负整数组成：<em>整数表示字段使用字符的最少数量</em>；符号表示右对齐或左对齐，<em>正数表示右对齐，负数表示左对齐</em>。</p>
+<p><em>index或string interpolation</em>：必需项，指定列表中的某一项；<br>
+<em>alignment</em>：可选，指定字段宽度，以及是否是左对齐或是右对齐；<br>
+<em>format</em>：可选，指定项的格式。<br>
+<em>注意</em>：对齐前面是逗号，格式前面是冒号。</p>
+<p><em><strong>（1）对齐说明符</strong></em><br>
+由一个正整数或者负整数组成：<em>整数表示字段使用字符的最少数量</em>；符号表示右对齐或左对齐，<em>正数表示右对齐，负数表示左对齐</em>。</p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="built_in">int</span> myInt = <span class="number">500</span>;</span><br><span class="line">Console.WriteLine(<span class="string">&quot;|&#123;0, 10&#125;|&quot;</span>, myInt); <span class="comment">// 右对齐Aligned right</span></span><br><span class="line">Console.WriteLine(<span class="string">&quot;|&#123;0,-10&#125;|&quot;</span>, myInt); <span class="comment">// 左对齐Aligned left</span></span><br></pre></td></tr></table></figure>
 <p>输出如下，在两个竖杠的中间有10个字符：</p>
 <figure class="highlight console"><table><tr><td class="code"><pre><span class="line">|       500|</span><br><span class="line">|500       |</span><br></pre></td></tr></table></figure>
-<p><em>如果要表示的字符数比对齐说明符指定的字符数少，那么其余字符会使用空格填充</em>；<br><em>如果要表示的字符数多于指定的字符数，对齐说明符会被忽略，并且使用所需的字符进行表示</em>。</p>
-<p><em><strong>（2）格式字段</strong></em><br>格式字段有三部分，①<strong>冒号</strong>后面必须紧跟格式说明符，中间不能有空格；②<strong>格式说明符format specifier</strong>是一个字母字符，是9个内置字符格式之一，可以是大写或者小写；③<strong>精度说明符precision specifier</strong>是可选的，由1~2位数字组成，实际意义取决于格式说明符。</p>
+<p><em>如果要表示的字符数比对齐说明符指定的字符数少，那么其余字符会使用空格填充</em>；<br>
+<em>如果要表示的字符数多于指定的字符数，对齐说明符会被忽略，并且使用所需的字符进行表示</em>。</p>
+<p><em><strong>（2）格式字段</strong></em><br>
+格式字段有三部分，①<strong>冒号</strong>后面必须紧跟格式说明符，中间不能有空格；②<strong>格式说明符format specifier</strong>是一个字母字符，是9个内置字符格式之一，可以是大写或者小写；③<strong>精度说明符precision specifier</strong>是可选的，由1~2位数字组成，实际意义取决于格式说明符。</p>
 <p>语法为：<code>:Axx</code>，A为格式说明符，xx为精度说明符。</p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="built_in">double</span> myDouble = <span class="number">12.345678</span>;</span><br><span class="line">Console.WriteLine(<span class="string">&quot;&#123;0,-10:G&#125; -- General&quot;</span>, myDouble);</span><br><span class="line">Console.WriteLine(<span class="string">&quot;&#123;0,-10&#125; -- Default, same as General&quot;</span>, myDouble);</span><br><span class="line">Console.WriteLine(<span class="string">&quot;&#123;0,-10:F4&#125; -- Fixed Point, 4 dec places&quot;</span>, myDouble);</span><br><span class="line">Console.WriteLine(<span class="string">&quot;&#123;0,-10:C&#125; -- Currency&quot;</span>, myDouble);</span><br><span class="line">Console.WriteLine(<span class="string">&quot;&#123;0,-10:E3&#125; -- Sci. Notation, 3 dec places&quot;</span>, myDouble);</span><br><span class="line">Console.WriteLine(<span class="string">&quot;&#123;0,-10:x&#125; -- Hexadecimal integer&quot;</span>, <span class="number">1194719</span> );</span><br></pre></td></tr></table></figure>
 <p>输出如下：</p>
 <figure class="highlight console"><table><tr><td class="code"><pre><span class="line">12.345678  -- General</span><br><span class="line">12.345678  -- Default, same as General</span><br><span class="line">12.3457    -- Fixed Point, 4 dec places</span><br><span class="line">￥12.35     -- Currency</span><br><span class="line">1.235E+001 -- Sci. Notation, 3 dec places</span><br><span class="line">123adf     -- Hexadecimal integer</span><br></pre></td></tr></table></figure>
-
-<p><em><strong>（3）标准数字格式说明符</strong></em><br>9种标准数字格式说明符，若说明符会根据大小写会有不同输出，会标注为区分大小写。</p>
+<p><em><strong>（3）标准数字格式说明符</strong></em><br>
+9种标准数字格式说明符，若说明符会根据大小写会有不同输出，会标注为区分大小写。</p>
 <table>
 <thead>
 <tr>
-<th align="left">名字和字符</th>
-<th align="left">意义</th>
+<th style="text-align:left">名字和字符</th>
+<th style="text-align:left">意义</th>
 </tr>
 </thead>
-<tbody><tr>
-<td align="left">货币Currency<br>C、c</td>
-<td align="left">使用货币符号，货币符号取决于程序所在PC的区域设置<br>精度说明符：小数位数<br>示例：<code>Console.WriteLine(&quot;&#123;0 :C&#125;&quot;, 12.5);</code><br>输出：￥12.50</td>
+<tbody>
+<tr>
+<td style="text-align:left">货币Currency<br>C、c</td>
+<td style="text-align:left">使用货币符号，货币符号取决于程序所在PC的区域设置<br>精度说明符：小数位数<br>示例：<code>Console.WriteLine(&quot;&#123;0 :C&#125;&quot;, 12.5);</code><br>输出：￥12.50</td>
 </tr>
 <tr>
-<td align="left">十进制数Decimal<br>D、d</td>
-<td align="left">十进制数字字符串，可以有负数符号。只能和整数类型配合使用<br>精度说明符：输出字符串的最小位数，若实际数字位数少，则左边以0填充<br>示例：<code>Console.WriteLine(&quot;&#123;0 :D4&#125;&quot;, 12);</code><br>输出：0012</td>
+<td style="text-align:left">十进制数Decimal<br>D、d</td>
+<td style="text-align:left">十进制数字字符串，可以有负数符号。只能和整数类型配合使用<br>精度说明符：输出字符串的最小位数，若实际数字位数少，则左边以0填充<br>示例：<code>Console.WriteLine(&quot;&#123;0 :D4&#125;&quot;, 12);</code><br>输出：0012</td>
 </tr>
 <tr>
-<td align="left">定点Fixed-point<br>F、f</td>
-<td align="left">带有小数点的十进制数字字符串，可以有负数符号。<br>精度说明符：小数位数<br>示例：<code>Console.WriteLine(&quot;&#123;0 :F4&#125;&quot;, 12.3456789);</code><br>输出：12.3457</td>
+<td style="text-align:left">定点Fixed-point<br>F、f</td>
+<td style="text-align:left">带有小数点的十进制数字字符串，可以有负数符号。<br>精度说明符：小数位数<br>示例：<code>Console.WriteLine(&quot;&#123;0 :F4&#125;&quot;, 12.3456789);</code><br>输出：12.3457</td>
 </tr>
 <tr>
-<td align="left">常规General<br>G、g</td>
-<td align="left">在没有指定说明符的情况下，会根据值转换为定点或科学计数法表示的形式<br>精度说明符：根据值的情况<br>示例：<code>Console.WriteLine(&quot;&#123;0 :G4&#125;&quot;, 12.3456789);</code><br>输出：12.35</td>
+<td style="text-align:left">常规General<br>G、g</td>
+<td style="text-align:left">在没有指定说明符的情况下，会根据值转换为定点或科学计数法表示的形式<br>精度说明符：根据值的情况<br>示例：<code>Console.WriteLine(&quot;&#123;0 :G4&#125;&quot;, 12.3456789);</code><br>输出：12.35</td>
 </tr>
 <tr>
-<td align="left">十六进制数Hexadecimal<br>X、x<br>区分大小写</td>
-<td align="left">十六进制数字字符串。A~F会匹配说明符的大小写<br>精度说明符：输出字符串的最小位数，若实际数字位数少，则左边以0填充<br>示例：<code>Console.WriteLine(&quot;&#123;0 :x&#125;&quot;, 180026);</code><br>输出：2bf3a</td>
+<td style="text-align:left">十六进制数Hexadecimal<br>X、x<br>区分大小写</td>
+<td style="text-align:left">十六进制数字字符串。A~F会匹配说明符的大小写<br>精度说明符：输出字符串的最小位数，若实际数字位数少，则左边以0填充<br>示例：<code>Console.WriteLine(&quot;&#123;0 :x&#125;&quot;, 180026);</code><br>输出：2bf3a</td>
 </tr>
 <tr>
-<td align="left">数字Number<br>N、n</td>
-<td align="left">和定点表示法相似，但是每3个数字的一组中间有逗号或空格分隔符，使用哪个看程序所在PC的区域设置<br>精度说明符：小数位数<br>示例：<code>Console.WriteLine(&quot;&#123;0 :N2&#125;&quot;, 12345678.54321);</code><br>输出：12,345,678.54</td>
+<td style="text-align:left">数字Number<br>N、n</td>
+<td style="text-align:left">和定点表示法相似，但是每3个数字的一组中间有逗号或空格分隔符，使用哪个看程序所在PC的区域设置<br>精度说明符：小数位数<br>示例：<code>Console.WriteLine(&quot;&#123;0 :N2&#125;&quot;, 12345678.54321);</code><br>输出：12,345,678.54</td>
 </tr>
 <tr>
-<td align="left">百分比Percent<br>P、p</td>
-<td align="left">表示百分比的字符串，数字会乘以100<br>精度说明符：小数位数<br>示例：<code>Console.WriteLine(&quot;&#123;0 :P2&#125;&quot;, 0.1221897);</code><br>输出：12.22%</td>
+<td style="text-align:left">百分比Percent<br>P、p</td>
+<td style="text-align:left">表示百分比的字符串，数字会乘以100<br>精度说明符：小数位数<br>示例：<code>Console.WriteLine(&quot;&#123;0 :P2&#125;&quot;, 0.1221897);</code><br>输出：12.22%</td>
 </tr>
 <tr>
-<td align="left">往返过程Round-trip<br>R、r</td>
-<td align="left">保证输出字符串后如果使用Parse方法将字符串转化为数字，Parse方法在第27章<br>精度说明符：忽略<br>示例：<code>Console.WriteLine(&quot;&#123;0 :R&#125;&quot;, 1234.21897);</code><br>输出：1234.21897</td>
+<td style="text-align:left">往返过程Round-trip<br>R、r</td>
+<td style="text-align:left">保证输出字符串后如果使用Parse方法将字符串转化为数字，Parse方法在第27章<br>精度说明符：忽略<br>示例：<code>Console.WriteLine(&quot;&#123;0 :R&#125;&quot;, 1234.21897);</code><br>输出：1234.21897</td>
 </tr>
 <tr>
-<td align="left">科学计数法Scientific<br>E、e<br>区分大小写</td>
-<td align="left">具有尾数和指数的科学计数法，e的大小写和说明符一致<br>精度说明符：小数位数<br>示例：<code>Console.WriteLine(&quot;&#123;0 :e4&#125;&quot;, 12.3456789);</code><br>输出：1.2346e+001</td>
+<td style="text-align:left">科学计数法Scientific<br>E、e<br>区分大小写</td>
+<td style="text-align:left">具有尾数和指数的科学计数法，e的大小写和说明符一致<br>精度说明符：小数位数<br>示例：<code>Console.WriteLine(&quot;&#123;0 :e4&#125;&quot;, 12.3456789);</code><br>输出：1.2346e+001</td>
 </tr>
-</tbody></table>
-<h2 id="注释：为代码添加注解-Comments-Annotating-the-Code"><a href="#注释：为代码添加注解-Comments-Annotating-the-Code" class="headerlink" title="注释：为代码添加注解 Comments: Annotating the Code"></a>注释：为代码添加注解 Comments: Annotating the Code</h2><p><strong>单行注释 Single-line comments</strong> ：<code>//</code>，注释范围一直到行结束都有效。</p>
+</tbody>
+</table>
+<h2 id="注释：为代码添加注解-Comments-Annotating-the-Code">注释：为代码添加注解 Comments: Annotating the Code</h2>
+<p><strong>单行注释 Single-line comments</strong> ：<code>//</code>，注释范围一直到行结束都有效。</p>
 <p><strong>带分隔符的注释 Delimited comments</strong> ：开始标记<code>/*</code>和结束标记<code>*/</code>，带分隔符的注释可以跨越多行，或者只包括行的一部分。注释范围一直到第一个结束分隔符都有效。</p>
 <p><strong>文档注释 Documentation Comments</strong> ：<code>///</code>，在第27章阐述。文档注释包括XML文档，可以用于产生程序文档。</p>
-<h1 id="第四章-类型、存储和变量"><a href="#第四章-类型、存储和变量" class="headerlink" title="第四章 类型、存储和变量"></a>第四章 类型、存储和变量</h1><h2 id="C-程序是一组类型声明"><a href="#C-程序是一组类型声明" class="headerlink" title="C#程序是一组类型声明"></a>C#程序是一组类型声明</h2><p>C程序是一组函数和数据类型，C++程序是一组函数和类，C#程序或DLL是一组类型声明。</p>
-<p>(1) 类型声明中必须有一个包含<strong>Main方法</strong>的类；<br>(2) <strong>命名空间</strong>将相关的类型声明分组并命名，所以在命名空间内声明程序类型。</p>
+<h1>第四章 类型、存储和变量</h1>
+<h2 id="C-程序是一组类型声明">C#程序是一组类型声明</h2>
+<p>C程序是一组函数和数据类型，C++程序是一组函数和类，C#程序或DLL是一组类型声明。</p>
+<p>(1) 类型声明中必须有一个包含<strong>Main方法</strong>的类；<br>
+(2) <strong>命名空间</strong>将相关的类型声明分组并命名，所以在命名空间内声明程序类型。</p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">MyProgram</span> <span class="comment">// Declare a namespace，名为MyProgram.</span></span><br><span class="line">&#123;</span><br><span class="line">    DeclarationOfTypeA <span class="comment">// Declare a type.</span></span><br><span class="line">    DeclarationOfTypeB <span class="comment">// Declare a type.</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">class</span> <span class="title">C</span> <span class="comment">// Declare a type.</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>()</span></span><br><span class="line">        &#123;</span><br><span class="line">            ...</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>命名空间在第22章详细阐述。</p>
-<h2 id="类型是一种模板"><a href="#类型是一种模板" class="headerlink" title="类型是一种模板"></a>类型是一种模板</h2><p>类型可以理解为一个创建数据结构的模板。类型具有以下元素：名称、用于保存的数据结构、一些行为和约束条件。</p>
+<h2 id="类型是一种模板">类型是一种模板</h2>
+<p>类型可以理解为一个创建数据结构的模板。类型具有以下元素：名称、用于保存的数据结构、一些行为和约束条件。</p>
 <p>比如：short类型，名称是short，结构是2字节，行为是16位整数。int类型，名称是int，结构是4字节，行为是32位整数。</p>
-<h2 id="实例化类型-Instantiating-a-Type"><a href="#实例化类型-Instantiating-a-Type" class="headerlink" title="实例化类型 Instantiating a Type"></a>实例化类型 Instantiating a Type</h2><p>从类型模板创建对象，即<strong>实例化</strong>该类型。</p>
+<h2 id="实例化类型-Instantiating-a-Type">实例化类型 Instantiating a Type</h2>
+<p>从类型模板创建对象，即<strong>实例化</strong>该类型。</p>
 <p>通过实例化类型而创建的对象被称为类型的<strong>对象</strong>或类型的<strong>实例</strong>。这2术语可以互换。</p>
-<h2 id="数据成员和函数成员"><a href="#数据成员和函数成员" class="headerlink" title="数据成员和函数成员"></a>数据成员和函数成员</h2><p><strong>简单类型</strong>如short、int和long，只能存储一个数据项；<br>数组类型（array）可以存储多个同类型的数据项，这些数据项即<strong>数组元素</strong>。</p>
+<h2 id="数据成员和函数成员">数据成员和函数成员</h2>
+<p><strong>简单类型</strong>如short、int和long，只能存储一个数据项；<br>
+数组类型（array）可以存储多个同类型的数据项，这些数据项即<strong>数组元素</strong>。</p>
 <p>然而有些类型可以包含不同类型的数据项，这些数据项被称为<strong>成员 members</strong>，包括<strong>数据成员</strong>和<strong>函数成员</strong>：<strong>数据成员</strong>保存了与这个类的对象或整个类相关数据；<strong>函数成员</strong>执行代码，定义类型的行为。</p>
-<h2 id="预定义类型"><a href="#预定义类型" class="headerlink" title="预定义类型"></a>预定义类型</h2><p>C#有16种预定义类型，包括13种<strong>简单类型</strong>和3种<strong>非简单类型</strong>。所有预定义类型的名称都是小写。</p>
+<h2 id="预定义类型">预定义类型</h2>
+<p>C#有16种预定义类型，包括13种<strong>简单类型</strong>和3种<strong>非简单类型</strong>。所有预定义类型的名称都是小写。</p>
 <p>简单类型可以分为3类：</p>
 <ul>
-<li>11种数值类型：<ul>
+<li>11种数值类型：
+<ul>
 <li>不同长度的有符号和无符号<em>整数类型</em>；</li>
 <li><em>浮点数类型</em>float和double；</li>
 <li><em>高精度小数类型</em>decimal，与float和double不同，decimal类型可以表示分数，常用于货币计算。</li>
@@ -535,133 +586,137 @@
 <div  align="center">  
 <img src="https://s2.loli.net/2022/11/16/pKUunxX9i5ayjqt.png" width = "60%" height = "60%" alt="预定义类型"/>
 </div>
-
 <p>所有预定义类型都映射到底层的.NET类型。<em>预定义简单类型</em>都表示一个单一的数据项，如下表：</p>
 <table>
 <thead>
 <tr>
-<th align="left">名称</th>
-<th align="left">含义</th>
-<th align="left">范围</th>
-<th align="left">.NET框架类型</th>
-<th align="left">默认值</th>
+<th style="text-align:left">名称</th>
+<th style="text-align:left">含义</th>
+<th style="text-align:left">范围</th>
+<th style="text-align:left">.NET框架类型</th>
+<th style="text-align:left">默认值</th>
 </tr>
 </thead>
-<tbody><tr>
-<td align="left">sbyte</td>
-<td align="left">8-bit signed integer</td>
-<td align="left">-128 to 127</td>
-<td align="left">System.SByte</td>
-<td align="left">0</td>
+<tbody>
+<tr>
+<td style="text-align:left">sbyte</td>
+<td style="text-align:left">8-bit signed integer</td>
+<td style="text-align:left">-128 to 127</td>
+<td style="text-align:left">System.SByte</td>
+<td style="text-align:left">0</td>
 </tr>
 <tr>
-<td align="left">byte</td>
-<td align="left">8-bit unsigned integer</td>
-<td align="left">0 to 255</td>
-<td align="left">System.Byte</td>
-<td align="left">0</td>
+<td style="text-align:left">byte</td>
+<td style="text-align:left">8-bit unsigned integer</td>
+<td style="text-align:left">0 to 255</td>
+<td style="text-align:left">System.Byte</td>
+<td style="text-align:left">0</td>
 </tr>
 <tr>
-<td align="left">short</td>
-<td align="left">16-bit signed integer</td>
-<td align="left">-32,768 to 32,767</td>
-<td align="left">System.Int16</td>
-<td align="left">0</td>
+<td style="text-align:left">short</td>
+<td style="text-align:left">16-bit signed integer</td>
+<td style="text-align:left">-32,768 to 32,767</td>
+<td style="text-align:left">System.Int16</td>
+<td style="text-align:left">0</td>
 </tr>
 <tr>
-<td align="left">ushort</td>
-<td align="left">16-bit unsigned integer</td>
-<td align="left">0 to 65,535</td>
-<td align="left">System.UInt16</td>
-<td align="left">0</td>
+<td style="text-align:left">ushort</td>
+<td style="text-align:left">16-bit unsigned integer</td>
+<td style="text-align:left">0 to 65,535</td>
+<td style="text-align:left">System.UInt16</td>
+<td style="text-align:left">0</td>
 </tr>
 <tr>
-<td align="left">int</td>
-<td align="left">32-bit signed integer</td>
-<td align="left">-2,147,483,648 to 2,147,483,647</td>
-<td align="left">System.Int32</td>
-<td align="left">0</td>
+<td style="text-align:left">int</td>
+<td style="text-align:left">32-bit signed integer</td>
+<td style="text-align:left">-2,147,483,648 to 2,147,483,647</td>
+<td style="text-align:left">System.Int32</td>
+<td style="text-align:left">0</td>
 </tr>
 <tr>
-<td align="left">uint</td>
-<td align="left">32-bit unsigned integer</td>
-<td align="left">0 to 4,294,967,295</td>
-<td align="left">System.UInt32</td>
-<td align="left">0</td>
+<td style="text-align:left">uint</td>
+<td style="text-align:left">32-bit unsigned integer</td>
+<td style="text-align:left">0 to 4,294,967,295</td>
+<td style="text-align:left">System.UInt32</td>
+<td style="text-align:left">0</td>
 </tr>
 <tr>
-<td align="left">long</td>
-<td align="left">64-bit signed integer</td>
-<td align="left">-9,223,372,036,854,775,808 to 9,223,372,036,854,775,807</td>
-<td align="left">System.Int64</td>
-<td align="left">0</td>
+<td style="text-align:left">long</td>
+<td style="text-align:left">64-bit signed integer</td>
+<td style="text-align:left">-9,223,372,036,854,775,808 to 9,223,372,036,854,775,807</td>
+<td style="text-align:left">System.Int64</td>
+<td style="text-align:left">0</td>
 </tr>
 <tr>
-<td align="left">ulong</td>
-<td align="left">64-bit unsigned integer</td>
-<td align="left">0 to 18,446,744,073,709,551,615</td>
-<td align="left">System.UInt64</td>
-<td align="left">0</td>
+<td style="text-align:left">ulong</td>
+<td style="text-align:left">64-bit unsigned integer</td>
+<td style="text-align:left">0 to 18,446,744,073,709,551,615</td>
+<td style="text-align:left">System.UInt64</td>
+<td style="text-align:left">0</td>
 </tr>
 <tr>
-<td align="left">float</td>
-<td align="left">Single-precision float</td>
-<td align="left">1.5×10^-45 to 3.4×10^38</td>
-<td align="left">System.Single</td>
-<td align="left">0.0f</td>
+<td style="text-align:left">float</td>
+<td style="text-align:left">Single-precision float</td>
+<td style="text-align:left">1.5×10^-45 to 3.4×10^38</td>
+<td style="text-align:left">System.Single</td>
+<td style="text-align:left">0.0f</td>
 </tr>
 <tr>
-<td align="left">double</td>
-<td align="left">Double-precision float</td>
-<td align="left">5×10^-324 to 1.7×10^308</td>
-<td align="left">System.Double</td>
-<td align="left">0.0d</td>
+<td style="text-align:left">double</td>
+<td style="text-align:left">Double-precision float</td>
+<td style="text-align:left">5×10^-324 to 1.7×10^308</td>
+<td style="text-align:left">System.Double</td>
+<td style="text-align:left">0.0d</td>
 </tr>
 <tr>
-<td align="left">bool</td>
-<td align="left">Boolean</td>
-<td align="left">true, false</td>
-<td align="left">System.Boolean</td>
-<td align="left">false</td>
+<td style="text-align:left">bool</td>
+<td style="text-align:left">Boolean</td>
+<td style="text-align:left">true, false</td>
+<td style="text-align:left">System.Boolean</td>
+<td style="text-align:left">false</td>
 </tr>
 <tr>
-<td align="left">char</td>
-<td align="left">Unicode character</td>
-<td align="left">U+0000 to U+ffff</td>
-<td align="left">System.Char</td>
-<td align="left">\x0000</td>
+<td style="text-align:left">char</td>
+<td style="text-align:left">Unicode character</td>
+<td style="text-align:left">U+0000 to U+ffff</td>
+<td style="text-align:left">System.Char</td>
+<td style="text-align:left">\x0000</td>
 </tr>
 <tr>
-<td align="left">decimal</td>
-<td align="left">Decimal value with 28-significant-digit precision</td>
-<td align="left">±1.0×10^28 to ±7.9×10^28</td>
-<td align="left">System.Decimal</td>
-<td align="left">0m</td>
+<td style="text-align:left">decimal</td>
+<td style="text-align:left">Decimal value with 28-significant-digit precision</td>
+<td style="text-align:left">±1.0×10^28 to ±7.9×10^28</td>
+<td style="text-align:left">System.Decimal</td>
+<td style="text-align:left">0m</td>
 </tr>
-</tbody></table>
+</tbody>
+</table>
 <p><em>预定义非简单类型</em>，如下表：</p>
 <table>
 <thead>
 <tr>
-<th align="left">名称</th>
-<th align="left">含义</th>
-<th align="left">.NET框架类型</th>
+<th style="text-align:left">名称</th>
+<th style="text-align:left">含义</th>
+<th style="text-align:left">.NET框架类型</th>
 </tr>
 </thead>
-<tbody><tr>
-<td align="left">object</td>
-<td align="left">The base class from which all other types, including the simple types are derived</td>
-<td align="left">System.Object</td>
+<tbody>
+<tr>
+<td style="text-align:left">object</td>
+<td style="text-align:left">The base class from which all other types, including the simple types are derived</td>
+<td style="text-align:left">System.Object</td>
 </tr>
 <tr>
-<td align="left">string</td>
-<td align="left">A sequence of zero or more Unicode characters</td>
-<td align="left">System.String</td>
+<td style="text-align:left">string</td>
+<td style="text-align:left">A sequence of zero or more Unicode characters</td>
+<td style="text-align:left">System.String</td>
 </tr>
 <tr>
-<td align="left">dynamic</td>
-<td align="left">A type designed to be used with assemblies written in dynamic languages</td>
-<td align="left">No corresponding .NET type</td>
+<td style="text-align:left">dynamic</td>
+<td style="text-align:left">A type designed to be used with assemblies written in dynamic languages</td>
+<td style="text-align:left">No corresponding .NET type</td>
 </tr>
-</tbody></table>
-<h2 id="用户定义的类型"><a href="#用户定义的类型" class="headerlink" title="用户定义的类型"></a>用户定义的类型</h2></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io">鸟布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io/2022/10/28/2022-10-28-C_sharp%E5%9B%BE%E8%A7%A3%E6%95%99%E7%A8%8B/">https://ybniaobu.github.io/2022/10/28/2022-10-28-C_sharp%E5%9B%BE%E8%A7%A3%E6%95%99%E7%A8%8B/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://ybniaobu.github.io" target="_blank">鸟布的博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/">读书笔记</a><a class="post-meta__tags" href="/tags/net/">.net</a><a class="post-meta__tags" href="/tags/C/">C#</a></div><div class="post_share"><div class="social-share" data-image="https://s2.loli.net/2022/10/28/YztgSrJ6BTOWRLU.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i> 打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/images/wechat.png" target="_blank"><img class="post-qr-code-img" src="/images/wechat.png" alt="微信"/></a><div class="post-qr-code-desc">微信</div></li><li class="reward-item"><a href="/images/alipay.png" target="_blank"><img class="post-qr-code-img" src="/images/alipay.png" alt="支付宝"/></a><div class="post-qr-code-desc">支付宝</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2022/10/30/2022-10-30-Learning-python3/"><img class="prev-cover" src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">《Learning Python》读书笔记（三）</div></div></a></div><div class="next-post pull-right"><a href="/2022/10/27/2022-10-27-Blender%E5%81%8F%E5%A5%BD%E8%AE%BE%E7%BD%AE%E5%8F%8A%E6%8F%92%E4%BB%B6%E8%AE%B0%E5%BD%95/"><img class="next-cover" src="https://s2.loli.net/2022/09/14/2DeSNmsE9tLWjOI.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Blender偏好设置及插件记录</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2022/09/09/2022-09-09-Python%E7%BC%96%E7%A8%8B%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" title="《Python编程从入门到实践》读书笔记（一）"><img class="cover" src="https://s2.loli.net/2022/11/08/dhZaLkDWqjI3HNJ.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-09-09</div><div class="title">《Python编程从入门到实践》读书笔记（一）</div></div></a></div><div><a href="/2022/09/17/2022-09-17-Learning_python1/" title="《Learning Python》读书笔记（一）"><img class="cover" src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-09-17</div><div class="title">《Learning Python》读书笔记（一）</div></div></a></div><div><a href="/2022/09/12/2022-09-12-Python%E7%BC%96%E7%A8%8B%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B02/" title="《Python编程从入门到实践》读书笔记（二）"><img class="cover" src="https://s2.loli.net/2022/11/08/dhZaLkDWqjI3HNJ.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-09-12</div><div class="title">《Python编程从入门到实践》读书笔记（二）</div></div></a></div><div><a href="/2022/10/24/2022-10-24-Learning-python2/" title="《Learning Python》读书笔记（二）"><img class="cover" src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-10-24</div><div class="title">《Learning Python》读书笔记（二）</div></div></a></div><div><a href="/2022/11/04/2022-11-04-Learning-python4/" title="《Learning Python》读书笔记（四）"><img class="cover" src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-11-04</div><div class="title">《Learning Python》读书笔记（四）</div></div></a></div><div><a href="/2022/11/08/2022-11-08-Learning-python5/" title="《Learning Python》读书笔记（五）"><img class="cover" src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-11-08</div><div class="title">《Learning Python》读书笔记（五）</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">鸟布</div><div class="author-info__description">教练，我想学技术</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">14</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">9</div></a></div><a id="card-info-btn"><i class="fa-solid fa-ghost"></i><span>这个按钮正在等待灵魂</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="mailto:niaobubob@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">为了蒂法！！！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E7%AB%A0-C-%E5%92%8C-NET%E6%A1%86%E6%9E%B6"><span class="toc-number">1.</span> <span class="toc-text">第一章 C#和.NET框架</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#NET%E6%A1%86%E6%9E%B6%E7%9A%84%E7%BB%84%E6%88%90"><span class="toc-number">1.1.</span> <span class="toc-text">.NET框架的组成</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BC%96%E8%AF%91%E4%B8%BACIL"><span class="toc-number">1.2.</span> <span class="toc-text">编译为CIL</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BC%96%E8%AF%91%E6%88%90%E6%9C%AC%E6%9C%BA%E4%BB%A3%E7%A0%81%EF%BC%88Native-Code%EF%BC%89%E5%B9%B6%E6%89%A7%E8%A1%8C"><span class="toc-number">1.3.</span> <span class="toc-text">编译成本机代码（Native Code）并执行</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CLR"><span class="toc-number">1.4.</span> <span class="toc-text">CLR</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CLI"><span class="toc-number">1.5.</span> <span class="toc-text">CLI</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E7%AB%A0-C-%E5%92%8C-NET-Core"><span class="toc-number">2.</span> <span class="toc-text">第二章 C#和.NET Core</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#NET-Core%E7%9A%84%E7%94%B1%E6%9D%A5"><span class="toc-number">2.1.</span> <span class="toc-text">.NET Core的由来</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E4%B8%89%E7%AB%A0-C-%E7%BC%96%E7%A8%8B%E6%A6%82%E8%BF%B0"><span class="toc-number">3.</span> <span class="toc-text">第三章 C#编程概述</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E4%B8%AA%E7%AE%80%E5%8D%95%E7%9A%84C-%E7%A8%8B%E5%BA%8F"><span class="toc-number">3.1.</span> <span class="toc-text">一个简单的C#程序</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A0%87%E8%AF%86%E7%AC%A6-Identifiers"><span class="toc-number">3.2.</span> <span class="toc-text">标识符 Identifiers</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B3%E9%94%AE%E5%AD%97-Keywords"><span class="toc-number">3.3.</span> <span class="toc-text">关键字 Keywords</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Main%EF%BC%9A%E7%A8%8B%E5%BA%8F%E7%9A%84%E8%B5%B7%E5%A7%8B%E7%82%B9"><span class="toc-number">3.4.</span> <span class="toc-text">Main：程序的起始点</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%A9%BA%E7%99%BD-Whitespace"><span class="toc-number">3.5.</span> <span class="toc-text">空白 Whitespace</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AF%AD%E5%8F%A5-Statements"><span class="toc-number">3.6.</span> <span class="toc-text">语句 Statements</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9D%97-Blocks"><span class="toc-number">3.7.</span> <span class="toc-text">块 Blocks</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%8E%E7%A8%8B%E5%BA%8F%E4%B8%AD%E8%BE%93%E5%87%BA%E6%96%87%E6%9C%AC"><span class="toc-number">3.8.</span> <span class="toc-text">从程序中输出文本</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Write"><span class="toc-number">3.8.1.</span> <span class="toc-text">Write</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#WriteLine"><span class="toc-number">3.8.2.</span> <span class="toc-text">WriteLine</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%BC%E5%BC%8F%E5%AD%97%E7%AC%A6%E4%B8%B2-The-Format-String"><span class="toc-number">3.8.3.</span> <span class="toc-text">格式字符串 The Format String</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%9A%E9%87%8D%E6%A0%87%E8%AE%B0%E5%92%8C%E5%80%BC"><span class="toc-number">3.8.4.</span> <span class="toc-text">多重标记和值</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%95%B0%E5%AD%97%E5%AD%97%E7%AC%A6%E4%B8%B2"><span class="toc-number">3.8.5.</span> <span class="toc-text">格式化数字字符串</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B3%A8%E9%87%8A%EF%BC%9A%E4%B8%BA%E4%BB%A3%E7%A0%81%E6%B7%BB%E5%8A%A0%E6%B3%A8%E8%A7%A3-Comments-Annotating-the-Code"><span class="toc-number">3.9.</span> <span class="toc-text">注释：为代码添加注解 Comments: Annotating the Code</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E5%9B%9B%E7%AB%A0-%E7%B1%BB%E5%9E%8B%E3%80%81%E5%AD%98%E5%82%A8%E5%92%8C%E5%8F%98%E9%87%8F"><span class="toc-number">4.</span> <span class="toc-text">第四章 类型、存储和变量</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#C-%E7%A8%8B%E5%BA%8F%E6%98%AF%E4%B8%80%E7%BB%84%E7%B1%BB%E5%9E%8B%E5%A3%B0%E6%98%8E"><span class="toc-number">4.1.</span> <span class="toc-text">C#程序是一组类型声明</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%B1%BB%E5%9E%8B%E6%98%AF%E4%B8%80%E7%A7%8D%E6%A8%A1%E6%9D%BF"><span class="toc-number">4.2.</span> <span class="toc-text">类型是一种模板</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E4%BE%8B%E5%8C%96%E7%B1%BB%E5%9E%8B-Instantiating-a-Type"><span class="toc-number">4.3.</span> <span class="toc-text">实例化类型 Instantiating a Type</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E6%88%90%E5%91%98%E5%92%8C%E5%87%BD%E6%95%B0%E6%88%90%E5%91%98"><span class="toc-number">4.4.</span> <span class="toc-text">数据成员和函数成员</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%A2%84%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B"><span class="toc-number">4.5.</span> <span class="toc-text">预定义类型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%A8%E6%88%B7%E5%AE%9A%E4%B9%89%E7%9A%84%E7%B1%BB%E5%9E%8B"><span class="toc-number">4.6.</span> <span class="toc-text">用户定义的类型</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2022/11/15/2022-11-15-Learning-python7/" title="《Learning Python》读书笔记（七）"><img src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Learning Python》读书笔记（七）"/></a><div class="content"><a class="title" href="/2022/11/15/2022-11-15-Learning-python7/" title="《Learning Python》读书笔记（七）">《Learning Python》读书笔记（七）</a><time datetime="2022-11-15T06:09:30.000Z" title="发表于 2022-11-15 14:09:30">2022-11-15</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/11/10/2022-11-10-Learning-python6/" title="《Learning Python》读书笔记（六）"><img src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Learning Python》读书笔记（六）"/></a><div class="content"><a class="title" href="/2022/11/10/2022-11-10-Learning-python6/" title="《Learning Python》读书笔记（六）">《Learning Python》读书笔记（六）</a><time datetime="2022-11-10T06:44:00.000Z" title="发表于 2022-11-10 14:44:00">2022-11-10</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/11/08/2022-11-08-Learning-python5/" title="《Learning Python》读书笔记（五）"><img src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Learning Python》读书笔记（五）"/></a><div class="content"><a class="title" href="/2022/11/08/2022-11-08-Learning-python5/" title="《Learning Python》读书笔记（五）">《Learning Python》读书笔记（五）</a><time datetime="2022-11-08T06:00:31.000Z" title="发表于 2022-11-08 14:00:31">2022-11-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/11/04/2022-11-04-Learning-python4/" title="《Learning Python》读书笔记（四）"><img src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Learning Python》读书笔记（四）"/></a><div class="content"><a class="title" href="/2022/11/04/2022-11-04-Learning-python4/" title="《Learning Python》读书笔记（四）">《Learning Python》读书笔记（四）</a><time datetime="2022-11-04T06:17:54.000Z" title="发表于 2022-11-04 14:17:54">2022-11-04</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/10/30/2022-10-30-Learning-python3/" title="《Learning Python》读书笔记（三）"><img src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Learning Python》读书笔记（三）"/></a><div class="content"><a class="title" href="/2022/10/30/2022-10-30-Learning-python3/" title="《Learning Python》读书笔记（三）">《Learning Python》读书笔记（三）</a><time datetime="2022-10-30T05:36:03.000Z" title="发表于 2022-10-30 13:36:03">2022-10-30</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2022 By 鸟布</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">Your time is limited, so don't waste it living someone else's life.</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div></div></div><div id="search-mask"></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.umd.min.js"></script><script src="/js/search/local-search.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
+</tbody>
+</table>
+<h2 id="用户定义的类型">用户定义的类型</h2>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io">鸟布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io/2022/10/28/2022-10-28-C_sharp%E5%9B%BE%E8%A7%A3%E6%95%99%E7%A8%8B/">https://ybniaobu.github.io/2022/10/28/2022-10-28-C_sharp%E5%9B%BE%E8%A7%A3%E6%95%99%E7%A8%8B/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://ybniaobu.github.io" target="_blank">鸟布的博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/">读书笔记</a><a class="post-meta__tags" href="/tags/net/">.net</a><a class="post-meta__tags" href="/tags/C/">C#</a></div><div class="post_share"><div class="social-share" data-image="https://s2.loli.net/2022/10/28/YztgSrJ6BTOWRLU.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i> 打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/images/wechat.png" target="_blank"><img class="post-qr-code-img" src="/images/wechat.png" alt="微信"/></a><div class="post-qr-code-desc">微信</div></li><li class="reward-item"><a href="/images/alipay.png" target="_blank"><img class="post-qr-code-img" src="/images/alipay.png" alt="支付宝"/></a><div class="post-qr-code-desc">支付宝</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2022/10/30/2022-10-30-Learning-python3/"><img class="prev-cover" src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">《Learning Python》读书笔记（三）</div></div></a></div><div class="next-post pull-right"><a href="/2022/10/27/2022-10-27-Blender%E5%81%8F%E5%A5%BD%E8%AE%BE%E7%BD%AE%E5%8F%8A%E6%8F%92%E4%BB%B6%E8%AE%B0%E5%BD%95/"><img class="next-cover" src="https://s2.loli.net/2022/09/14/2DeSNmsE9tLWjOI.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Blender偏好设置及插件记录</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2022/09/09/2022-09-09-Python%E7%BC%96%E7%A8%8B%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" title="《Python编程从入门到实践》读书笔记（一）"><img class="cover" src="https://s2.loli.net/2022/11/08/dhZaLkDWqjI3HNJ.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-09-09</div><div class="title">《Python编程从入门到实践》读书笔记（一）</div></div></a></div><div><a href="/2022/09/12/2022-09-12-Python%E7%BC%96%E7%A8%8B%E4%BB%8E%E5%85%A5%E9%97%A8%E5%88%B0%E5%AE%9E%E8%B7%B5%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B02/" title="《Python编程从入门到实践》读书笔记（二）"><img class="cover" src="https://s2.loli.net/2022/11/08/dhZaLkDWqjI3HNJ.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-09-12</div><div class="title">《Python编程从入门到实践》读书笔记（二）</div></div></a></div><div><a href="/2022/10/24/2022-10-24-Learning-python2/" title="《Learning Python》读书笔记（二）"><img class="cover" src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-10-24</div><div class="title">《Learning Python》读书笔记（二）</div></div></a></div><div><a href="/2022/09/17/2022-09-17-Learning_python1/" title="《Learning Python》读书笔记（一）"><img class="cover" src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-09-17</div><div class="title">《Learning Python》读书笔记（一）</div></div></a></div><div><a href="/2022/10/30/2022-10-30-Learning-python3/" title="《Learning Python》读书笔记（三）"><img class="cover" src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-10-30</div><div class="title">《Learning Python》读书笔记（三）</div></div></a></div><div><a href="/2022/11/04/2022-11-04-Learning-python4/" title="《Learning Python》读书笔记（四）"><img class="cover" src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-11-04</div><div class="title">《Learning Python》读书笔记（四）</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">鸟布</div><div class="author-info__description">教练，我想学技术</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">14</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">7</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">9</div></a></div><a id="card-info-btn"><i class="fa-solid fa-ghost"></i><span>这个按钮正在等待灵魂</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="mailto:niaobubob@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">为了蒂法！！！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">1.</span> <span class="toc-text">第一章 C#和.NET框架</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#NET%E6%A1%86%E6%9E%B6%E7%9A%84%E7%BB%84%E6%88%90"><span class="toc-number">1.1.</span> <span class="toc-text">.NET框架的组成</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BC%96%E8%AF%91%E4%B8%BACIL"><span class="toc-number">1.2.</span> <span class="toc-text">编译为CIL</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BC%96%E8%AF%91%E6%88%90%E6%9C%AC%E6%9C%BA%E4%BB%A3%E7%A0%81%EF%BC%88Native-Code%EF%BC%89%E5%B9%B6%E6%89%A7%E8%A1%8C"><span class="toc-number">1.3.</span> <span class="toc-text">编译成本机代码（Native Code）并执行</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CLR"><span class="toc-number">1.4.</span> <span class="toc-text">CLR</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CLI"><span class="toc-number">1.5.</span> <span class="toc-text">CLI</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">2.</span> <span class="toc-text">第二章 C#和.NET Core</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#NET-Core%E7%9A%84%E7%94%B1%E6%9D%A5"><span class="toc-number">2.1.</span> <span class="toc-text">.NET Core的由来</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">3.</span> <span class="toc-text">第三章 C#编程概述</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E4%B8%AA%E7%AE%80%E5%8D%95%E7%9A%84C-%E7%A8%8B%E5%BA%8F"><span class="toc-number">3.1.</span> <span class="toc-text">一个简单的C#程序</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A0%87%E8%AF%86%E7%AC%A6-Identifiers"><span class="toc-number">3.2.</span> <span class="toc-text">标识符 Identifiers</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B3%E9%94%AE%E5%AD%97-Keywords"><span class="toc-number">3.3.</span> <span class="toc-text">关键字 Keywords</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Main%EF%BC%9A%E7%A8%8B%E5%BA%8F%E7%9A%84%E8%B5%B7%E5%A7%8B%E7%82%B9"><span class="toc-number">3.4.</span> <span class="toc-text">Main：程序的起始点</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%A9%BA%E7%99%BD-Whitespace"><span class="toc-number">3.5.</span> <span class="toc-text">空白 Whitespace</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%AF%AD%E5%8F%A5-Statements"><span class="toc-number">3.6.</span> <span class="toc-text">语句 Statements</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9D%97-Blocks"><span class="toc-number">3.7.</span> <span class="toc-text">块 Blocks</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%8E%E7%A8%8B%E5%BA%8F%E4%B8%AD%E8%BE%93%E5%87%BA%E6%96%87%E6%9C%AC"><span class="toc-number">3.8.</span> <span class="toc-text">从程序中输出文本</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Write"><span class="toc-number">3.8.1.</span> <span class="toc-text">Write</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#WriteLine"><span class="toc-number">3.8.2.</span> <span class="toc-text">WriteLine</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%BC%E5%BC%8F%E5%AD%97%E7%AC%A6%E4%B8%B2-The-Format-String"><span class="toc-number">3.8.3.</span> <span class="toc-text">格式字符串 The Format String</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%9A%E9%87%8D%E6%A0%87%E8%AE%B0%E5%92%8C%E5%80%BC"><span class="toc-number">3.8.4.</span> <span class="toc-text">多重标记和值</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%BC%E5%BC%8F%E5%8C%96%E6%95%B0%E5%AD%97%E5%AD%97%E7%AC%A6%E4%B8%B2"><span class="toc-number">3.8.5.</span> <span class="toc-text">格式化数字字符串</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B3%A8%E9%87%8A%EF%BC%9A%E4%B8%BA%E4%BB%A3%E7%A0%81%E6%B7%BB%E5%8A%A0%E6%B3%A8%E8%A7%A3-Comments-Annotating-the-Code"><span class="toc-number">3.9.</span> <span class="toc-text">注释：为代码添加注解 Comments: Annotating the Code</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link"><span class="toc-number">4.</span> <span class="toc-text">第四章 类型、存储和变量</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#C-%E7%A8%8B%E5%BA%8F%E6%98%AF%E4%B8%80%E7%BB%84%E7%B1%BB%E5%9E%8B%E5%A3%B0%E6%98%8E"><span class="toc-number">4.1.</span> <span class="toc-text">C#程序是一组类型声明</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%B1%BB%E5%9E%8B%E6%98%AF%E4%B8%80%E7%A7%8D%E6%A8%A1%E6%9D%BF"><span class="toc-number">4.2.</span> <span class="toc-text">类型是一种模板</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E4%BE%8B%E5%8C%96%E7%B1%BB%E5%9E%8B-Instantiating-a-Type"><span class="toc-number">4.3.</span> <span class="toc-text">实例化类型 Instantiating a Type</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E6%88%90%E5%91%98%E5%92%8C%E5%87%BD%E6%95%B0%E6%88%90%E5%91%98"><span class="toc-number">4.4.</span> <span class="toc-text">数据成员和函数成员</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%A2%84%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%9E%8B"><span class="toc-number">4.5.</span> <span class="toc-text">预定义类型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%A8%E6%88%B7%E5%AE%9A%E4%B9%89%E7%9A%84%E7%B1%BB%E5%9E%8B"><span class="toc-number">4.6.</span> <span class="toc-text">用户定义的类型</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2022/11/15/2022-11-15-Learning-python7/" title="《Learning Python》读书笔记（七）"><img src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Learning Python》读书笔记（七）"/></a><div class="content"><a class="title" href="/2022/11/15/2022-11-15-Learning-python7/" title="《Learning Python》读书笔记（七）">《Learning Python》读书笔记（七）</a><time datetime="2022-11-15T06:09:30.000Z" title="发表于 2022-11-15 14:09:30">2022-11-15</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/11/10/2022-11-10-Learning-python6/" title="《Learning Python》读书笔记（六）"><img src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Learning Python》读书笔记（六）"/></a><div class="content"><a class="title" href="/2022/11/10/2022-11-10-Learning-python6/" title="《Learning Python》读书笔记（六）">《Learning Python》读书笔记（六）</a><time datetime="2022-11-10T06:44:00.000Z" title="发表于 2022-11-10 14:44:00">2022-11-10</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/11/08/2022-11-08-Learning-python5/" title="《Learning Python》读书笔记（五）"><img src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Learning Python》读书笔记（五）"/></a><div class="content"><a class="title" href="/2022/11/08/2022-11-08-Learning-python5/" title="《Learning Python》读书笔记（五）">《Learning Python》读书笔记（五）</a><time datetime="2022-11-08T06:00:31.000Z" title="发表于 2022-11-08 14:00:31">2022-11-08</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/11/04/2022-11-04-Learning-python4/" title="《Learning Python》读书笔记（四）"><img src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Learning Python》读书笔记（四）"/></a><div class="content"><a class="title" href="/2022/11/04/2022-11-04-Learning-python4/" title="《Learning Python》读书笔记（四）">《Learning Python》读书笔记（四）</a><time datetime="2022-11-04T06:17:54.000Z" title="发表于 2022-11-04 14:17:54">2022-11-04</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/10/30/2022-10-30-Learning-python3/" title="《Learning Python》读书笔记（三）"><img src="https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Learning Python》读书笔记（三）"/></a><div class="content"><a class="title" href="/2022/10/30/2022-10-30-Learning-python3/" title="《Learning Python》读书笔记（三）">《Learning Python》读书笔记（三）</a><time datetime="2022-10-30T05:36:03.000Z" title="发表于 2022-10-30 13:36:03">2022-10-30</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2022 By 鸟布</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">Your time is limited, so don't waste it living someone else's life.</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div id="local-search-results"></div></div></div><div id="search-mask"></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.umd.min.js"></script><script src="/js/search/local-search.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
