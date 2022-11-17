@@ -113,10 +113,11 @@ search:
   field: post
   content: true
 
-markdown:
-  plugins:
-    - plugin:
-      name: '@neilsustc/markdown-it-katex'
-      options:
-        strict: false
-        
+kramed:
+  gfm: true
+  pedantic: false
+  sanitize: false
+  tables: true
+  breaks: true
+  smartLists: true
+  smartypants: true
