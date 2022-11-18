@@ -23,7 +23,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 ## chapter 24 Module Packages
 ### 一、Package Import Basics
 1、除了模块名之外，导入还可以指定目录路径
-- Python代码的目录被称为包package；
+- Python代码的目录被称为**包 package**；
 - 包导入是把目录变成Python命名空间，其属性对应目录中所包含的子目录和模块文件。
 
 2、包导入基础
@@ -197,6 +197,7 @@ print(modz)
     - C:\code\ns\dir1\sub\mod1.py
     - C:\code\ns\dir2\sub\mod2.py
 - 如果将dir1和dir2都添加进模块搜索路径，sub将成为一个横跨2个目录的命名空间包
+
 ``` python
 # ns\dir1\sub\mod1.py
 print(r'dir1\sub\mod1')
@@ -217,12 +218,15 @@ print(sub.mod2)
 print(sub)
 print(sub.__path__)
 ```
+
 - 相对导入也适用于命名空间包：
     - 可以把mod1里的代码改为
+    
     ``` python
     from . import mod2
     print(r'dir1\sub\mod1')
     ```
+    
     - 这样import sub.mod1会得到dir2\sub\mod2和dir1\sub\mod1。
 
 6、命名空间包嵌套
@@ -230,4 +234,62 @@ print(sub.__path__)
 - 较低层的组件可以是一个模块、常规包也可以是另一个命名空间包。
 
 
+> **分界线（之前的笔记格式要调整）**
+
 ## chapter 25 Advanced Module Topics
+### 一、Module Design Concepts
+1、模块设计概念
+- 在python中用户总是位于某个模块中，即使在交互式命令行下输入的代码实际上也存在于*\_\_main\_\_*的内置模块中；
+- 最小化模块*耦合coupling*：全局变量，模块应该尽可能地独立于其他模块内使用的全局变量；
+- 最大化模块*内聚cohesion*：统一的目标；
+- 模块尽可能不去更改其他模块的变量；
+- 模块不仅可以被导入，而且还可以导入和使用其他用python或者诸如C的其他语言编写的模块。
+
+2、使 \* 的破坏最小化：*\_X* 和 *\_\_all\_\_*
+- 可以在名称前面加上下划线，防止导入时把名称复制出来，最小化对命名空间的破坏；
+- `from *` 是复制出所有的名称；
+
+``` python
+# unders.py
+a, _b, c, _d = 1, 2, 3, 4
+```
+
+``` python
+from unders import *
+print(a, c)
+print(_b) # 会出现NameError
+```
+
+- 但 import 仍然可以获取并修改这类名称：
+
+``` python
+import unders
+print(unders._b)
+```
+
+- 可以通过在模块顶层把变量名的字符串列表赋值给变量 *\_\_all\_\_* ，从而达到类似于 *\_X* 命名惯例的隐藏效果；
+- 使用此功能时，`from *` 语句只会把列在 *\_\_all\_\_ 列表*中的这些名称复制出来；
+- *\_\_all\_\_* 是指明要复制的名称，而 *\_X* 是指明不被复制的名称。
+
+``` python
+# alls.py
+__all__ = ['a', '_c']
+a, b, _c, _d = 1, 2, 3, 4
+```
+
+``` python
+from alls import *
+print(a, _c)
+print(b) # 会出现NameError
+
+from alls import a, b, _c, _d
+print(a, b, _c, _d)
+
+import alls
+print(alls.a, alls.b, alls._c, alls._d)
+```
+
+- 就像 *\_X* 一样，*\_\_all\_\_ 列表*只对 `from *` 语句有效；其他导入语句仍然能访问全部名称。
+
+3、启用未来语言特性：*\_\_future\_\_ 模块*
+- 可以在Python 2.X中使用`from __future__ import featurename`来获取3.X的语言特性。
