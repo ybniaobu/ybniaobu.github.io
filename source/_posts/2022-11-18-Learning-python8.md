@@ -475,4 +475,599 @@ print(Y.data)
 - 运算符重载方法是可选的，如果没有给出相应的运算符重载方法的话，大多数内置函数会对类实例失效。
 
 ### 二、Indexing and Slicing: \_\_getitem\_\_ and \_\_setitem\_\_
+1、`__getitem__`：如果类定义或继承了该方法，该方法会自动被调用并进行实例的索引运算
+- 即实例 X 出现在 `X[i]` 的运算中，python 会调用实例继承的 `__getitem__` 方法，把 X 作为第一个参数传入，索引值传给第二个参数：
 
+``` python
+class Indexer:
+    def __getitem__(self, index):
+        return index ** 2
+
+X = Indexer()
+print(X[2])
+```
+
+2、拦截分片 Intercepting Slices
+- 除了索引，`__getitem__` 也会被分片表达式调用：
+- 以下为分片相关，详见第7章：
+
+``` python
+L = [5, 6, 7, 8, 9]
+print(L[2:4], L[1:], L[:-1], L[::2])
+```
+
+- 也可以手动地传入分片对象：
+
+``` python
+print(L[slice(2, 4)], L[slice(1, None)], L[slice(None, -1)], L[slice(None, None, 2)])
+```
+
+- 而 `__getitem__` 即能被基础索引（带有一个索引）调用，又能被分片（带有一个分片对象）调用：
+
+``` python
+class Indexer:
+    data = [5, 6, 7, 8, 9]
+    def __getitem__(self, index):
+        print('getitem:', index)
+        return self.data[index]
+
+X = Indexer()
+X[0]
+X[1]
+X[-1]
+X[2:4]
+X[1:]
+X[:-1]
+X[::2]
+```
+
+- `__getitem__` 可以检测它接收的参数类型，并提取分片对象的边界。分片对象拥有 start 、 stop 和 step 这些属性，任意一项被省略的话都是 None ：
+
+``` python
+class Indexer:
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            print('indexing', index)
+        else:
+            print('slicing', index.start, index.stop, index.step)
+
+X = Indexer()
+X[99]
+X[1:99:2]
+X[1:]
+```
+
+3、`__setitem__` 方法是对索引进行赋值，可以拦截索引赋值或分片赋值
+
+``` python
+class IndexSetter:
+    data = [5, 6, 7, 8, 9]
+    def __setitem__(self, index, value):
+        self.data[index] = value ** 2
+
+X = IndexSetter()
+X[3] = 4
+print(X.data)
+```
+
+4、`__index__` 方法不是索引
+- `__index__` 方法会为一个实例返回一个整数值，供转化数字串的内置函数使用：
+
+``` python
+class C:
+    def __index__(self):
+        return 255
+
+X = C()
+print(hex(X))
+print(bin(X))
+print(oct(X))
+```
+
+- 也可以作为索引：
+
+``` python
+print(('C' * 256)[255])
+print(('C' * 256)[X])
+print(('C' * 256)[X:])
+```
+
+5、索引迭代：`__getitem__`
+- `__getitem__` 也可以是 Python 中一种重载迭代的方式；
+- 可以重复对序列进行索引运算，直到检测到超出边界的 IndexError 异常。
+
+``` python
+class StepperIndex:
+    def __getitem__(self, i):
+        return self.data[i]
+    
+X = StepperIndex()
+X.data = "Spam"
+
+print(X[1])  # Indexing calls __getitem__
+
+for item in X:  # for loops call __getitem__
+    print(item, end=' ')
+```
+
+- 成员关系测试 in 、列表推导、内置函数 map 、列表和元组赋值运算以及类型构造方法都会自动调用 `__getitem__` ：
+
+``` python
+print('p' in X)
+print([c for c in X])
+print(list(map(str.upper, X)))
+(a, b, c, d) = X
+print(a, c, d)
+print(list(X), tuple(X), ''.join(X))
+print(X)
+```
+
+### 三、Iterable Objects: \_\_iter\_\_ and \_\_next\_\_
+1、Python 中所有的迭代上下文都先尝试 `__iter__` 方法，再尝试 `__getitem__`
+
+2、用类定义用户自定义可迭代对象
+- 迭代上下文是通过将一个可迭代对象传入内置函数 iter ，并尝试调用 \_\_iter\_\_ 方法来实现的，该方法返回一个迭代器对象；
+- 如果提供了这种方法，python 会重复调用这个迭代器对象的 \_\_next\_\_ 方法来产生元素，直到引发 StopIteration 异常。
+
+``` python
+class Squares:
+    def __init__(self, start, stop):
+        self.value = start - 1
+        self.stop = stop
+    def __iter__(self):
+        return self # __iter__方法返回的迭代器对象就是实例对象self
+    def __next__(self):
+        if self.value == self.stop:
+            raise StopIteration # 迭代通过raise语句来结束
+        self.value += 1
+        return self.value ** 2 # 改为生成平方
+
+for i in Squares(1, 5):
+    print(i, end=' ')
+
+X = Squares(1, 5)
+I = iter(X)
+print(next(I))
+print(next(I))
+print(next(I))
+print(next(I))
+print(next(I))
+```
+
+3、单遍扫描和多遍扫描
+- 类的 `__iter__` 被设计为只遍历一次，而不是多次；
+- 类在代码中显式地选择扫描行为；
+- 由于上面 Squares 类的 \_\_iter\_\_ 通常返回只带有一份迭代状态复制的 self ，因此是一个一次性的迭代；
+- 一旦迭代过这个类的一个实例，它就变为空；
+- 所以需要为每一次新的迭代创建一个新的可迭代实例对象。
+
+``` python
+X = Squares(1, 5)
+print([n for n in X]) # Exhausts items: __iter__ returns self
+print([n for n in X]) # Now it's empty: __iter__ returns same self
+print([n for n in Squares(1, 5)]) # Make a new iterable object
+print(list(Squares(1, 3))) # A new object for each new __iter__ call
+```
+
+4、单个对象上的多个迭代器
+- 例如14章提到的：生成器函数、生成器表达式以及 map 和 zip 这样的内置函数，是单次迭代对象，只能支持唯一一个活跃扫描；
+- range 内置函数和其他的内置类型（如列表），则支持多个带有独立位置的活跃迭代器。
+
+（1）单次遍历迭代对象
+
+``` python
+S = map(list, 'ace') # 得到的是['a'],['b'],['c']的迭代器
+for x in S:
+    for y in S:
+        print(x + y, end=' ')
+print('-')
+```
+
+（2）多次遍历迭代对象
+
+``` python
+S = list('ace') # 得到的是['a','b','c']
+for x in S:
+    for y in S:
+        print(x + y, end=' ')
+print('-')
+```
+
+- 当用类编写用户定义的可迭代对象，要达到多个迭代器的效果，\_\_iter\_\_ 只需替迭代器定义一个新的对象状态，而不是在每次迭代器请求中都返回 self ；
+- 下面的 SkipObject 类定义了一个可迭代对象。由于它的迭代器对象会在每次迭代时都被一个支持类重新创建，因此能够支持多个循环：
+
+``` python
+class SkipObject:
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+    def __iter__(self):
+        return SkipIterator(self.wrapped) # New iterator each time
+
+class SkipIterator:
+    def __init__(self, wrapped):
+        self.wrapped = wrapped # Iterator state information
+        self.offset = 0
+    def __next__(self):
+        if self.offset >= len(self.wrapped):
+            raise StopIteration
+        else:
+            item = self.wrapped[self.offset]
+            self.offset += 2
+            return item
+
+alpha = 'abcdef'
+skipper = SkipObject(alpha)
+I = iter(skipper)
+print(next(I), next(I), next(I))
+
+for x in skipper:
+    for y in skipper:
+        print(x + y, end=' ')
+
+print('-')
+```
+
+5、编程备选方案：`__iter__` 加 yield
+- 包含 yield 语句的函数都会被转换成一个生成器函数；
+- 当被调用时，它返回一个新的生成器对象；
+- 一个被自动创建的 \_\_iter\_\_ 方法返回它本身；
+- 而另一个自动创建的 \_\_next\_\_ 方法要么开始函数的执行，要么回到上一次执行的位置：
+
+``` python
+def gen(x):
+    for i in range(x): yield i ** 2
+
+G = gen(5)
+print(G.__iter__() == G)
+I = iter(G)
+print(next(I), next(I))
+```
+
+- 这个带有 yield 的生成器函数可以作为类的 \_\_iter\_\_ 重载方法；
+- 这样的方法会放回带有 \_\_next\_\_方法的新生成器对象；
+- 在类中作为方法的生成器函数有权访问存储在实例属性和局部作用域变量中的状态：
+
+``` python
+class Squares:
+    def __init__(self, start, stop):
+        self.start = start
+        self.stop = stop
+    def __iter__(self):
+        for value in range(self.start, self.stop + 1):
+            yield value ** 2
+
+for i in Squares(1, 5): print(i, end=' ')
+print('-')
+```
+
+- \_\_iter\_\_ 返回了一个生成器对象，该生成器对象带有一个自动创建的 \_\_next\_\_ 类，如果调用结果对象的 next 接口，就能按需产生结果：
+
+``` python
+S = Squares(1, 5)
+print(S)
+I = iter(S)
+print(I)
+print(next(I), next(I))
+```
+
+- 除了将生成器函数作为 \_\_iter\_\_ 方法，可以手动访问属性和调用，如`Squares(1,5).gen()`
+
+``` python
+class Squares:
+    def __init__(self, start, stop):
+        self.start = start
+        self.stop = stop
+    def gen(self):
+        for value in range(self.start, self.stop + 1):
+            yield value ** 2
+
+for i in Squares(1, 5).gen(): print(i, end=' ')
+print('-')
+```
+
+①当有 \_\_iter\_\_ 时，迭代触发 \_\_iter\_\_ 并返回一个新的带有 \_\_next\_\_ 的生成器；
+②当没有 \_\_iter\_\_ 时，代码会调用一个生成器，自动创建 \_\_iter\_\_ 方法返回它本身。
+
+6、使用 yield 的多重迭代器
+- 之前的 \_\_iter\_\_ 加 yield 组合自动支持多重活跃迭代器；
+- 因为每次对\_\_iter\_\_的调用都是返回一个新的生成器：
+
+``` python
+class Squares:
+    def __init__(self, start, stop):
+        self.start = start
+        self.stop = stop
+    def __iter__(self):
+        for value in range(self.start, self.stop + 1):
+            yield value ** 2
+
+S = Squares(1, 5)
+I = iter(S)
+print(next(I), next(I))
+J = Squares(1, 5)
+J = iter(S)
+print(next(J), next(J))
+
+S = Squares(1, 3)
+for i in S:
+    for j in S:
+        print('%s:%s' % (i, j), end=' ')
+print('-')
+```
+
+### 四、Membership: \_\_contains\_\_, \_\_iter\_\_, and \_\_getitem\_\_
+1、in 成员关系
+- 类通常把 in 成员关系运算符实现为一个迭代，使用 `__iter__` 方法或 `__getitem__` 方法；
+- 类还可以通过编写 `__contain__` 方法来支持更加特定具体的成员关系。
+- 即当 `__contain__` 方法存在时，它优先于 `__iter__` 方法，而 `__iter__` 方法优先于 `__getitem__` 方法；
+- `__contain__` 方法应该把成员关系定义为对一个键值做映射，或定义为对序列的搜索。
+
+``` python
+class Iters:
+    def __init__(self, value):
+        self.data = value
+
+    def __getitem__(self, i):
+        print('get[%s]:' % i, end='')
+        return self.data[i]
+    
+    def __iter__(self):
+        print('iter=> ', end='')
+        self.ix = 0
+        return self
+    
+    def __next__(self):
+        print('next:', end='')
+        if self.ix == len(self.data): raise StopIteration
+        item = self.data[self.ix]
+        self.ix += 1
+        return item
+    
+    def __contains__(self, x):
+        print('contains: ', end='')
+        return x in self.data
+
+X = Iters([1, 2, 3, 4, 5])
+print(3 in X)
+
+for i in X: 
+    print(i, end=' | ')
+print()
+print([i ** 2 for i in X])
+print( list(map(bin, X)) )
+
+I = iter(X)
+while True:
+    try:
+        print(next(I), end=' @ ')
+    except StopIteration:
+        break
+
+print('\n' + '-' * 128)
+```
+
+2、上述代码去掉 `__contains__` 方法后，成员关系由 `__iter__` 执行
+
+``` python
+class Iters:
+    def __init__(self, value):
+        self.data = value
+
+    def __getitem__(self, i):
+        print('get[%s]:' % i, end='')
+        return self.data[i]
+    
+    def __iter__(self):
+        print('iter=> ', end='')
+        self.ix = 0
+        return self
+    
+    def __next__(self):
+        print('next:', end='')
+        if self.ix == len(self.data): raise StopIteration
+        item = self.data[self.ix]
+        self.ix += 1
+        return item
+
+X = Iters([1, 2, 3, 4, 5])
+print(3 in X)
+
+for i in X: 
+    print(i, end=' | ')
+print()
+print([i ** 2 for i in X])
+print( list(map(bin, X)) )
+
+I = iter(X)
+while True:
+    try:
+        print(next(I), end=' @ ')
+    except StopIteration:
+        break
+
+print('\n' + '-' * 128)
+```
+
+3、上述代码去掉 `__contains__` 和 `__iter__` 方法后，成员关系和其他迭代上下文，由 `__getitem__` 方法调用
+
+``` python
+class Iters:
+    def __init__(self, value):
+        self.data = value
+
+    def __getitem__(self, i):
+        print('get[%s]:' % i, end='')
+        return self.data[i]
+
+X = Iters([1, 2, 3, 4, 5])
+print(3 in X)
+
+for i in X: 
+    print(i, end=' | ')
+print()
+print([i ** 2 for i in X])
+print( list(map(bin, X)) )
+
+I = iter(X)
+while True:
+    try:
+        print(next(I), end=' @ ')
+    except StopIteration:
+        break
+
+print('\n' + '-' * 128)
+```
+
+- `__getitem__` 方法更加通用，除了迭代，还拦截显式索引和分片：
+
+``` python
+X = Iters('spam')
+print(X[0])
+
+print(X[1:])
+print(X[:-1])
+
+print(list(X))
+```
+
+### 五、Attribute Access: \_\_getattr\_\_ and \_\_setattr\_\_
+1、类在需要的时候也可以拦截基本的属性访问（点号运算），即 `object.contribute` 
+
+2、属性引用
+- `__getattr__ `方法可以用来拦截属性引用；
+- 每当用一个未定义的（不存在的）属性名称字符串对一个实例对象做点号运算时，它就会被调用；
+- 正因为如此，`__getattr__` 可以用作以泛化形式响应属性请求的钩子；
+- 它通常用于将代理控制对象的调用委托给内嵌（被包装）的对象；
+- 这个方法也可以用于让类适配一个接口，或是为数据属性添加一个访问方法。
+
+``` python
+class Empty:
+    def __getattr__(self, attrname):
+        if attrname == 'age':
+            return 40
+        else:
+            raise AttributeError(attrname)
+
+X = Empty()
+print(X.age)
+```
+
+3、属性赋值和删除
+- `__setattr__` 会拦截所有的属性赋值；
+- 如果定义或继承了这个方法，`self.attr = value` 会变成 `self.__setattr__('attr', value)`
+- 注意事项：如果在 `__setattr__` 中对任何 self 属性做赋值，都将再次调用 `__setattr__` ，会导致无限递归循环（最终结果是相对快速的栈溢出异常）；
+- 记住：`__setattr__` 会捕获所有的属性赋值；
+- 如果你想使用该方法，可以把实例属性的赋值编写成对属性字典键的赋值来避免循环；
+- 即，使用 `self.__dict__['name'] = x` ，而不是 `self.name = x` ，来避免循环：
+
+``` python
+class Accesscontrol:
+    def __setattr__(self, attr, value):
+        if attr == 'age':
+            self.__dict__[attr] = value + 10
+        else:
+            raise AttributeError(attr + ' not allowed')
+
+X = Accesscontrol()
+X.age = 40
+print(X.age)
+```
+
+- 第三个属性管理方法 `__delattr__` 被传入属性名称字符串并在所有属性删除操作被调用；
+- 它也必须通过 `__dict__` 来进行属性删除操作，从而避免循环调用。
+
+4、其他属性管理工具
+- `__getattribute__` 方法拦截所有的属性访问，不只是未定义的；
+- property 内置函数允许把方法对指定类属性上的访问和修改操作关联起来；
+- 描述符 Descriptors 提供了一个协议，把一个类的 `__get__` 和 `__set__` 方法对指定类属性上的访问关联起来；
+- slot 属性在类中被声明，但在每个实例中都会创建隐式的存储。
+
+### 六、String Representation: \_\_repr\_\_ and \_\_str\_\_
+1、`__repr__` 和 `__str__`
+- `__str__` 会首先被打印操作和 str 内置函数尝试；
+- `__repr__` 用于交互式命令行、 repr 函数、嵌套的显示，以及没有 \_\_str\_\_ 时的 print 和 str 调用
+- `__str__` 用于程序的用户友好的显示，而 `__repr__` 通常用于代码或底层的显示：
+
+``` python
+class adder:
+    def __init__(self, value=0):
+        self.data = value
+    def __add__(self, other):
+        self.data += other
+
+class addrepr(adder):
+    def __repr__(self):
+        return 'addrepr(%s)' % self.data
+
+x = addrepr(2)
+x + 1
+```
+
+- 在交互式命令行中，x 显示 addrepr(3) ，与 print(x) 一样：
+
+``` python
+print(x) 
+
+class addstr(adder):
+    def __str__(self):
+        return '[Value: %s]' % self.data
+
+x = addstr(3)
+x + 1
+```
+
+- 在交互式命令行中， x 显示 `<__main__.addstr object at 0x00000000029738D0>`，与 print(x) 不一样：
+
+``` python
+print(x)
+
+class addboth(adder):
+    def __str__(self):
+        return '[Value: %s]' % self.data
+    def __repr__(self):
+        return 'addboth(%s)' % self.data
+
+x = addboth(4)
+x + 1
+```
+
+- 在交互式命令行中， x 显示 addboth(5) ，运行 `__repr__` 方法：
+
+``` python
+print(x) # 运行__str__方法 
+print(str(x), repr(x))
+```
+
+2、使用提示
+- `__str__` 和 `__repr__` 都必须返回字符串；
+- `__str__` 只会应用在对象出现在打印操作顶层时；在对象中内嵌的对象仍然使用 `__repr__` 方法打印
+- 我的理解是 `__repr__` 表示对象本身显示什么，`__str__` 表示对象打印出什么。
+- 打印容器对象的 `__str__` 方法：
+
+``` python
+class Printer:
+    def __init__(self, val):
+        self.val = val
+    def __str__(self):
+        return str(self.val)
+
+objs = [Printer(2), Printer(3)]
+for x in objs: print(x)
+print(objs)
+```
+
+- 打印容器对象的 `__repr__` 方法：
+
+``` python
+class Printer:
+    def __init__(self, val):
+        self.val = val
+    def __repr__(self):
+        return str(self.val)
+
+objs = [Printer(2), Printer(3)]
+for x in objs: print(x)
+print(objs)
+```
+
+### 七、Right-Side and In-Place Uses: \_\_radd\_\_ and \_\_iadd\_\_
