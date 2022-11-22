@@ -1071,3 +1071,202 @@ print(objs)
 ```
 
 ### 七、Right-Side and In-Place Uses: \_\_radd\_\_ and \_\_iadd\_\_
+1、右侧加法
+- 目前编写的 `__add__` 方法并不支持把实例对象写在 + 右侧；
+- 为了实现更通用的表达式，需要同时编写 `__radd__` 方法；
+- 只有当 + 右侧是实例对象且左侧不是实例对象时，python 才会调用 `__radd__`：
+
+``` python
+class Commuter1:
+    def __init__(self, val):
+        self.val = val
+    def __add__(self, other):
+        print('add', self.val, other)
+        return self.val + other
+    def __radd__(self, other): # 顺序反转：self在 + 的右侧，other在左侧
+        print('radd', self.val, other)
+        return other + self.val
+
+x = Commuter1(88)
+y = Commuter1(99)
+
+print(x + 1)
+print(1 + y)
+print(x + y)
+```
+
+- 2个实例对象相加后，python首先运行 `__add__` ，在 `__add__` 内部的 return 中又有加号即 88 + y，这个 + 触发了 `__radd__` 方法；
+- 所以上面 `__add__` 方法中，`return self.val + other` 改为 `return other + self.val` ，就会看到2次 add ；
+
+2、在 `__radd__` 中使用 `__add__`
+- 可以在 `__radd__` 中直接调用 `__add__` ；要么交换位置，间接触发 `__add__` ；要么在类的顶层直接把 `__radd__` 赋值成 `__add__` 的别名：
+
+``` python
+class Commuter2:
+    def __init__(self, val):
+        self.val = val
+    def __add__(self, other):
+        print('add', self.val, other)
+        return self.val + other
+    def __radd__(self, other):
+        return self.__add__(other)
+
+class Commuter3:
+    def __init__(self, val):
+        self.val = val
+    def __add__(self, other):
+        print('add', self.val, other)
+        return self.val + other
+    def __radd__(self, other):
+        return self + other
+
+class Commuter4:
+    def __init__(self, val):
+        self.val = val
+    def __add__(self, other):
+        print('add', self.val, other)
+        return self.val + other
+    __radd__ = __add__
+```
+
+ 3、return 类类型，需要 isinstance 测试来避免嵌套
+
+``` python
+class Commuter5:
+    def __init__(self, val):
+        self.val = val
+    def __add__(self, other):
+        if isinstance(other, Commuter5): # 如果不测试，会得到嵌套在Commuter5中的Commuter5对象
+            other = other.val
+        return Commuter5(self.val + other)
+    def __radd__(self, other):
+        return Commuter5(other + self.val)
+    def __str__(self):
+        return '<Commuter5: %s>' % self.val
+
+x = Commuter5(88)
+y = Commuter5(99)
+print(x + 10)
+print(10 + y)
+print(x + y)
+print(x + y + 10)
+```
+
+4、原位置加法 In-Place Addition
+- 为了实现 += ，可以编写一个 `__iadd__` 或 `__add__`；
+- `__iadd__` 更高效，若不存在，则会使用 `__add__`：
+
+``` python
+class Number:
+    def __init__(self, val):
+        self.val = val
+    def __iadd__(self, other):
+        self.val += other
+        return self
+
+x = Number(5)
+x += 1
+x += 1
+print(x.val)
+
+y = Number([1])
+y += [2]
+y += [3]
+print(y.val)
+```
+
+5、每个运算符都有右侧和原位置重置方法，例如乘法的 `__mul__` 、 `__rmul__` 、 `__imul__`。
+
+### 八、Other Operator Overloading
+1、Call Expressions: `__call__`
+- 调用实例会使用 `__call__` 方法：
+
+``` python
+class Callee:
+    def __call__(self, *pargs, **kargs):
+        print('Called:', pargs, kargs)
+
+C = Callee()
+C(1, 2, 3)
+C(1, 2, 3, x=4, y=5)
+```
+
+2、Comparisons: `__lt__` , `__gt__` , and Others
+- 类可以定义方法来捕获<、>、<=、>=、==、!=
+- 比较运算符没有隐含关系，比如 == 为真并不意味着 != 为假。因此 `__eq__` 和 `__ne__` 的定义要确保两个运算符都正确地工作；
+- 以下为简单介绍：
+
+``` python
+class C:
+    data = 'spam'
+    def __gt__(self, other):
+        return self.data > other
+    def __lt__(self, other):
+        return self.data < other
+
+X = C()
+print(X > 'ham') # runs __gt__
+print(X < 'ham') # runs __lt__
+```
+
+3、Boolean Tests: `__bool__` and `__len__`
+- Python会首先尝试 `__bool__` 来获取一个直接的布尔值；如果没有该方法，则尝试 `__len__` 来根据对象长度确定真值：
+
+``` python
+class Truth:
+    def __bool__(self): return True
+
+X = Truth()
+if X: print('yes!')
+
+class Truth:
+    def __bool__(self): return False
+
+X = Truth()
+print(bool(X))
+```
+
+- 如果没有上述方法，python 会使用长度，非零长度为真，零长度为假：
+
+``` python
+class Truth:
+    def __len__(self): return 0
+
+X = Truth()
+if not X: print('no!')
+```
+
+- 如果上述2者都没有定义，对象会被看作真：
+
+``` python
+class Truth:
+    pass
+
+X = Truth()
+print(bool(X))
+```
+
+4、Object Destruction: `__del__` 对象析构函数
+- 每当实例空间被收回时，`__del__`（析构函数方法）会自动执行：
+
+``` python
+class Life:
+    def __init__(self, name='unknown'):
+        print('Hello ' + name)
+        self.name = name
+    def live(self):
+        print(self.name)
+    def __del__(self):
+        print('Goodbye ' + self.name)
+
+brian = Life('Brian')
+brian.live()
+brian = 'loretta'
+```
+
+- 当 brain 被赋值为一个字符串时，我们会失去 Life 实例的最后一个引用并因此触发其析构函数；
+- python 在回收实例时，会自动回收该实例拥有的内存空间，所以析构函数并不需要考虑空间管理。
+
+
+## chapter 31 Designing with Classes
+### 一、Python and OOP
