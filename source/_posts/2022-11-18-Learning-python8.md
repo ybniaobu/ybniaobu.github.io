@@ -1270,3 +1270,781 @@ brian = 'loretta'
 
 ## chapter 31 Designing with Classes
 ### 一、Python and OOP
+该章内容是一些常用的 OOP 的设计模式，本书在这一块只是抛砖引玉，大致了解一下就行，按需学习，需要深入了解的时候再去深入了解。  
+
+大致包括*继承*、*组合*、*委托*和*工厂*，以及*伪私有属性*、*多重继承*和*绑定方法*
+
+1、OOP and Inheritance
+
+``` python
+class Employee:
+    def __init__(self, name, salary=0):
+        self.name = name
+        self.salary = salary
+    def giveRaise(self, percent):
+        self.salary = self.salary + (self.salary * percent)
+    def work(self):
+        print(self.name, "does stuff")
+    def __repr__(self):
+        return "<Employee: name=%s, salary=%s>" % (self.name, self.salary)
+
+class Chef(Employee):
+    def __init__(self, name):
+        Employee.__init__(self, name, 50000)
+    def work(self):
+        print(self.name, "makes food")
+
+class Server(Employee):
+    def __init__(self, name):
+        Employee.__init__(self, name, 40000)
+    def work(self):
+        print(self.name, "interfaces with customer")
+
+class PizzaRobot(Chef):
+    def __init__(self, name):
+        Chef.__init__(self, name)
+    def work(self):
+        print(self.name, "makes pizza")
+
+bob = PizzaRobot('bob')
+print(bob)
+bob.work()
+bob.giveRaise(0.20)
+print(bob)
+
+for klass in Employee, Chef, Server, PizzaRobot:
+    obj = klass(klass.__name__)
+    obj.work()
+
+print()
+```
+
+2、OOP and Composition 组合
+- 组合涉及把其他对象嵌入容器对象内，促使其实现容器方法；
+- 有些书称组合为聚合 aggregation ：
+
+``` python
+class Customer:
+    def __init__(self, name):
+        self.name = name
+    def order(self, server):
+        print(self.name, "orders from", server)
+    def pay(self, server):
+        print(self.name, "pays for item to", server)
+
+class Oven:
+    def bake(self):
+        print("oven bakes")
+
+class PizzaShop:
+    def __init__(self):
+        self.server = Server('Pat')
+        self.chef = PizzaRobot('Bob')
+        self.oven = Oven()
+
+    def order(self, name):
+        customer = Customer(name)
+        customer.order(self.server)
+        self.chef.work()
+        self.oven.bake()
+        customer.pay(self.server)
+
+scene = PizzaShop()
+scene.order('Homer')
+print()
+scene.order('Shaggy')
+print()
+```
+
+- 以上的 PizzaShop 类就是容器和控制器；
+- 每份订单都会创建新的 Customer 对象，并把内嵌的 Server 对象传给 Customer 的方法。
+
+3、OOP and Delegation 委托：包装器代理对象 “Wrapper” Proxy Objects
+- 委托通常是指控制器对象内嵌其他对象，并把操作请求传递给那些内嵌的对象；
+- 控制器负责管理类活动，例如记录日志和验证访问，为接口组件添加额外步骤，或监视活跃实例；
+- 委托是组合的一种特殊形式，它使用包装器（代理）类管理单一的内嵌对象，而包装器类保留了内嵌对象的大多数或全部的接口。
+- 通常使用 `__getattr__` 方法钩子来实现委托，来把任意的访问转发给被包装的对象：
+
+``` python
+class Wrapper:
+    def __init__(self, object):
+        self.wrapped = object
+    def __getattr__(self, attrname):
+        print('Trace: ' + attrname)
+        return getattr(self.wrapped, attrname)
+```
+
+- `__getattr__` 方法会获取属性名称的字符串，`getattr` 内置函数可通过名称字符串获取被包装对象的属性：`getattr(X,N)` 就是 `X.N`
+- 这里 Wrapper 类只是在每次属性访问时打印跟踪消息，并把属性请求委托给内嵌的 wrapped 对象：
+
+``` python
+x = Wrapper([1, 2, 3])
+x.append(4)
+print(x.wrapped)
+x = Wrapper({'a': 1, 'b': 2})
+print(list(x.keys()))
+```
+
+- 总的效果就是通过 Wrapper 类内的额外代码来扩充被包装对象的全部接口；
+- 可以利用这种方法记录方法调用，把方法调用路由到额外或定制的逻辑，使类适应一个新接口。
+
+### 二、Pseudoprivate Class Attributes
+1、类的伪私有属性 Pseudoprivate Class Attributes
+- python 支持名称重整 mangling ，使类中的某些名称局部化；
+- 重整后的名称会被误以为是私有属性，但名称重整并不能阻止来自类外部代码的访问；
+- 这个功能主要是为了避免实例内的命名空间冲突，而不是限制名称的访问，所以重整后的变量名称为伪私有。
+
+2、名称重整的工作方式
+- 只在 class 内部，任意开头双下划线，结尾没双下划线的名称，会自动在前面包含外围类的名称从而进行扩展；
+- 比如 Spam 类中的 \_\_X 会自动变成 \_Spam\_\_X ，这样就不会和其他类中相同的变量名相冲突；
+- 实例属性引用也需要使用 `self._Spam__X`：
+
+``` python
+class C1:
+    def meth1(self): self.__X = 88
+    def meth2(self): print(self.__X)
+class C2:
+    def metha(self): self.__X = 99
+    def methb(self): print(self.__X)
+
+class C3(C1, C2): pass
+I = C3()
+
+I.meth1(); I.metha()
+print(I.__dict__)
+I.meth2(); I.methb()
+```
+
+- 这样可避免实例中潜在的名称冲突，如下：
+
+``` python
+class C1:
+    def meth1(self): self.X = 88
+    def meth2(self): print(self.X)
+class C2:
+    def metha(self): self.X = 99
+    def methb(self): print(self.X)
+
+class C3(C1, C2): pass
+I = C3()
+I.meth1(); I.metha()
+print(I.__dict__)
+```
+
+### 三、Methods Are Objects: Bound or Unbound
+1、类的方法可以通过实例或类来访问
+①未绑定 Unbound 的类方法对象（无 self ）：直接对类进行点号运算从而获取类的函数属性。
+②绑定 Bound 的实例方法对象（ self +函数）：对实例进行点号运算从而获取类的函数属性。
+
+``` python
+class Spam:
+    def doit(self, message):
+        print(message)
+
+object1 = Spam()
+x = object1.doit # Bound method object: instance+function
+x('hello world')
+```
+
+- 如果对类进行点号运算来获取 doit ，就会得到未绑定的方法对象；
+- 要调用该方法，需要传入实例作为最左侧的参数。
+
+``` python
+t = Spam.doit # Unbound method object
+object1 = Spam()
+t(object1, 'howdy')
+```
+
+- 同理可以在类的方法内引用 self 的属性，而该属性指向类中另外的方法：
+
+``` python
+class Eggs:
+    def m1(self, n):
+        print(n)
+    def m2(self):
+        x = self.m1
+        x(42)
+
+Eggs().m2()
+```
+
+2、在Python 3.X 中，未绑定方法是函数
+- 打印一个非实例类的方法的类型，在 python 2.X 显示为未绑定方法，在 python 3.X 显示为函数：
+
+``` python
+class Selfless:
+    def __init__(self, data):
+        self.data = data
+    def selfless(arg1, arg2):
+        return arg1 + arg2
+    def normal(self, arg1, arg2):
+        return self.data + arg1 + arg2
+
+X = Selfless(2)
+print(X.normal(3, 4))
+print(Selfless.normal(X, 3, 4))
+print(Selfless.selfless(3, 4)) # No instance: works in 3.X, fails in 2.X!
+X.selfless(3, 4) # 会出现TypeError: selfless() takes 2 positional arguments but 3 were given
+```
+
+3、绑定方法和其他可调用对象
+- 绑定方法可以作为一般对象处理，比如用列表存储绑定方法对象：
+
+``` python
+class Number:
+    def __init__(self, base):
+        self.base = base
+    def double(self):
+        return self.base * 2
+    def triple(self):
+        return self.base * 3
+    
+x = Number(2)
+y = Number(3)
+z = Number(4)
+acts = [x.double, y.double, y.triple, z.double]
+for act in acts:
+    print(act())
+```
+
+- 绑定函数对象也有自己的内省信息，包括一些属性能够让其访问配对的实例对象和方法函数：
+
+``` python
+bound = x.double
+print(bound.__self__, bound.__func__)
+print(bound.__self__.base)
+```
+
+4、绑定方法只是可调用对象的一种，以下都可以用类似方式处理
+
+``` python
+def square(arg):
+    return arg ** 2
+
+class Sum:
+    def __init__(self, val):
+        self.val = val
+    def __call__(self, arg):
+        return self.val + arg
+
+class Product:
+    def __init__(self, val):
+        self.val = val
+    def method(self, arg):
+        return self.val * arg
+
+sobject = Sum(2)
+pobject = Product(3)
+actions = [square, sobject, pobject.method]
+
+for act in actions:
+    print(act(5))
+
+print(actions[-1](5))
+print([act(5) for act in actions])
+print(list(map(lambda act: act(5), actions)))
+```
+
+### 四、Classes Are Objects: Generic Object Factories
+1、The factory design pattern
+- 工厂：将任意可调用对象，比如类，传递给生成其他种类对象的函数。
+
+``` python
+def factory(aClass, *pargs, **kargs):
+    return aClass(*pargs, **kargs)
+
+class Spam:
+    def doit(self, message):
+        print(message)
+
+class Person:
+    def __init__(self, name, job=None):
+        self.name = name
+        self.job = job
+
+object1 = factory(Spam)
+object2 = factory(Person, "Arthur", "King")
+object3 = factory(Person, name='Brian')
+
+object1.doit(99)
+print(object2.name, object2.job)
+print(object3.name, object3.job)
+```
+
+- 工厂允许代码与动态配置的对象构造细节相隔绝。
+
+### 五、Multiple Inheritance: “Mix-in” Classes
+1、多继承的缺点就是当相同的方法名称在不止一个父类中定义时，就会造成冲突
+- 搜索属性时，python 会从左到右遍历搜索类首行的父类
+    - 在经典类 classic classes 中，所有情形下的属性搜索始终实行**深度优先 depth-first** 搜索，直到继承树的顶端，然后从左至右进行，这顺序称为 **DFLR（depth-first, left-to-right path）**
+    - 在新式类 new-style classes 中，属性搜索通常是一样的，但在**钻石模式 diamond patterns** 下以**广度优先**方式进行，搜索向上移动之前沿着继承树的同一级搜索，这顺序称为新式 **MRO（method resolution order）**
+- 当继承树中的多个类共享一个共同父类时，钻石模式就会出现；
+- 新式搜索顺序旨在访问完全部子类后，仅访问一次这样的共享父类；
+- 当冲突产生时，而不愿意使用继承的第一个名称时，会是个问题，详见下一章的新式类、MRO和新式工具。
+
+2、编写 mix-in 类
+- 多继承的最常见方法就是 to “mix in” general-purpose methods from superclasses
+- 就是编写一个通用的类，然后通过多继承去使用它，跟模块作用类似；
+- 下面的代码定义了一个名为 ListInstance 的 mix-in 类，它为继承了它的所有类都重载了 `__str__` 方法：
+
+``` python
+class ListInstance:
+    def __attrnames(self):
+        result = ''
+        for attr in sorted(self.__dict__):
+            result += '\t%s=%s\n' % (attr, self.__dict__[attr])
+        return result
+    
+    def __str__(self):
+        return '<Instance of %s, address %s:\n%s>' % (
+            self.__class__.__name__,
+            id(self),
+            self.__attrnames())
+```
+
+- 每个实例都有一个内置的 `__class__` 属性，引用创建本实例的类；每个类都有一个 `__name__` 属性，引用类头部的名称；
+- id 内置函数显示实例的内存地址。
+
+3、单继承模型下，混合上述的类
+
+``` python
+class Spam(ListInstance):
+    def __init__(self):
+        self.data1 = 'food'
+
+x = Spam()
+print(x)
+```
+
+4、多继承：
+
+``` python
+class Super:
+    def __init__(self):
+        self.data1 = 'spam'
+    def ham(self):
+        pass
+
+class Sub(Super, ListInstance):
+    def __init__(self):
+        Super.__init__(self)
+        self.data2 = 'eggs'
+        self.data3 = 42
+    def spam(self):
+        pass
+
+X = Sub()
+print(X)
+```
+
+## chapter 32 Advanced Class Topics
+### 一、Extending Built-in Types
+1、内嵌方式扩展类型
+
+``` python
+class Set:
+    def __init__(self, value = []):
+        self.data = []
+        self.concat(value)
+
+    def intersect(self, other):
+        res = []
+        for x in self.data:
+            if x in other:
+                res.append(x)
+        return Set(res)
+    
+    def union(self, other):
+        res = self.data[:]
+        for x in other:
+            if not x in res:
+                res.append(x)
+        return Set(res)
+    
+    def concat(self, value):
+        for x in value:               # Removes duplicates
+            if not x in self.data:
+                self.data.append(x)
+
+    def __len__(self): return len(self.data)
+    def __getitem__(self, key): return self.data[key] 
+    def __and__(self, other): return self.intersect(other)
+    def __or__(self, other): return self.union(other)
+    def __repr__(self): return 'Set:' + repr(self.data)
+    def __iter__(self): return iter(self.data) # 生成迭代操作
+```
+
+- 通过索引和迭代操作，能让上述定义的 Set 类充当真正的列表：
+
+``` python
+x = Set([1, 3, 5, 7])
+print(x.union(Set([1, 4, 7])))
+print(x | Set([1, 4, 6]))
+```
+
+2、通过子类扩展类型
+- 在 python 中， list ,  str ,  dict , 和 tuple 这样的类型转换函数实际上是调用了类型的对象构造函数；
+- 因此可以通过建立类型名称的子类来定制或扩展内置类型的行为，比如把列表的偏移量从1开始算起而不是0：
+
+``` python
+class MyList(list):
+    def __getitem__(self, offset):
+        print('(indexing %s at %s)' % (self, offset))
+        return list.__getitem__(self, offset - 1)
+
+print(list('abc'))
+x = MyList('abc')  # __init__ inherited from list
+print(x)  # __repr__ inherited from list
+
+print(x[1])
+print(x[3])
+
+x.append('spam'); print(x) # # Attributes from list superclass
+x.reverse(); print(x)
+```
+
+- 上述的编码方式可以提供编写第一个例子的 Set 的另一种方式，即作为内置 list 的子类：
+
+``` python
+class Set(list):
+    def __init__(self, value = []):
+        list.__init__([]) # 继承父类
+        self.concat(value)
+    
+    def intersect(self, other):
+        res = []
+        for x in self:
+            if x in other:
+                res.append(x)
+        return Set(res)
+    
+    def union(self, other):
+        res = Set(self)
+        res.concat(other)
+        return res
+    
+    def concat(self, value):
+        for x in value:
+            if not x in self:
+                self.append(x)
+    
+    def __and__(self, other): return self.intersect(other)
+    def __or__(self, other): return self.union(other)
+    def __repr__(self): return 'Set:' + list.__repr__(self)
+
+x = Set([1,3,5,7])
+y = Set([2,1,4,5,6])
+print(x, y, len(x))
+print(x.intersect(y), y.union(x))
+print(x & y, x | y)
+x.reverse(); print(x)
+```
+
+### 二、The “New Style” Class Model
+1、介绍
+- 本书之前谈到的类和新式类相比，称为经典类，但在 python 3.X 中类的区分已经融合了；
+- 在 python 3.X 中，所有的类都是所谓的新式类，不管是否显式地继承自 object ；
+- 所有的类都继承自 object ，不管是显式的还是隐式的，所有的类都隐含是 object 的子类；
+- 所以在 python 3.X 中新式类的功能成为了常规的类功能。
+- 新式类要么从内置类型（如list）派生，要么从一个叫做 object 的特殊内置类派生。
+
+2、新式类的变化
+- ①针对内置属性的获取：跳过实例
+    - `__getattr__` 和 `__getattribute__` 通用属性拦截方法仍然通过显式名称访问属性，但不再适用于那些被内置运算隐式获取的属性。
+- ②类和类型的合并：类型检验
+    - **类就是类型，类型就是类**； `type(instance)` 内置函数返回一个实例对应的类，与 `instance.__class__` 是相同的。
+- ③ object 自动根类：默认情况
+    - 所有的新式类继承自 object 类。该类在 3.X 中被自动添加为用户定义类继承树的根（最顶级夫）类，并且不需要被显式地指定为父类。
+- ④继承搜索顺序：MRO与钻石模式
+    - 多继承的钻石模式的搜索顺序更像广度优先搜索，先横向搜索再纵向搜索。这种属性搜索顺序称为 **MRO** ，可以用新式类中的 `__mro__` 属性来跟踪。
+- ⑤继承算法：第40章
+    - 新式类所使用的继承算法比经典类的深度优先模式更加复杂，包括了描述符、元类和内置函数的特殊情况。
+- ⑥新的高级工具：代码的影响
+- 新式类有一组新的类工具，包括 **slot** 、 **property** 、**描述符**、 **super** 和 `__getattribute__` 方法
+
+3、内置属性的获取将跳过实例
+- 即在新式类中，通用实例属性拦截方法 `__getattr__` 和 `__getattribute__` 不能再拦截下以 `__X__` 命名的运算符重载方法名的调用；
+- 也就是说对 `__X__` 这一类名称的搜索是从类开始，而非从实例开始；
+- 为什么引入搜索改变：它反映了一个由元类模型引入的难题。类现在是元类 metaclass 的实例，又因为元类可以定义内置运算符方法来处理它们生成的类；
+- 所以在类上运行的方法调用必须跳过类本身，并在更高层次选择处理该类的方法，而不是选取类本身的版本；
+- 类本身的版本可能会导致非绑定方法调用，因为类自身方法会处理低一层次的实例；
+- 结果是类本身即是类型又是实例，因此实例在内置运算方法搜索的时候都被跳过了；
+- 但非内置名称和内置名称的直接显式调用仍旧会检测实例：
+
+``` python
+class C(object): pass # object可有可无
+X = C()
+
+X.normal = lambda: 99 # 在方法外修改实例属性
+print(X.normal())
+
+X.__add__ = lambda y: y + 88
+print(X.__add__(1)) # 内置方法的显式调用
+```
+
+- `print(X + 1)` # 3.X 会出现 TypeError ，因为不会搜索实例的内置方法，在 2.X 得到结果89
+
+4、类型模型改变
+- **类即类型** Classes are types；Types are classes
+- 类是由元类生成，元类要么是 type 自身，要么是由 type 定制来扩展或管理生成的类的一个子类；
+- 内置的类型（比如列表、字符串）和用户定义的编写为类的类型之间没有真正的区别；
+- 可以编写元类：使用 class 语句编写的用户定义 type 子类，控制作为它们的实例的类的创建：
+
+``` python
+class C(object): pass
+
+I = C()
+print(type(I), I.__class__) # 在2.X中，类实例的类型是instance，<type 'instance'>, I.__class__结果一样
+print(type(C), C.__class__) # 在2.X中，type(C)结果为<type 'classobj'>，而C.__class__会出错，class C has no attribute '__class__'
+
+print(type([1, 2, 3]), [1, 2, 3].__class__)
+print(type(list), list.__class__)
+```
+
+- 元类，详见第40章：
+
+> ① object 类是所有新式类的父类；  
+> ② type 是所有类的类；  
+> ③ object 类是由元类 type 创建的，但是 type 类又继承了 object 类， type 元类的类则是由 type 元类自身创建的；  
+> ④所以任何元素都是对象（都是 type 的实例对象），一切都继承 object ，一切皆对象。
+
+5、所有对象派生自 “object”
+- 所有的类都隐式或显式地继承自 object 类，并且由于所有的类型都是类，所以每个对象都派生自 object 内置类；
+- 一个类实例的类型就是产生它的类，一个类的类型就是 type 类；
+- 实例和类都继承自内置的 object 类：
+
+``` python
+print(isinstance(X, object))
+print(isinstance(C, object))
+print(C.__bases__)
+```
+
+- 内置类型 built-in types 也是如此，内置类型也是类，它们的实例继承自 object ：
+
+``` python
+print(isinstance('spam', object))
+print(isinstance(str, object))
+print(str.__bases__)
+```
+
+- 实际上， type 自身继承自 object ，而且 object 继承自 type ，即使二者是不同对象：
+
+``` python
+print(type(type))
+print(type(object))
+print(isinstance(type, object))
+print(isinstance(object, type))
+print(type is object)
+```
+
+6、钻石继承改变
+- 钻石模式指：有多于一个的父类指向同个更高级父类的树状模式（长得像钻石）；
+- ① DFLR 搜索顺序：经典类
+    - 深度优先 depth first ，然后从左到右 left to right （首字母：DFLR）：python 一路向上搜索，深入树的左侧，返回后才开始找右侧
+- ② MRO 搜索顺序：新式类
+    - 广度优先 breadth-first ，先搜索当前父类右侧的所有其他父类，再一路往上至顶端( MRO:method resolution order )
+- 新式的 MRO 允许较底层的父类覆盖高层父类的属性：
+
+``` python
+class A(object): attr = 1
+class B(A): pass
+class C(A): attr = 2
+class D(B, C): pass
+
+x = D()
+print(x.attr) # 在2.X中，结果为1，完整的DFLR搜索顺序为x、D, B, A, C, A
+# 而完整的MRO搜索顺序为x、D、B、C、A
+```
+
+- 可以显式得解决冲突：
+
+``` python
+class D(B, C): attr = B.attr
+x = D()
+print(x.attr)
+```
+
+- object 父类为各种内置运算提供了默认方法，在没有 MRO 的搜索模式下，多继承中 object 的默认方法总是覆盖用户编写的类中的定制代码。
+
+7、 `__mro__` 方法
+- `class.__mro__` 方法可以跟踪新式类的默认继承方式，将返回类的 MRO 顺序；
+- 一个给定类的 MRO 列表包括了类本身，它的父类，以及直到继承树顶端 object 的所有高级父类；
+- 在这个列表中，每个类出现在它的父类之前，而且多个父类保持了它们在 `__bases__` 父类元组中出现的顺序
+- super 函数调用可以使用 MRO 列表中的下一个类，而这个类不一定是一个父类。
+- 注意 MRO 顺序只适用于钻石继承模式，如下：
+
+``` python
+class A: pass
+class B(A): pass
+class C(A): pass
+class D(B, C): pass
+print(D.__mro__)
+```
+
+- 对于非钻石继承模式，还是 DFLR ，如下：
+
+``` python
+class A: pass
+class B(A): pass
+class C: pass
+class D(B, C): pass
+print(D.__mro__)
+```
+
+- `class.mro()` 方法在每次类进行实例化时被调用，返回值是一个列表：
+
+``` python
+print(D.mro() == list(D.__mro__))
+```
+
+### 三、New-Style Class Extensions - Slots
+1、Slots : 属性声明
+- 通过将一系列的字符串属性名称赋值给特殊的 `__slots__` 类属性，可以让新式类限制实例会得到的属性集，又能优化内存和速度性能
+
+2、slot 基础
+- 只有 `__slots__` 列表内的名称可赋值为实例属性：
+
+``` python
+class limiter(object):
+    __slots__ = ['age', 'name', 'job']
+
+x = limiter()
+x.age = 40
+x.spam = 40 # 会出现错误：AttributeError: 'limiter' object has no attribute 'spam'
+print(x.age)
+```
+
+- slots 最好只在有大量实例出现的、内存密集型应用的情况下使用。
+
+3、slot 与命名空间字典
+- slot 会使类模型复杂化；
+- 有些带有 slot 的实例会没有 `__dict__` 属性命名空间字典（替换命名空间字典存储），有些可能会拥有这个字典不包含的数据属性（共存）；
+- 这是新式类模型和传统类模型的不兼容性，导致通用访问属性的代码复杂化，甚至让程序失败：
+
+``` python
+class C:
+    __slots__ = ['a', 'b']
+
+X = C()
+X.a = 1
+print(X.a)
+print(X.__dict__) # 会出现错误：AttributeError: 'C' object has no attribute '__dict__'
+```
+
+- 仍然可以使用 getattr 、 setattr （不仅查找 `__dict__` ，也会查找例如 slot 的类一级名称）和 dir（会收集整个类树上所有被继承的名称）；
+
+``` python
+print(getattr(X, 'a'))
+setattr(X, 'b', 2)
+print(X.b)
+print('a' in dir(X))
+print('b' in dir(X))
+```
+
+- 如果没有一个属性命名空间字典，不能给不在 slot 列表中的实例赋值新的名称：
+
+``` python
+class D:
+    __slots__ = ['a', 'b']
+    def __init__(self):
+        self.d = 4 # 无法赋值，创建实例后会出错
+
+X = D() # 会出现错误：AttributeError: 'D' object has no attribute 'd'
+```
+
+- 可以在 `__slots__` 中显式包含 `__dict__` 来创建一个属性命名空间字典：
+
+``` python
+class D:
+    __slots__ = ['a', 'b', '__dict__']
+    c = 3
+    def __init__(self):
+        self.d = 4
+
+X = D()
+print(X.d)
+print(X.c)
+X.a = 1
+X.b = 2
+print(X.__dict__)
+print(X.__slots__)
+```
+
+4、父类中的多个 `__slots__` 列表
+- slot 列表可能会不止一次出现在类树；
+- 因为 slot 名称是类的一级属性（ class-level attributes ），实例按一般继承规则，获得了类树中其他位置的所有 slot 名称的并集：
+
+``` python
+class E:
+    __slots__ = ['c', 'd']
+class D(E):
+    __slots__ = ['a', '__dict__']
+
+X = D()
+X.a = 1; X.b = 2; X.c = 3
+print(X.a, X.c)
+```
+
+- 如果只检测被直接继承的 slot 列表，则不能获取在类树的更高层次定义的 slot ：
+
+``` python
+print(E.__slots__)
+print(D.__slots__)
+print(X.__slots__)
+print(X.__dict__)
+```
+
+- 但是 dir 包含所有的 slot ：`print(dir(X))`
+
+5、slot 使用规则
+- slot 声明可以出现在一个类树中的多个类
+    - 若父类没有 slot ，子类的 slot 就没有意义：如果子类继承自一个没有 `__slots__` 的父类，为父类创建的 `__dict__` 实例属性将总是可访问的。而避免 `__dict__` 是使用 slot 的主要原因；
+    - 如果子类没有 slot ，父类的 slot 也没有意义：同上
+    - 重新定义让父类的 slot 变得没有意义：如果一个类定义了父类中相同的 slot 名称，它的重新定义会根据一般继承规则隐藏父类中的 slot 。需要从父类获取描述符来访问父类的 slot ；
+    - slot 会阻止类一级的默认名称：slot 被实现成类一级的描述符，不能在类一级中对同名类属性进行赋值。
+
+### 四、New-Style Class Extensions - Properties
+1、property ：属性访问器
+- property 能自动调用（动态地）方法来访问或者赋值实例属性。功能与 Java 和 C# 语言的属性类似，但在 python 最好少用；
+- property 和 slot 都属于类一级描述符 class-level attribute descriptors ，见第38章。
+
+2、property 基础
+- property 是一种被赋值给类属性名称的对象；
+- 产生 property 的方式：调用内置函数 property ，同时传入三个访问器方法（分别用于处理获取、设置和删除操作），以及一个可选的 property 文档字符串；
+- 如果任一参数以 None 传入，特性就不能支持对应操作；
+- 最终得到的 property 对象，一般是在 class 顶层赋值给名称（ `name = property()` ），以及后面会说的“@”来自动化这一个步骤：
+
+``` python
+class properties(object):
+    def getage(self):
+        return 40
+    age = property(getage, None, None, None) # (get, set, del, docs), or use @
+
+x = properties()
+print(x.age) # 对property名称的访问，会被自动路由到property调用的一个访问器方法
+```
+
+- 新增对属性赋值运算的支持：
+
+``` python
+class properties(object):
+    def getage(self):
+        return 40
+    def setage(self, value):
+        print('set age: %s' % value)
+        self._age = value
+    age = property(getage, setage, None, None)
+
+x = properties()
+print(x.age)
+x.age = 42
+print(x._age)
+print(x.age)
+x.job = 'trainer'
+print(x.job)
+```
+
+- 用函数装饰器 function decorator 来编写 property 见第38章；
+- `__getattribute__` and Descriptors 描述符也是类扩展，见第38章。
+
+### 五、Static and Class Methods
