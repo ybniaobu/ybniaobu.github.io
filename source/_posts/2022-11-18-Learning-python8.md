@@ -13,7 +13,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 > 该书涉及的内容可能过于啰嗦，但包含一些python背后的逻辑和机制，值得初学者观看；  
 > 该笔记内容过多，所以不展示部分代码的结果，需复制到编辑器中查看；  
 > 学习完成日期为2022年10月20日。  
-> 本篇主要内容为：XXXXXXXXXXXXXXXXXX。
+> 本篇主要内容为：第六部分 - 类 （PART VI Classes and OOP）。
 
 <div  align="center">  
 <img src="https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg" width = "80%" height = "80%" alt="Learning Python"/>
@@ -2048,3 +2048,478 @@ print(x.job)
 - `__getattribute__` and Descriptors 描述符也是类扩展，见第38章。
 
 ### 五、Static and Class Methods
+1、静态方法和类方法介绍
+- 静态方法大致与类中简单无实例函数的工作方法类似，而类方法被传入一个类而不是一个实例；
+- 要使用这些方法，要在类中调用特殊的内置函数：`staticmethod` 和 `classmethod` ，或使用 `“@name”` 装饰语法；
+- 在 python 3.X 中，无实例的方法只通过一个类名调用，而不需要一个 `staticmethod` 申明，但要实例来调用，仍然需要。
+
+①静态方法：嵌套在类中的没有 self 参数的简单函数；
+②类方法：传入方法的第一个参数不是实例对象，而是类对象；
+③实例方法：即常规方法，需要接受实例。
+
+2、Python 2.X 和 3.X 中的静态方法
+①在 Python 2.X 和 3.X 中，当一个方法通过实例被获取的时候，会产生一个绑定方法；
+②在 Python 2.X 中，从一个类中获取一个方法会产生一个非绑定方法，如果不手动地传入一个实例就不能调用这个方法；
+③在 Python 3.X 中，从一个类中获取一个方法会产生一个简单函数，该函数在没有传入一个实例的时候也可以正常被调用；
+④在 Python 2.X 中，必须总是把一个方法声明为静态的，才能不传入实例来调用它，不管是通过类还是实例调用；
+⑤在 Python 3.X 中，如果一个方法只通过一个类调用，不需要声明为静态的。但是要通过实例来调用，必须声明为静态的。
+
+``` python
+class Spam: # 类实例计数器
+    numInstances = 0
+    def __init__(self):
+        Spam.numInstances = Spam.numInstances + 1
+    def printNumInstances():
+        print("Number of instances created: %s" % Spam.numInstances)
+
+a = Spam()
+b = Spam()
+c = Spam()
+
+Spam.printNumInstances()
+a.printNumInstances() # 会出现错误：TypeError: Spam.printNumInstances() takes 0 positional arguments but 1 was given
+```
+
+- 以下为上述例子的常规方法：
+
+``` python
+class Spam:
+    numInstances = 0
+    def __init__(self):
+        Spam.numInstances = Spam.numInstances + 1
+    def printNumInstances(self):
+        print("Number of instances created: %s" % Spam.numInstances)
+
+a, b, c = Spam(), Spam(), Spam()
+a.printNumInstances()
+Spam.printNumInstances(a)
+Spam().printNumInstances()
+```
+
+3、内置函数 `staticmethod` 和 `classmethod`
+- 静态方法不需要实例，类方法需要一个类参数：
+
+``` python
+class Methods:
+    def imeth(self, x):
+        print([self, x])
+    
+    def smeth(x):
+        print([x])
+
+    def cmeth(cls, x):
+        print([cls, x])
+    
+    smeth = staticmethod(smeth)
+    cmeth = classmethod(cmeth)
+# 常规实例方法
+obj = Methods()
+obj.imeth(1)
+Methods.imeth(obj, 2)
+# 静态方法
+Methods.smeth(3)
+obj.smeth(4)
+# 类方法：python自动将类传入类方法的第一位，不管是类调用还是实例调用
+Methods.cmeth(5)
+obj.cmeth(6)
+```
+
+4、子类继承并定制静态方法
+
+``` python
+class Spam:
+    numInstances = 0
+    def __init__(self):
+        Spam.numInstances += 1
+    def printNumInstances():
+        print("Number of instances: %s" % Spam.numInstances)
+    printNumInstances = staticmethod(printNumInstances)
+
+class Sub(Spam):
+    def printNumInstances():
+        print("Extra stuff...")
+        Spam.printNumInstances()
+    printNumInstances = staticmethod(printNumInstances)
+
+a = Sub()
+b = Sub()
+a.printNumInstances()
+Sub.printNumInstances()
+Spam.printNumInstances() # 调用父类的方法
+
+class Other(Spam): pass
+
+c = Other()
+c.printNumInstances() # 这里会打印出3，是因为子类都是继承了父类的构造方法
+```
+
+5、继承类方法
+- 类方法接受的是调用主体的最直接的类：
+
+``` python
+class Spam:
+    numInstances = 0
+    def __init__(self):
+        Spam.numInstances += 1
+    def printNumInstances(cls):
+        print("Number of instances: %s %s" % (cls.numInstances, cls))
+    printNumInstances = classmethod(printNumInstances)
+
+class Sub(Spam):
+    def printNumInstances(cls):
+        print("Extra stuff...", cls)
+        Spam.printNumInstances()
+    printNumInstances = classmethod(printNumInstances)
+
+class Other(Spam): pass
+
+x = Sub()
+y = Spam()
+x.printNumInstances() # 子类的实例调用类方法，传入了sub，又由于Sub显式调用了Spam父类，故父类方法接受了父类自己
+Sub.printNumInstances()
+y.printNumInstances()
+
+z = Other()
+z.printNumInstances()
+```
+
+6、由于类总是接受实例树中最底层（lowest）的类
+- 因此更适合处理同一类树中的各个类之间相互区别的数据，比如为每个类管理实例计数器：
+
+``` python
+class Spam:
+    numInstances = 0
+    def count(cls):
+        cls.numInstances += 1
+    def __init__(self):
+        self.count()
+    count = classmethod(count)
+
+class Sub(Spam):
+    numInstances = 0
+    def __init__(self):
+        Spam.__init__(self)
+
+class Other(Spam):
+    numInstances = 0
+
+x = Spam()
+y1, y2 = Sub(), Sub()
+z1, z2, z3 = Other(), Other(), Other()
+print(x.numInstances, y1.numInstances, z1.numInstances)
+print(Spam.numInstances, Sub.numInstances, Other.numInstances)
+```
+
+### 六、Decorators and Metaclasses: Part 1
+1、装饰器介绍
+①**函数装饰器 Function decorators**：同时为简单函数和类方法指明了特殊运算模式，通过把简单函数和类方法包在一层额外的逻辑实现中，也称为元函数 metafunction；
+②**类装饰器Class decorators**：为类添加管理全体对象和其接口的支持。  
+
+python 提供一些内置的函数装饰器，程序员也可以自己编写定制装饰器，装饰器不是严格地被要求写成类，但是通常被编写成类
+
+2、函数装饰器基础
+- 函数装饰器可以看作是它跟在后面的函数的运行时声明；
+- 它包含 **“@”** 符号，和跟着后面的元函数 metafunction（管理另一函数的函数）：
+
+``` python
+class Spam:
+    numInstances = 0
+    def __init__(self):
+        Spam.numInstances = Spam.numInstances + 1
+    
+    @staticmethod # 跟写在后面的printNumInstances = staticmethod(printNumInstances)一样
+    def printNumInstances():
+        print("Number of instances created: %s" % Spam.numInstances)
+
+a = Spam()
+b = Spam()
+c = Spam()
+Spam.printNumInstances()
+a.printNumInstances()
+```
+
+- 因为 `classmethod` 和 `property` 内置函数也接受和返回函数，也能用作装饰器：
+
+``` python
+class Methods(object):
+    def imeth(self, x):
+        print([self, x])
+    
+    @staticmethod
+    def smeth(x):
+        print([x])
+    
+    @classmethod
+    def cmeth(cls, x):
+        print([cls, x])
+    
+    @property
+    def name(self):
+        return 'Bob ' + self.__class__.__name__
+
+obj = Methods()
+obj.imeth(1)
+obj.smeth(2)
+obj.cmeth(3)
+print(obj.name)
+```
+
+3、用户定义函数装饰器
+- 下面的代码在实例中存储被装饰的函数，并捕获对原来函数名的调用：
+
+``` python
+class tracer:
+    def __init__(self, func):
+        self.calls = 0
+        self.func = func
+    def __call__(self, *args):
+        self.calls += 1
+        print('call %s to %s' % (self.calls, self.func.__name__))
+        return self.func(*args)
+
+@tracer # Same as spam = tracer(spam)
+def spam(a, b, c):
+    return a + b + c
+
+print(spam(1, 2, 3))
+print(spam('a', 'b', 'c'))
+```
+
+4、类装饰器和元类
+- 同理，在类前面的装饰器 `@decorator` 等同于在 class 语句后面的 `Class = decorator(Class)`：
+
+``` python
+def count(aClass):
+    aClass.numInstances = 0
+    return aClass
+
+@count
+class Spam:
+    def __init__(self):
+        Spam.numInstances += 1
+
+@count
+class Sub(Spam):
+    def __init__(self):
+        Spam.__init__(self)
+        Sub.numInstances += 1
+
+a = Spam()
+b = Sub()
+print(a.numInstances, Spam.numInstances)
+print(b.numInstances, Sub.numInstances)
+```
+
+- 类装饰器也可以通过拦截构造函数，并将实例对象包在一个代理中，管理实例的全部接口；
+- 详见第39章，下面是模型的预习：
+
+``` python
+def decorator(cls):
+    class Proxy:
+        def __init__(self, *args):
+            self.wrapped = cls(*args)
+        def __getattr__(self, name):
+            return getattr(self.wrapped, name)
+    return Proxy
+
+@decorator
+class C: ...
+X = C()
+```
+
+- 元类能把一个类对象的创建路由到顶级 type 类的一个子类，见第40章。
+
+### 七、The super Built-in Function
+1、传统的父类调用形式
+
+``` python
+class C:
+    def act(self):
+        print('spam')
+
+class D(C):
+    def act(self):
+        C.act(self)
+        print('eggs')
+
+X = D()
+X.act()
+```
+
+2、super 的基础用法
+- super 通过检测调用栈来自动定位 self 参数和寻找父类，并且将 self 参数和父类配对在一个特殊的代理对象中，从而将之后的调用路由到父类方法；
+- 但 super 函数后面的没有 self ：
+
+``` python
+class C:
+    def act(self):
+        print('spam')
+
+class D(C):
+    def act(self):
+        super().act()
+        print('eggs')
+
+X = D()
+X.act()
+```
+
+3、局限性：多继承
+- super 函数是钻石多继承树中的协同多继承分发协议，依赖于 MRO 算法；
+- 钻石多继承树中的协同多继承分发协议：cooperative multiple inheritance dispatch protocols in diamond multiple-inheritance trees。
+
+``` python
+class A:
+    def act(self): print('A')
+class B:
+    def act(self): print('B')
+class C(A, B):
+    def act(self):
+        super().act()
+class D(B, A):
+    def act(self):
+        super().act()
+
+X = C()
+X.act() # super根据MRO顺序，找到最左边的带有该方法的类
+Y = D()
+Y.act() # 同理
+```
+
+- 在多继承中，能用传统继承就用传统继承，因为 super 只能继承一个。
+
+4、super的优势：继承树的修改与分发
+①在运行时改变父类：可以通过super来分发调用：
+
+``` python
+class X:
+    def m(self): print('X.m')
+class Y:
+    def m(self): print('Y.m')
+class C(X):
+    def m(self): super().m()
+
+i = C()
+i.m()
+C.__bases__ = (Y,)
+i.m()
+```
+
+②协同多继承方法的分发：当多继承树对多个类的同名函数进行分发时，super 提供一种顺序调用路由的协议；
+- 钻石类树模型下：
+
+``` python
+class A:
+    def __init__(self): print('A.__init__')
+class B(A):
+    def __init__(self): print('B.__init__'); A.__init__(self)
+class C(A):
+    def __init__(self): print('C.__init__'); A.__init__(self)
+class D(B, C): pass
+
+x = D() # 运行B
+```
+
+- 相比之下，如果所有类都使用super，方法调用将按照 MRO 类顺序分发：
+
+``` python
+class A:
+    def __init__(self): print('A.__init__')
+class B(A):
+    def __init__(self): print('B.__init__'); super().__init__()
+class C(A):
+    def __init__(self): print('C.__init__'); super().__init__()
+class D(B, C): pass
+
+x = D()
+```
+
+- 上面先运行 B ，而 B 中的 super() 是按照 D 的 MRO 顺序（D、B、C、A）来的，所以 B 中的 super() 会运行 C ，再 C 的 super() 运行 A ；
+- 故结果是 `B.__init__、C.__init__、A.__init__`：
+
+``` python
+print(D.__mro__)
+```
+
+- 只要所有类都采用了 super 调用，通过在 MRO 序列下选择下一个类，一个类方法的 super 调用就能在类树上传递调用；
+- 总之， super 要么不用，要么全用，最好不用。
+
+5、相同参数限制
+- 若方法参数随着类不同而变化时，使用 super 会让程序员很难确定 super 选择的版本（实际上会随着类树而变化）：
+
+``` python
+class Employee:
+    def __init__(self, name, salary):
+        self.name = name
+        self.salary = salary
+    
+class Chef(Employee):
+    def __init__(self, name):
+        super().__init__(name, 50000)
+
+class Server(Employee):
+    def __init__(self, name):
+        super().__init__(name, 40000)
+
+bob = Chef('Bob')
+sue = Server('Sue')
+print(bob.salary, sue.salary)
+```
+
+- 上面没问题，因为是单继承树；
+- 但如果`class TwoJobs(Chef, Server): pass`，再`tom = TwoJobs('Tom')`，会出错误：`TypeError: __init__() takes 2 positional arguments but 3 were given`。
+
+### 八、Class Gotchas
+1、修改类属性
+- 所有从类产生的实例都共享这个类的命名空间，所以对类层次的修改都会反映在实例里：
+
+``` python
+class X:
+    a = 1
+
+I = X()
+print(I.a)
+print(X.a)
+# class语句外修改类属性
+X.a = 2
+print(I.a)
+print(X.a)
+```
+
+2、修改可变的类属性，比如列表
+- 因为类属性被所有实例共享，如果一个类属性引用一个可变对象，那么任何实例在原位置修改该对象会影响到所有实例和类：
+
+``` python
+class C:
+    shared = []
+    def __init__(self):
+        self.perobj = []
+
+x = C()
+y = C()
+print(y.shared, y.perobj)
+x.shared.append('spam')
+x.perobj.append('spam')
+print(x.shared, x.perobj)
+print(y.shared, y.perobj)
+print(C.shared)
+```
+
+3、方法和类中的作用域
+- 类 Spam 是在 generate 函数的局部作用域中赋值的，所以能被内嵌的函数看到，即 LEGB 作用域的 E ：
+
+``` python
+def generate():
+    class Spam:
+        count = 1
+        def method(self):
+            print(Spam.count)
+    return Spam()
+
+generate().method()
+```
+
+- 尽管如此， method 方法是看不到外层类的局部作用域， method 方法只看得到外层 def 的局部作用域；
+- 这也是为什么方法得通过 self 实例，或类名称来引用外层类定义得方法或属性；
+- 即必须使用 self.count 或 Spam.count ，而不是 count ；
+- method 方法能够访问：它自己的作用域、外层函数的作用域、外围模块的全局作用域、所有存储在类的 self 实例的数据，以及它的非局部名称的类本身。
