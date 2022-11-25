@@ -13,7 +13,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 > 该书涉及的内容可能过于啰嗦，但包含一些python背后的逻辑和机制，值得初学者观看；  
 > 该笔记内容过多，所以不展示部分代码的结果，需复制到编辑器中查看；  
 > 学习完成日期为2022年10月20日。  
-> 本篇主要内容为：XXXXXXXXXXXXXXXXXX。
+> 本篇主要内容为：第7部分异常和第8部分高级主题：unicode编码、字节字符串、被管理的属性、装饰器、元类。
 
 <div  align="center">  
 <img src="https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg" width = "80%" height = "80%" alt="Learning Python"/>
@@ -1028,11 +1028,11 @@ property 就是描述符 descriptors 的一种受限制的形式。
 将 property 赋值给类属性：`attribute = property(fget, fset, fdel, doc)`  
 
 参数都不是必需的：  
-① fget 传入函数（或类方法）用于拦截属性访问；  
-② fset（或类方法）传入函数用于属性赋值；  
-③ fdel（或类方法）传入函数用于属性删除；  
-④ fget 函数返回被计算好的属性值，fset 和 fdel 返回 None ；  
-⑤ doc 参数接受该属性的一个文档字符串。
+① `fget` 传入函数（或类方法）用于拦截属性访问；  
+② `fset`（或类方法）传入函数用于属性赋值；  
+③ `fdel`（或类方法）传入函数用于属性删除；  
+④ `fget` 函数返回被计算好的属性值，`fset` 和 `fdel` 返回 None ；  
+⑤ `doc` 参数接受该属性的一个文档字符串。
 
 property 函数返回一个 property 对象，将其赋予要被管理的类属性名称，它又被类的所有实例继承。
 
@@ -1119,3 +1119,2071 @@ del bob.name
 ```
 
 ### 三、Descriptors
+**描述符**协议允许把一个特定的属性的获取、设置和删除操作指向一个单独类对象的方法； property 是描述符的一种。
+
+描述符编写成独立的类，它们就像方法函数一样赋值给类属性，会被子类和实例继承；通过为描述符自身提供一个 self ，或通过让客户类实例的属性引用描述符对象。因此它们可以保留和使用自身的状态信息，以及主体实例的状态信息。
+
+描述符也管理一个单一的、指定的属性。
+
+**1、基础知识**
+
+``` python
+class Descriptor:
+    "docstring goes here"
+    def __get__(self, instance, owner): ...
+    def __set__(self, instance, value): ...
+    def __delete__(self, instance): ...
+```
+
+所有带有这些方法（ `__get__` 、 `__set__` 和 `__delete__` ）的类都可以看作描述符。
+
+与 property 不同，省略了 `__set__` 意味着允许被管理的属性通过赋值重新定义，这样就会隐藏描述符；要使一个属性是只读的，必须定义 `__set__` 来捕获赋值并引发一个异常；带有 `__set__` 的描述符被称为数据描述符 data descriptor ，相比于其他正常继承规则而定位的属性拥有优先权。
+
+区分描述符的 `__delete__` 方法和常见的 `__del__` 方法，前者会在试图删除被管理属性的名称时被调用；而后者是通用的实例析构函数方法，会在任何类的实例将要进行垃圾回收时被调用。
+
+**2、描述符方法参数**  
+`__get__` 访问方法额外接受一个 owner 参数，指定了描述符实例所依附的类；instance 参数要么是被访问属性的实例，要么当访问的属性是类属性的时候是 None 。
+
+属性获取自动传递到 `__get__` 方法中的参数，`X.attr -> Descriptor.__get__(Subject.attr, X, Subject)`
+
+``` python
+class Descriptor:
+    def __get__(self, instance, owner):
+        print(self, instance, owner, sep='\n')
+
+class Subject:
+    attr = Descriptor()
+
+X = Subject()
+X.attr
+Subject.attr
+```
+
+**3、只读描述符 Read-only descriptors**  
+在描述符类中捕获赋值操作并引发一个异常来阻止属性赋值：
+
+``` python
+class D:
+    def __get__(*args): print('get')
+    def __set__(*args): raise AttributeError('cannot set')
+
+class C:
+    a = D()
+
+X = C()
+X.a
+X.a = 99 # 会出错：AttributeError: cannot set
+```
+
+**4、第一个示例**
+
+``` python
+class Name:
+    "name descriptor docs"
+    def __get__(self, instance, owner):
+        print('fetch...')
+        return instance._name
+    def __set__(self, instance, value):
+        print('change...')
+        instance._name = value
+    def __delete__(self, instance):
+        print('remove...')
+        del instance._name
+
+class Person:
+    def __init__(self, name):
+        self._name = name
+    name = Name()
+
+bob = Person('Bob Smith')
+print(bob.name) # Runs Name.__get__
+bob.name = 'Robert Smith' # Runs Name.__set__
+print(bob.name) # Runs Name.__get__
+del bob.name # Runs Name.__delete__
+
+sue = Person('Sue Jones')
+print(sue.name)
+print(Name.__doc__)
+```
+
+描述符的 `__get__ `方法里，self 是 Name 类实例，instance 是 Person 类实例，owner 是 Person 类。描述符类实例是一个类的属性，因此被客户类和所有实例和子类继承。
+
+**5、动态地计算属性的值**
+
+``` python
+class DescSquare:
+    def __init__(self, start):
+        self.value = start
+    def __get__(self, instance, owner):
+        return self.value ** 2
+    def __set__(self, instance, value):
+        self.value = value
+
+class Client1:
+    X = DescSquare(3)
+
+class Client2:
+    X = DescSquare(32)
+
+c1 = Client1()
+c2 = Client2()
+
+print(c1.X)
+c1.X = 4
+print(c1.X)
+print(c2.X)
+```
+
+**6、在描述符中使用状态信息**  
+在上面2个描述符的例子中，第一个例子（ name 属性）使用了存储在客户实例中的数据，第二个例子（属性平方）使用了附加到描述符对象本身的数据；
+
+描述符可以使用实例状态和描述符状态，或者二者的任意组合：  
+①描述符状态用于管理描述符内部使用的数据，或是横跨所有实例的数据；  
+②实例状态记录了和客户类相关、或是被客户类创建的信息。  
+
+描述符状态基于描述符的数据，实例状态基于客户类实例的数据。
+
+下面的描述符把信息附加到了它自己的实例：
+
+``` python
+class DescState:
+    def __init__(self, value):
+        self.value = value
+    def __get__(self, instance, owner):
+        print('DescState get')
+        return self.value * 10
+    def __set__(self, instance, value):
+        print('DescState set')
+        self.value = value
+
+class CalcAttrs:
+    X = DescState(2)
+    Y = 3
+    def __init__(self):
+        self.Z = 4
+
+obj = CalcAttrs()
+print(obj.X, obj.Y, obj.Z)
+obj.X = 5
+CalcAttrs.Y = 6
+obj.Z = 7
+print(obj.X, obj.Y, obj.Z)
+
+obj2 = CalcAttrs()
+print(obj2.X, obj2.Y, obj2.Z)
+```
+
+这段代码的内部 value 信息仅存在于描述符之中；这里只管理了描述符的属性，即对 X 的获取和设置访问被拦截，对 Y 和 Z 的访问没被拦截。
+
+对描述符存储或使用附加到客户类实例中的一个属性：
+
+``` python
+class InstState:
+    def __get__(self, instance, owner):
+        print('InstState get')
+        return instance._X * 10
+    def __set__(self, instance, value):
+        print('InstState set')
+        instance._X = value
+
+class CalcAttrs:
+    X = InstState()
+    Y = 3
+    def __init__(self):
+        self._X = 2
+        self.Z = 4
+
+obj = CalcAttrs()
+print(obj.X, obj.Y, obj.Z)
+obj.X = 5
+CalcAttrs.Y = 6
+obj.Z = 7
+print(obj.X, obj.Y, obj.Z)
+
+obj2 = CalcAttrs()
+print(obj2.X, obj2.Y, obj2.Z)
+```
+
+可以同时使用这2种状态信息：
+
+``` python
+class DescBoth:
+    def __init__(self, data):
+        self.data = data
+    def __get__(self, instance, owner):
+        return '%s, %s' % (self.data, instance.data)
+    def __set__(self, instance, value):
+        instance.data = value
+
+class Client:
+    def __init__(self, data):
+        self.data = data
+    managed = DescBoth('spam')
+
+I = Client('eggs')
+print(I.managed)
+I.managed = 'SPAM'
+print(I.managed)
+print(I.data)
+```
+
+### 四、\_\_getattr\_\_ and \_\_getattribute\_\_
+① `__getattr__` 针对未定义的属性运行，只能为不存储在实例中或是不继承自它的类的属性运行；  
+② `__getattribute__` 针对所有的属性运行，要避免把属性访问传递给父类而导致递归循环。
+
+这两个方法更加通用，更适合基于委托 delegation-based 的编码模式：用于实现包装器 wrapper （或代理 proxy ）来管理对一个内嵌对象的所有属性访问。
+
+这两种方法拦截属性获取；`__setattr__` 方法捕获赋值对属性的更改；`__delattr__` 方法拦截属性删除。
+
+**1、基础知识**  
+① `def __getattr__(self, name):` On undefined attribute fetch [obj.name]  
+② `def __getattribute__(self, name):` On all attribute fetch [obj.name]  
+③ `def __setattr__(self, name, value):` On all attribute assignment [obj.name=value]  
+④ `def __delattr__(self, name):` On all attribute deletion [del obj.name]  
+2个 get 方法返回属性的值，另外2个返回 None 。
+
+``` python
+class Catcher:
+    def __getattr__(self, name):
+        print('Get: %s' % name)
+    def __setattr__(self, name, value):
+        print('Set: %s %s' % (name, value))
+
+X = Catcher()
+X.job
+X.pay
+X.pay = 99
+```
+
+**2、避免属性拦截方法的循环**  
+由于 `__getattribute__` 和 `__setattr__` 针对所有的属性运行，要避免自己调用自己而触发递归循环 recursive loop 。
+
+①比如在 `__getattribute__` 方法内的属性获取，会再次触发 `__getaatribute__` ：
+
+``` python
+def __getattribute__(self, name):
+    x = self.other
+```
+
+当属性访问被编写在 `__getattribute__` 自身中，要避免循环，就需要另外把获取指向更高的父类，从而跳过这个层级的版本。因为object类总是新式类的父类，选择它比较好：
+
+``` python
+def __getattribute__(self, name):
+    x = object.__getattribute__(self, 'other')
+```
+
+②在 `__setattr__` 方法内赋值任何属性，都会再次触发 `__setattr__` ：
+
+``` python
+def __setattr__(self, name, value):
+    self.other = value
+```
+
+为解决这个问题，可以把属性赋值为实例的 `__dict__` 命名空间字典中的一个键赋值：
+
+``` python
+def __setattr__(self, name, value):
+    self.__dict__['other'] = value
+```
+
+也可以把自己属性赋值传递给一个更高的父类而避免循环：
+
+``` python
+def __setattr__(self, name, value):
+    object.__setattr__(self, 'other', value)
+```
+
+**3、第一个示例**
+
+``` python
+class Person:
+    def __init__(self, name):
+        self._name = name # Triggers __setattr__！！
+    
+    def __getattr__(self, attr):
+        print('get: ' + attr)
+        if attr == 'name':
+            return self._name
+        else:
+            raise AttributeError(attr)
+    
+    def __setattr__(self, attr, value):
+        print('set: ' + attr)
+        if attr == 'name':
+            attr = '_name'
+        self.__dict__[attr] = value
+    
+    def __delattr__(self, attr):
+        print('del: ' + attr)
+        if attr == 'name':
+            attr = '_name'
+        del self.__dict__[attr]
+
+bob = Person('Bob Smith')
+print(bob.name) # Runs __getattr__
+bob.name = 'Robert Smith' # Runs __setattr__
+print(bob.name)
+del bob.name # Runs __delattr__
+
+sue = Person('Sue Jones')
+print(sue.name)
+```
+
+**4、使用 `__getattribute__`**
+
+``` python
+def __getattribute__(self, attr):
+    print('get: ' + attr)
+    if attr == 'name':
+        attr = '_name'
+    return object.__getattribute__(self, attr)
+```
+
+把 `__getattr__` 替换为这个，结果是类似的，但是在 `__setattr__` 的获取中会触发一次额外的 `__getattribute__` 调用。
+
+**5、计算出的属性**
+
+``` python
+class AttrSquare:
+    def __init__(self, start):
+        self.value = start
+
+    def __getattr__(self, attr):
+        if attr == 'X':
+            return self.value ** 2
+        else:
+            raise AttributeError(attr)
+    
+    def __setattr__(self, attr, value):
+        if attr == 'X':
+            attr = 'value'
+        self.__dict__[attr] = value
+    
+A = AttrSquare(3)
+B = AttrSquare(32)
+
+print(A.X)
+A.X = 4
+print(A.X)
+print(B.X)
+```
+
+**6、\_\_getattr\_\_和\_\_getattribute\_\_的区别**
+attr1 是一个类属性，attr2 是一个实例属性，attr3 是一个在获取时被管理的属性：
+
+``` python
+class GetAttr:
+    attr1 = 1
+    def __init__(self):
+        self.attr2 = 2
+    def __getattr__(self, attr):
+        print('get: ' + attr)
+        if attr == 'attr3':
+            return 3
+        else:
+            raise AttributeError(attr)
+
+X = GetAttr()
+print(X.attr1)
+print(X.attr2)
+print(X.attr3)
+
+class GetAttribute:
+    attr1 = 1
+    def __init__(self):
+        self.attr2 = 2
+    def __getattribute__(self, attr):
+        print('get: ' + attr)
+        if attr == 'attr3':
+            return 3
+        else:
+            return object.__getattribute__(self, attr)
+
+X = GetAttribute()
+print(X.attr1)
+print(X.attr2)
+print(X.attr3)
+```
+
+`__getattr__` 只拦截 attr3 的访问，因为 attr3 是未定义的。
+
+
+## Chapter 39 Decorators
+### 一、The Basics
+**装饰 Decoration** 是一种为函数和类指定管理或扩增代码的一种方式；即分为**函数装饰器 Function decorators**和**类装饰器 Class decorators** 。
+
+**1、函数装饰器**
+
+①用法：
+
+``` python
+@decorator
+def F(arg):
+    ...
+F(99)
+```
+
+等同于：
+
+``` python
+def F(arg):
+    ...
+F = decorator(F)
+F(99)
+```
+
+②实现：  
+装饰器自身是一个返回可调用对象的可调用对象（函数和类的任何组合都可以使用）。
+
+``` python
+def decorator(F):
+    return F
+```
+
+可以用一个装饰器返回和最初函数不同的一个对象；
+
+用类来实现类似的装饰器，可以重载调用操作：
+
+``` python
+class decorator:
+    def __init__(self, func):
+        self.func = func
+    def __call__(self, *args):
+@decorator
+def func(x, y)
+```
+
+③支持方法装饰：  
+对类的方法进行装饰，上面的方式就不行了，用嵌套函数会更好：
+
+``` python
+def decorator(F):
+    def wrapper(*args):
+    return wrapper
+
+@decorator
+def func(x, y):
+    ...
+func(6, 7) # calls wrapper(6, 7)
+
+class C:
+    @decorator
+    def method(self, x, y):
+        ...
+
+X = C()
+X.method(6, 7) # calls wrapper(X, 6, 7)
+```
+
+这样子 wrapper 在其第一个参数里接收了 C 类的实例。
+
+
+**2、类装饰器**  
+类装饰器是管理类的一种方法，或是使用额外逻辑来完成实例构造调用的一种方式：
+
+①用法：
+
+``` python
+@decorator
+class C:
+    ...
+x = C(99)
+```
+
+等同于：
+
+``` python
+class C:
+    ...
+C = decorator(C)
+x = C(99)
+```
+
+之后用类名调用创建一个实例时，最终会触发装饰器返回的可调用对象。
+
+②实现：
+
+``` python
+def decorator(C):
+    # Save or use class C；Return a different callable: nested def, class with __call__, etc.
+
+@decorator
+class C: ...
+```
+
+这样一个类装饰器返回的可调用对象，通常创建并返回最初类的一个新实例，并以某种方式扩展以管理接口。
+
+比如下面的装饰器插入一个对象来拦截类实例的未定义属性：
+
+``` python
+def decorator(cls):
+    class Wrapper:
+        def __init__(self, *args):
+            self.wrapped = cls(*args) # self.wrapped = C(6, 7)即一个实例
+        def __getattr__(self, name):
+            return getattr(self.wrapped, name)
+    return Wrapper
+
+@decorator
+class C:
+    def __init__(self, x, y): # Run by Wrapper.__init__
+        self.attr = 'spam'
+
+x = C(6, 7) # Really calls Wrapper(6, 7)
+print(x.attr) # Runs Wrapper.__getattr__, 返回了self.wrapped.attr，由于self.wrapped为C类的实例，所以prints "spam"
+```
+
+类装饰器通常可以编写为一个创建并返回可调用对象的工厂函数，或是创建并返回类的工厂函数，使用 `__init__` 或 `__call__` 方法来拦截调用操作。
+
+工厂函数通常在外层作用域引用中保持状态，而类在属性中保持状态。
+
+**3、装饰器嵌套**
+
+``` python
+@A
+@B
+@C
+def f(...):
+    ...
+```
+
+等同于：
+
+``` python
+def f(...):
+    ...
+f = A(B(C(f)))
+```
+
+实例：
+
+``` python
+def d1(F): return lambda: 'X' + F()
+def d2(F): return lambda: 'Y' + F()
+def d3(F): return lambda: 'Z' + F()
+
+@d1
+@d2
+@d3
+def func(): # func = d1(d2(d3(func)))
+    return 'spam'
+
+print(func())
+```
+
+**4、装饰器参数**  
+函数装饰器和类装饰器都能接受参数，这些参数传递给了返回装饰器的装饰器，而装饰器再返回可调用对象。
+
+``` python
+@decorator(A, B)
+def F(arg):
+    ...
+F(99)
+```
+
+等同于：
+
+``` python
+def F(arg):
+    ...
+F = decorator(A, B)(F)
+F(99)
+```
+
+例子中的装饰器函数的例子如下：
+
+``` python
+def decorator(A, B):
+    # Save or use A, B
+    def actualDecorator(F):
+        # Save or use function F
+        # Return a callable: nested def, class with __call__, etc.
+        return callable
+    return actualDecorator
+```
+
+### 二、Coding Function Decorators
+编写函数装饰器的示例：
+
+**1、跟踪调用**
+使用一个函数装饰器，统计被装饰函数的调用次数：
+
+``` python
+class tracer:
+    def __init__(self, func):
+        self.calls = 0
+        self.func = func
+    def __call__(self, *args):
+        self.calls += 1
+        print('call %s to %s' % (self.calls, self.func.__name__))
+        self.func(*args)
+
+@tracer # 在def末尾触发tracer的__init__，创建了实例
+def spam(a, b, c):
+    print(a + b + c)
+
+spam(1, 2, 3) # 触发tracer的__call__
+spam('a', 'b', 'c')
+print(spam.calls)
+print(spam)
+```
+
+**2、装饰器状态保持方案**  
+实例属性、全局变量、非局部闭包变量和函数属性，都可以用于保持状态：
+
+①类实例属性  
+上个例子的扩展版本：
+
+``` python
+class tracer:
+    def __init__(self, func): 
+        self.calls = 0 # 类实例属性保存状态
+        self.func = func
+    def __call__(self, *args, **kwargs):
+        self.calls += 1
+        print('call %s to %s' % (self.calls, self.func.__name__))
+        return self.func(*args, **kwargs)
+
+@tracer
+def spam(a, b, c):
+    print(a + b + c)
+
+@tracer
+def eggs(x, y):
+    print(x ** y)
+
+spam(1, 2, 3)
+spam(a=4, b=5, c=6)
+
+eggs(2, 16)
+eggs(4, y=4)
+```
+
+②外层作用域和全局变量  
+闭包函数（带有外围def作用域引用和嵌套的def）可以实现同样的效果：
+
+``` python
+calls = 0
+def tracer(func):
+    def wrapper(*args, **kwargs):
+        global calls
+        calls += 1
+        print('call %s to %s' % (calls, func.__name__))
+        return func(*args, **kwargs)
+    return wrapper
+
+@tracer
+def spam(a, b, c):
+    print(a + b + c)
+
+@tracer
+def eggs(x, y):
+    print(x ** y)
+
+spam(1, 2, 3)
+spam(a=4, b=5, c=6)
+
+eggs(2, 16)
+eggs(4, y=4)
+```
+
+上面的方案因为计数器是全局变量，意味着被每个被包装函数所共享，对于任何函数调用，计数器都会累计，而不是各自独立计数。
+
+③外层作用域和非局部变量  
+修改上面方案，改为外层作用域的非局部变量，允许拥有各自的状态：
+
+``` python
+def tracer(func):
+    calls = 0
+    def wrapper(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        print('call %s to %s' % (calls, func.__name__))
+        return func(*args, **kwargs)
+    return wrapper
+
+@tracer
+def spam(a, b, c):
+    print(a + b + c)
+
+@tracer
+def eggs(x, y):
+    print(x ** y)
+
+spam(1, 2, 3)
+spam(a=4, b=5, c=6)
+
+eggs(2, 16)
+eggs(4, y=4)
+```
+
+④函数属性  
+使用 `func.attr = value` 也可以实现于 nonlocal 版本一样的结果：
+
+``` python
+def tracer(func):
+    def wrapper(*args, **kwargs):
+        wrapper.calls += 1
+        print('call %s to %s' % (wrapper.calls, func.__name__))
+        return func(*args, **kwargs)
+    wrapper.calls = 0
+    return wrapper
+
+@tracer
+def spam(a, b, c):
+    print(a + b + c)
+
+@tracer
+def eggs(x, y):
+    print(x ** y)
+
+spam(1, 2, 3)
+spam(a=4, b=5, c=6)
+
+eggs(2, 16)
+eggs(4, y=4)
+```
+
+⑤错误：对方法进行装饰
+最上面跟踪调用的例子无法对类方法进行装饰，会发生错误；  
+根源在于 tracer 的 `__call__` 方法的 self 参数，是一个 tracer 的实例，而并未在参数列表传递被装饰的类的主体。  
+被装饰的主体类的实例没有包括在 *args 中。
+
+``` python
+class tracer:
+    def __init__(self, func):
+        self.calls = 0
+        self.func = func
+    def __call__(self, *args, **kwargs):
+        self.calls += 1
+        print('call %s to %s' % (self.calls, self.func.__name__))
+        return self.func(*args, **kwargs)
+
+class Person:
+    def __init__(self, name, pay):
+        self.name = name
+        self.pay = pay
+    
+    @tracer
+    def giveRaise(self, percent):
+        self.pay *= (1.0 + percent)
+
+bob = Person('Bob Smith', 50000)
+bob.giveRaise(.25) # 会出错，因为tracer(giveRaise)(bob, .25)中的bob不会被*args接收
+```
+
+⑥使用嵌套函数装饰方法  
+可以在简单函数和类级别的方法上都能工作：
+
+``` python
+def tracer(func):
+    calls = 0
+    def onCall(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        print('call %s to %s' % (calls, func.__name__))
+        return func(*args, **kwargs)
+    return onCall
+
+@tracer
+def spam(a, b, c):
+    print(a + b + c)
+
+@tracer
+def eggs(N):
+    return 2 ** N
+
+spam(1, 2, 3)
+spam(a=4, b=5, c=6)
+print(eggs(32))
+
+class Person:
+    def __init__(self, name, pay):
+        self.name = name
+        self.pay = pay
+    
+    @tracer
+    def giveRaise(self, percent): # giveRaise = tracer(giveRaise)，调用时返回onCall(sue, .10)
+        self.pay *= (1.0 + percent)
+    
+    @tracer
+    def lastName(self):
+        return self.name.split()[-1]
+
+print('methods...')
+bob = Person('Bob Smith', 50000)
+sue = Person('Sue Jones', 100000)
+print(bob.name, sue.name)
+sue.giveRaise(.10) # Runs onCall(sue, .10)，返回了giveRaise(sue, .10)
+print(int(sue.pay))
+print(bob.lastName(), sue.lastName())
+```
+
+⑦使用描述符装饰方法
+由于描述符的 `__get__` 方法在调用时接受描述符类实例和主体类实例，非常适合装饰类方法：
+
+``` python
+class tracer:
+    def __init__(self, func):
+        self.calls = 0
+        self.func = func
+
+    def __call__(self, *args, **kwargs):
+        self.calls += 1
+        print('call %s to %s' % (self.calls, self.func.__name__))
+        return self.func(*args, **kwargs)
+    
+    def __get__(self, instance, owner):
+        return wrapper(self, instance)
+
+class wrapper:
+    def __init__(self, desc, subj): # save了主体类实例和装饰器（描述符）实例
+        self.desc = desc # 装饰器（描述符）实例
+        self.subj = subj # 主体实例
+    def __call__(self, *args, **kwargs):
+        return self.desc(self.subj, *args, **kwargs) # Runs tracer.__call__
+
+@tracer
+def spam(a, b, c):
+    print(a + b + c) # Uses __call__ only
+
+class Person:
+    def __init__(self, name, pay):
+        self.name = name
+        self.pay = pay
+    
+    @tracer
+    def giveRaise(self, percent):
+        self.pay *= (1.0 + percent)
+    
+    @tracer
+    def lastName(self):
+        return self.name.split()[-1]
+
+spam(1, 2, 3)
+spam(a=4, b=5, c=6)
+
+print('methods...')
+bob = Person('Bob Smith', 50000)
+sue = Person('Sue Jones', 100000)
+print(bob.name, sue.name)
+sue.giveRaise(.10)
+print(int(sue.pay))
+print(bob.lastName(), sue.lastName())
+```
+
+上面的理解：  
+①被装饰的函数（ spam ）只调用 tracer 类的 `__call__` ，而不会调用其 `__get__` ；
+②被装饰的类方法（ giveRaise 、 lastName ）首先调用 tracer 类的 `__get__` 来解析方法名获取，返回 wrapper 实例调用，触发了 wrapper 对象的 `__call__` 方法，转而调用了 `tracer.__call__` ；
+③比如 `sue.giveRaise(.10)` ，首先运行 `tracer.__get__` ，返回 `wrapper(tracer(giveRaise), sue)(sue, .10)` ，然后因为调用返回 `wrapper.__call__` ，即 `tracer(giveRaise)(sue, .10)` ，因为 sue 不会被 \*args 接收，所以不会重复 sue ，见v、错误：对方法进行装饰。最后调用 `tracer.__call__` ，返回了 `giveRaise(sue, .10)` 。
+
+下面的版本和上面的效果一样：
+
+``` python
+class tracer(object):
+    def __init__(self, func):
+        self.calls = 0
+        self.func = func
+    def __call__(self, *args, **kwargs):
+        self.calls += 1
+        print('call %s to %s' % (self.calls, self.func.__name__))
+        return self.func(*args, **kwargs)
+    def __get__(self, instance, owner):
+        def wrapper(*args, **kwargs):
+            return self(instance, *args, **kwargs)
+        return wrapper
+```
+
+### 三、Coding Function Decorators 2
+**1、函数装饰器的第二个例子：调用计时**  
+包括单次调用计时，也包括全部调用总时间：
+
+``` python
+import time
+
+class timer:
+    def __init__(self, func):
+        self.func = func
+        self.alltime = 0
+    def __call__(self, *args, **kargs):
+        start = time.perf_counter()
+        result = self.func(*args, **kargs)
+        elapsed = time.perf_counter() - start
+        self.alltime += elapsed
+        print('%s: %.5f, %.5f' % (self.func.__name__, elapsed, self.alltime))
+        return result
+
+@timer
+def listcomp(N):
+    return [x * 2 for x in range(N)]
+
+@timer
+def mapcall(N):
+    return list(map((lambda x: x * 2), range(N)))
+
+result = listcomp(5)
+listcomp(50000)
+listcomp(500000)
+listcomp(1000000)
+print(result)
+print('allTime = %s' % listcomp.alltime) # listcomp是timer的实例
+
+print('')
+result = mapcall(5)
+mapcall(50000)
+mapcall(500000)
+mapcall(1000000)
+print(result)
+print('allTime = %s' % mapcall.alltime)
+print('\n**map/comp = %s' % round(mapcall.alltime / listcomp.alltime, 3))
+```
+
+实际上如果 map 没有将其包装在一个 list 调用中迫使结果生成， map 测试在 Python 中几乎不花时间，它返回一个可迭代对象而没有进行迭代。
+
+**2、添加装饰器参数**  
+提供一个输出标签并且可以打开或关闭跟踪消息：
+
+``` python
+import time
+
+def timer(label='', trace=True):
+    class Timer:
+        def __init__(self, func):
+            self.func = func
+            self.alltime = 0
+        def __call__(self, *args, **kargs):
+            start = time.perf_counter()
+            result = self.func(*args, **kargs)
+            elapsed = time.perf_counter() - start
+            self.alltime += elapsed
+            if trace:
+                format = '%s %s: %.5f, %.5f'
+                values = (label, self.func.__name__, elapsed, self.alltime)
+                print(format % values)
+            return result
+    return Timer
+
+# 外层的 timer 函数，返回 Timer 类作为实际的装饰器。装饰时，它记住了被装饰的函数自身，还能访问位于外围函数作用域中的装饰器参数（ label 和 trace ）
+
+@timer(label='[CCC]==>')
+def listcomp(N):
+    return [x * 2 for x in range(N)]
+
+@timer(trace=True, label='[MMM]==>')
+def mapcall(N):
+    return list(map((lambda x: x * 2), range(N)))
+
+for func in (listcomp, mapcall):
+    result = func(5)
+    func(50000)
+    func(500000)
+    func(1000000)
+    print(result)
+    print('allTime = %s\n' % func.alltime)
+print('**map/comp = %s' % round(mapcall.alltime / listcomp.alltime, 3))
+```
+
+### 四、Coding Class Decorators
+类装饰器可以用于管理类自身，或者用来拦截实例创建调用以管理实例。
+
+**1、单例类 Singleton Classes**
+下面的代码实现了传统的单例编程模式 classic singleton coding pattern ，其中每个类最多只有一个实例：
+
+``` python
+instances = {}
+
+def singleton(aClass): # 接受被包装类，并保留状态信息，返回onCall
+    def onCall(*args, **kwargs):
+        if aClass not in instances:
+            instances[aClass] = aClass(*args, **kwargs)
+        return instances[aClass]
+    return onCall
+
+@singleton
+class Person: # Person = singleton(Person) = onCall，onCall再接受实例参数
+    def __init__(self, name, hours, rate):
+        self.name = name
+        self.hours = hours
+        self.rate = rate
+    def pay(self):
+        return self.hours * self.rate
+
+@singleton
+class Spam:
+    def __init__(self, val):
+        self.attr = val
+
+bob = Person('Bob', 40, 10) # 即onCall('Bob', 40, 10)，并返回Person实例
+print(bob.name, bob.pay())
+
+sue = Person('Sue', 50, 20) # 无法再创建新的实例，所以sue仍然是bob实例
+print(sue.name, sue.pay())
+
+print(instances)
+
+X = Spam(val=42)
+Y = Spam(99)
+print(X.attr, Y.attr)
+```
+
+**2、编写替代方案**
+①使用 nonlocal 语句改写上面例子，并实现了同样效果：
+
+``` python
+def singleton(aClass):
+    instance = None
+    def onCall(*args, **kwargs):
+        nonlocal instance
+        if instance == None:
+            instance = aClass(*args, **kwargs)
+        return instance
+    return onCall
+```
+
+②使用函数属性，效果同上：
+
+``` python
+def singleton(aClass):
+    def onCall(*args, **kwargs):
+        if onCall.instance == None:
+            onCall.instance = aClass(*args, **kwargs)
+        return onCall.instance
+    onCall.instance = None
+    return onCall
+```
+
+③使用类，为每次装饰使用一个实例，效果同上，这个例子会在后面看到一个常见的装饰器类错误。这里只想要一个实例，实际不是这样。
+
+``` python
+class singleton:
+    def __init__(self, aClass):
+        self.aClass = aClass
+        self.instance = None
+    def __call__(self, *args, **kwargs):
+        if self.instance == None:
+            self.instance = self.aClass(*args, **kwargs)
+        return self.instance
+```
+
+**3、跟踪对象接口**  
+类装饰器的另一个常用场景是为每个生成的实例扩展接口；  
+类装饰器可以在实例上安装一个包装器 wrapper 和代理 proxy 逻辑层。
+
+①非装饰器版的委托示例：
+
+``` python
+class Wrapper:
+    def __init__(self, object):
+        self.wrapped = object
+    def __getattr__(self, attrname):
+        print('Trace:', attrname)
+        return getattr(self.wrapped, attrname)
+
+x = Wrapper([1,2,3])
+x.append(4)
+print(x.wrapped)
+
+x = Wrapper({"a": 1, "b": 2})
+print(list(x.keys()))
+```
+
+②类装饰器版：  
+上面的类示例可以编写为一个类装饰器，能够触发被包装实例的创建；  
+通过拦截实例创建调用，下面的类装饰器允许跟踪整个对象接口（即跟踪对任何属性的访问）；  
+每个实例都会生成一个新的 Wrapper 实例，并拥有自己的访问计数器：
+
+``` python
+def Tracer(aClass):
+    class Wrapper:
+        def __init__(self, *args, **kargs):
+            self.fetches = 0
+            self.wrapped = aClass(*args, **kargs)
+        def __getattr__(self, attrname):
+            print('Trace: ' + attrname)
+            self.fetches += 1
+            return getattr(self.wrapped, attrname)
+    return Wrapper
+
+@Tracer
+class Spam:
+    def display(self):
+        print('Spam!' * 8)
+
+@Tracer
+class Person:
+    def __init__(self, name, hours, rate):
+        self.name = name
+        self.hours = hours
+        self.rate = rate
+    def pay(self):
+        return self.hours * self.rate
+
+food = Spam()
+food.display()
+print([food.fetches])
+
+bob = Person('Bob', 40, 50)
+print(bob.name)
+print(bob.pay())
+
+sue = Person('Sue', rate=100, hours=60)
+print(sue.name)
+print(sue.pay())
+
+print(bob.name)
+print(bob.pay())
+print([bob.fetches, sue.fetches])
+```
+
+**4、类错误二：保持多个实例**
+修改上面例子，使用装饰器类来装饰类，而不是装饰器函数：
+
+``` python
+class Tracer:
+    def __init__(self, aClass):
+        self.aClass = aClass
+    def __call__(self, *args):
+        self.wrapped = self.aClass(*args)
+        return self
+    def __getattr__(self, attrname):
+        print('Trace: ' + attrname)
+        return getattr(self.wrapped, attrname)
+
+@Tracer
+class Spam:
+    def display(self):
+        print('Spam!' * 8)
+
+food = Spam() # Triggers __init__
+food.display() # Triggers __getattr__
+```
+
+上面不能处理给定类的多个实例：每个实例构建调用都会触发 `__call__` ，会覆盖前面的实例，所以 Tracer 只能保存最后创建的实例：
+
+``` python
+@Tracer
+class Person:
+    def __init__(self, name):
+        self.name = name
+
+bob = Person('Bob')
+print(bob.name)
+Sue = Person('Sue')
+print(sue.name) # sue overwrites bob
+print(bob.name)
+```
+
+### 五、Managing Functions and Classes Directly  
+**1、 之前的示例，都设计来拦截函数和实例创建调用；下面的示例用于管理函数和类本身**  
+下面定义了一个装饰器，把函数或类对象添加到一个基于字典的注册表，并返回对象本身：
+
+``` python
+registry = {}
+def register(obj):
+    registry[obj.__name__] = obj
+    return obj
+
+@register
+def spam(x):
+    return(x ** 2)
+
+@register
+def ham(x):
+    return(x ** 3)
+
+@register
+class Eggs:
+    def __init__(self, x):
+        self.data = x ** 4
+    def __str__(self):
+        return str(self.data)
+
+print('Registry:') 
+for name in registry:
+    print(name, '=>', registry[name], type(registry[name]))
+
+print('\nManual calls:')
+print(spam(2))
+print(ham(2))
+X = Eggs(2)
+print(X)
+
+print('\nRegistry calls:')
+for name in registry:
+    print(name, '=>', registry[name](2))
+```
+
+**2、函数装饰器也能用来处理函数属性，并且类装饰器可以动态地插入新的类属性或方法**
+
+``` python
+def decorate(func):
+    func.marked = True
+    return func
+
+@decorate
+def spam(a, b):
+    return a + b
+
+print(spam.marked)
+
+def annotate(text):
+    def decorate(func):
+        func.label = text
+        return func
+    return decorate
+
+@annotate('spam data')
+def spam(a, b):
+    return a + b
+
+print(spam(1, 2), spam.label)
+```
+
+### 六、“Private” and “Public” Attributes
+**1、实现私有属性**  
+下面的类装饰器实现一个用于类实例属性的 Private 声明；
+
+不接受被装饰类的外部对属性的获取或修改访问，但仍允许类自身在自己的方法中自由地访问这些名称：
+
+``` python
+"""
+Privacy for attributes fetched from class instances.
+See self-test code at end of file for a usage example.
+
+Decorator same as: Doubler = Private('data', 'size')(Doubler).
+Private returns onDecorator, onDecorator returns onInstance,
+and each onInstance instance embeds a Doubler instance.
+"""
+traceMe = False
+def trace(*args):
+    if traceMe: print('[' + ' '.join(map(str, args)) + ']')
+
+def Private(*privates):
+    def onDecorator(aClass):
+        class onInstance:
+            def __init__(self, *args, **kargs):
+                self.wrapped = aClass(*args, **kargs)
+            
+            def __getattr__(self, attr):
+                trace('get:', attr)
+                if attr in privates:
+                    raise TypeError('private attribute fetch: ' + attr)
+                else:
+                    return getattr(self.wrapped, attr)
+            
+            def __setattr__(self, attr, value):
+                trace('set:', attr, value)
+                if attr == 'wrapped':
+                    self.__dict__[attr] = value # Avoid looping
+                elif attr in privates:
+                    raise TypeError('private attribute change: ' + attr)
+                else:
+                    setattr(self.wrapped, attr, value)
+        return onInstance
+    return onDecorator
+
+if __name__ == '__main__':
+    traceMe = True
+
+    @Private('data', 'size')
+    class Doubler:
+        def __init__(self, label, start):
+            self.label = label
+            self.data = start
+        def size(self):
+            return len(self.data)
+        def double(self):
+            for i in range(self.size()):
+                self.data[i] = self.data[i] * 2
+        def display(self):
+            print('%s => %s' % (self.label, self.data))
+    
+X = Doubler('X is', [1, 2, 3]) # self.wrapped = aClass(*args, **kargs)触发了__setattr__方法
+Y = Doubler('Y is', [-10, -20, -30]) # 同上
+
+print(X.label)
+X.display(); X.double(); X.display()
+print(Y.label)
+Y.display(); Y.double()
+Y.label = 'Spam'
+Y.display()
+```
+
+下面都会出现错误：
+
+``` python
+print(X.size()) # prints "TypeError: private attribute fetch: size"
+print(X.data)
+X.data = [1, 1, 1]
+X.size = lambda S: 0
+print(Y.data)
+print(Y.size())
+```
+
+在上述代码，用到了三个层面的状态保存：  
+①传递给 Private 的参数在装饰发生前，作为一个外层作用域保持，供 onDecorator 和 onInstance 使用；  
+② onDecorator 的类参数在装饰时，作为一个外层作用域保持，供实例构建时使用；  
+③被包装的实例对象保存为 onInstance 代理对象中的一个实例属性，以便从类外部访问属性。
+
+**2、公有声明**  
+Public 声明一个类的实例属性，可以从任何地方自由地访问，而没有声明为 Public 的任何名称，不能从类的外部访问。
+
+当使用了 Private ，所有未声明的名称就是 Public ；当使用了 Public ，所有未声明的名称就是 Private 。
+
+``` python
+"""
+Class decorator with Private and Public attribute declarations.
+
+Controls external access to attributes stored on an instance, or
+Inherited by it from its classes. Private declares attribute names
+that cannot be fetched or assigned outside the decorated class,
+and Public declares all the names that can.
+
+Caveat: this works in 3.X for explicitly named attributes only: __X__
+operator overloading methods implicitly run for built-in operations
+do not trigger either __getattr__ or __getattribute__ in new-style
+classes. Add __X__ methods here to intercept and delegate built-ins.
+"""
+traceMe = False
+def trace(*args):
+    if traceMe: print('[' + ' '.join(map(str, args)) + ']')
+
+def accessControl(failIf):
+    def onDecorator(aClass):
+        class onInstance:
+            def __init__(self, *args, **kargs):
+                self.__wrapped = aClass(*args, **kargs)
+            
+            def __getattr__(self, attr):
+                trace('get:', attr)
+                if failIf(attr):
+                    raise TypeError('private attribute fetch: ' + attr)
+                else:
+                    return getattr(self.__wrapped, attr)
+            
+            def __setattr__(self, attr, value):
+                trace('set:', attr, value)
+                if attr == '_onInstance__wrapped': # 见31-2伪私有属性，__wrapped变成了_onInstance__wrapped
+                    self.__dict__[attr] = value
+                elif failIf(attr):
+                    raise TypeError('private attribute change: ' + attr)
+                else:
+                    setattr(self.__wrapped, attr, value)
+        return onInstance
+    return onDecorator
+
+def Private(*attributes):
+    return accessControl(failIf=(lambda attr: attr in attributes))
+
+def Public(*attributes):
+    return accessControl(failIf=(lambda attr: attr not in attributes))
+
+@Private('age')
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+X = Person('Bob', 40)
+print(X.name)
+X.name = 'Sue'
+print(X.name)
+# X.age # TypeError: private attribute fetch: age
+# X.age = 'Tom' # TypeError: private attribute change: age
+
+@Public('name')
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+X = Person('bob', 40)
+print(X.name)
+X.name = 'Sue'
+print(X.name)
+X.age # TypeError: private attribute fetch: age
+X.age = 'Tom' # TypeError: private attribute change: age
+```
+
+虽然控制了对实例及类属性的访问控制，但是仍然可以显示地调用：
+
+``` python
+print(X._onInstance__wrapped.age)
+```
+
+内置操作隐式运行地 `__X__` 运算符重载方法不会在新式类触发 `__getattr__` 或 `__getattribute__` ：
+
+``` python
+@Private('age')
+class Person:
+    def __init__(self):
+        self.age = 42
+    def __str__(self):
+        return 'Person: ' + str(self.age)
+    def __add__(self, yrs):
+        self.age += yrs
+
+X = Person()
+print(X.age) # TypeError: private attribute fetch: age
+print(X)
+X + 10 # TypeError: unsupported operand type(s) for +: 'onInstance' and 'int'
+```
+
+
+## Chapter 40 Metaclasses
+### 一、Metaclass Basics
+**元类**是创建类的类。  
+
+某种程度上来说，元类只是扩展了装饰器的代码插入模型，元类允许拦截并扩展类的创建，提供了一种在 class 语句结束时运行插入额外逻辑的 API 。元类主要由构建API工具的程序员使用。  
+
+类装饰器在被装饰类创建完成之后运行；而元类在类创建过程中就运行，创建并返回新的客户类。
+
+**1、类是类型的实例**
+用户定义的类对象是名为 **type** 的对象的实例，**type** 本身是一个类；  
+类继承自 **object** ， **object** 是 **type** 的一个子类；  
+
+内置类型的实例的类型是内置的类型，例如列表的实例的类型是 list ，而列表类型的类型是 type 本身。
+
+**类即类型，类型即类**。
+
+``` python
+print(type([]), type(type([])))
+print(type(list), type(type))
+```
+
+用户定义的类是产生它们自己的实例的类型；
+
+类有链接到 type 的一个 `__class__` 属性，就像实例有链接到创建它的类的 `__class__` 一样：
+
+``` python
+class C: pass
+X = C()
+print(type(X))
+print(X.__class__)
+print(type(C))
+print(C.__class__)
+```
+
+**2、元类是 Type 的子类**  
+因为类是 type 类的实例，所以从 type 的定制的子类创建类允许我们实现各种定制的类；
+
+①元类是 type 类的子类；  
+②类对象是 type 类的实例或子类；
+
+为了控制创建类以及扩展其行为的方式，可以指定一个用户定义的类创建自一个用户定义的元类，而不是常规的 type 类。
+
+主要上面的类型实例关系与继承不同，但不会暴露在正常的继承搜索中，即不出现在类的 `__bases__` 元组中，见后面。
+
+**3、class 语句协议**  
+在一条 class 语句的末尾，Python 遵循一个标准协议，运行了所有内嵌的代码后，python 会调用 type 对象来创建 class 对象：  
+`class = type(classname, superclasses, attributedict)`  
+
+type 对象定义了一个 `__call__` 运算符重载方法，当 type 被调用时，该方法运行2个其他方法：  
+① `type.__new__(typeclass, classname, superclasses, attributedict)`  
+② `type.__init__(class, classname, superclasses, attributedict)`  
+`__new__` 方法创建并返回新的 class 对象，然后 `__init__` 方法初始化新创建的对象。
+
+例如：
+
+``` python
+class Eggs: ...
+
+class Spam(Eggs):
+    data = 1
+    def meth(self, arg):
+        return self.data + arg
+```
+
+这里会在 class 语句末尾调用 type 对象来产生 class 对象：  
+`Spam = type('Spam', (Eggs,), {'data': 1, 'meth': meth, '__module__': '__main__'})`
+
+也可以显示地调用 type 来动态地创建一个类：
+
+``` python
+x = type('Spam', (), {'data': 1, 'meth': (lambda x, y: x.data + y)}) # 空的父类元组会自动添加object父类
+i = x()
+print(x, i)
+print(i.data, i.meth(2))
+print(x.__bases__)
+```
+
+**4、声明元类**  
+在类头部把想要使用的元类作为关键字参数列出来：  
+`class Spam(metaclass=Meta):`  
+与继承的父类同时列在头部，父类必须列在元类之前：  
+`class Spam(Eggs, metaclass=Meta):`
+
+当一个特定的元类按照上面的语法声明时，运行在 class 语句末尾来创建 class 对象的调用被修改为了调用元类而不是默认的 type ：`class = Meta(classname, superclasses, attributedict)`
+
+因为元类是 type 的一个子类，所以如果元类定义了 `__new__` 和 `__init__` 方法的话，那么 type 的 `__call__` 会把创建和初始化新的 class 对象的调用委托给元类：  
+`Meta.__new__(Meta, classname, superclasses, attributedict)`  
+`Meta.__init__(class, classname, superclasses, attributedict)`
+
+例如：
+
+``` python
+class Spam(Eggs, metaclass=Meta):
+    data = 1
+    def meth(self, arg):
+        return self.data + arg
+```
+
+在 class 语句末尾，python 内部会自动运行如下代码：  
+`Spam = Meta('Spam', (Eggs,), {'data': 1, 'meth': meth, '__module__': '__main__'})`
+
+如果元类定义了自己的 `__new__` 或 `__init__` ，在调用期间，它们会依次由所继承的 type 类的 `__call__` 方法调用，以创建并初始化新类。
+
+### 二、Coding Metaclasses
+**1、一个基础的元类**  
+简单的示例：一个带有 `__new__` 方法的 type 的子类：
+
+``` python
+class Meta(type):
+    def __new__(meta, classname, supers, classdict):
+        """Run by inherited type.__call__"""
+        return type.__new__(meta, classname, supers, classdict)
+```
+
+元类的 `__new__` 方法通常执行所需的定制并且调用 type 父类的 `__new__` 方法来创建并返回新的类对象。
+
+稍微复杂的示例：
+
+``` python
+class MetaOne(type):
+    def __new__(meta, classname, supers, classdict):
+        print('In MetaOne.new:', meta, classname, supers, classdict, sep='\n...')
+        return type.__new__(meta, classname, supers, classdict)
+
+class Eggs:
+    pass
+
+print('making class')
+class Spam(Eggs, metaclass=MetaOne):
+    data = 1
+    def meth(self, arg):
+        return self.data + arg
+
+print('making instance')
+X = Spam()
+print('data:', X.data, X.meth(2))
+```
+
+在 class 语句末尾调用元类，Spam 继承自 Eggs 并且是 Metaone 的一个实例，X 是 Spam 的一个实例并且继承自 Spam 。
+
+**2、定制构建和初始化**
+`__new__` 创建并返回了类对象，而 `__init__` 初始化了作为参数被传入的已经创建的类：
+
+``` python
+class MetaTwo(type):
+    def __new__(meta, classname, supers, classdict):
+        print('In MetaTwo.new: ', classname, supers, classdict, sep='\n...')
+        return type.__new__(meta, classname, supers, classdict)
+
+    def __init__(Class, classname, supers, classdict):
+        print('In MetaTwo.init:', classname, supers, classdict, sep='\n...')
+        print('...init class object:', list(Class.__dict__.keys()))
+    
+class Eggs:
+    pass
+
+print('making class')
+class Spam(Eggs, metaclass=MetaTwo):
+    data = 1
+    def meth(self, arg):
+        return self.data + arg
+
+print('making instance')
+X = Spam()
+print('data:', X.data, X.meth(2))
+```
+
+类初始化方法（ `__init__` ）在类构建方法（ `__new__` ）之后运行；  
+Spam 的 `__init__` 会在实例创建的时候运行，而不会被元类的 `__init__` 影响。
+
+**3、其他元类编写技巧**  
+①使用工厂函数
+
+``` python
+def MetaFunc(classname, supers, classdict):
+    print('In MetaFunc: ', classname, supers, classdict, sep='\n...')
+    return type(classname, supers, classdict)
+
+class Eggs:
+    pass
+
+print('making class')
+class Spam(Eggs, metaclass=MetaFunc):
+    data = 1
+    def meth(self, arg):
+        return self.data + arg
+
+print('making instance')
+X = Spam()
+print('data:', X.data, X.meth(2))
+```
+
+②用普通类重载类创建调用  
+下面的类没有继承自 type ，而是提供了一个 `__call__` 方法；  
+`__new__` 和 `__init__` 要重新命名为其他名称（比如下面的 \_\_New\_\_ 和 \_\_Init\_\_ ），否则会在 Meta 实例创建时运行，而不是之后在元类的角色中被调用：
+
+``` python
+class MetaObj:
+    def __call__(self, classname, supers, classdict):
+        print('In MetaObj.call: ', classname, supers, classdict, sep='\n...')
+        Class = self.__New__(classname, supers, classdict)
+        self.__Init__(Class, classname, supers, classdict)
+        return Class
+    
+    def __New__(self, classname, supers, classdict):
+        print('In MetaObj.new: ', classname, supers, classdict, sep='\n...')
+        return type(classname, supers, classdict)
+    
+    def __Init__(self, Class, classname, supers, classdict):
+        print('In MetaObj.init:', classname, supers, classdict, sep='\n...')
+        print('...init class object:', list(Class.__dict__.keys()))
+
+class Eggs:
+    pass
+
+print('making class')
+class Spam(Eggs, metaclass=MetaObj()): # MetaObj是一个类实例
+    data = 1
+    def meth(self, arg):
+        return self.data + arg
+
+print('making instance')
+X = Spam()
+print('data:', X.data, X.meth(2))
+```
+
+三个方法通过正常实例继承来的 `__call__` 方法被分发。
+
+使用父类继承来扮演 type 类似的角色：
+
+``` python
+class SuperMetaObj:
+    def __call__(self, classname, supers, classdict):
+        print('In SuperMetaObj.call: ', classname, supers, classdict, sep='\n...')
+        Class = self.__New__(classname, supers, classdict)
+        self.__Init__(Class, classname, supers, classdict)
+        return Class
+
+class SubMetaObj(SuperMetaObj):
+    def __New__(self, classname, supers, classdict):
+        print('In SubMetaObj.new: ', classname, supers, classdict, sep='\n...')
+        return type(classname, supers, classdict)
+
+    def __Init__(self, Class, classname, supers, classdict):
+        print('In SubMetaObj.init:', classname, supers, classdict, sep='\n...')
+        print('...init class object:', list(Class.__dict__.keys()))
+
+class Spam(Eggs, metaclass=SubMetaObj()):
+    data = 1
+    def meth(self, arg):
+        return self.data + arg
+
+print('making instance')
+X = Spam()
+print('data:', X.data, X.meth(2))
+```
+
+③用元类重载 `__call__`  
+对 `__new__` 和 `__call__` 的重载需调用 type 来启动：
+
+``` python
+class SuperMeta(type):
+    def __call__(meta, classname, supers, classdict):
+        print('In SuperMeta.call: ', classname, supers, classdict, sep='\n...')
+        return type.__call__(meta, classname, supers, classdict)
+
+    def __init__(Class, classname, supers, classdict):
+        print('In SuperMeta init:', classname, supers, classdict, sep='\n...')
+        print('...init class object:', list(Class.__dict__.keys()))
+
+print('making metaclass')
+class SubMeta(type, metaclass=SuperMeta):
+    def __new__(meta, classname, supers, classdict):
+        print('In SubMeta.new: ', classname, supers, classdict, sep='\n...')
+        return type.__new__(meta, classname, supers, classdict)
+    def __init__(Class, classname, supers, classdict):
+        print('In SubMeta init:', classname, supers, classdict, sep='\n...')
+        print('...init class object:', list(Class.__dict__.keys()))
+
+class Eggs:
+    pass
+
+print('making class')
+class Spam(Eggs, metaclass=SubMeta): # Invoke SubMeta, via SuperMeta.__call__
+    data = 1
+    def meth(self, arg):
+        return self.data + arg
+
+print('making instance')
+X = Spam()
+print('data:', X.data, X.meth(2))
+```
+
+元类用于创造类对象，但是只在作为一个元类角色被调用的时候才产生它们的实例；  
+元类也可以从其他元类继承名称，元类间的继承只适用于显式的名称获取，而不能作用于内置操作的调用的隐式名称查找；  
+内置操作的调用的隐式名称可以在它的 `__class__` 中找到，要么是默认的 type ，要么是一个元类。
+
+SubMeta 中的 metaclass 是必要的；  
+SuperMeta 的 `__call__` 方法不会运行在 SubMeta 创建时的 SuperMeta 调用，而是会运行在 Spam 创建时的 SubMeta 调用；  
+SubMeta 的创建会路由到 type 。
+
+如下：
+
+``` python
+class SuperMeta(type):
+    def __call__(meta, classname, supers, classdict):
+        print('In SuperMeta.call:', classname)
+        return type.__call__(meta, classname, supers, classdict)
+    
+class SubMeta(SuperMeta): # Created by type default，普通的父类被内置操作跳过，但显式的获取调用不会跳过
+    def __init__(Class, classname, supers, classdict): 
+        print('In SubMeta init:', classname)
+
+print(SubMeta.__class__)
+print([n.__name__ for n in SubMeta.__mro__])
+print()
+print(SubMeta.__call__) # 显式调用
+print()
+SubMeta.__call__(SubMeta, 'xxx', (), {}) # 显式调用：运行了SuperMeta的__call__，元类继承
+print()
+SubMeta('yyy', (), {}) # 隐式内置调用：没运行SuperMeta的__call__，元类的类是type
+```
+
+更深刻的理解见后面。
+
+### 三、Inheritance and Instance
+**1、元类和父类继承**  
+区分元类的指定方式和父类继承，相似但不一样。
+
+①元类继承自 type 类  
+元类通常重新定义 type 类的 `__new__` 和 `__init__` 方法，也可以重新定义 `__call__` （不常见，而且会出现上一节中看到的复杂性）
+
+②元类声明会被子类继承  
+`metaclass=M` 会被该类的普通子类继承，继承了该声明的类的构建都会运行该元类。
+
+③元类属性不会被类实例继承  
+因为类是元类的实例，所以元类中定义的行为适用于类，但不适用于类的实例；  
+实例从类和父类获取行为，但不会从元类获取行为；  
+普通实例属性继承通常只查找该实例、对应的类、所有父类的 `__dict__` 字典；不包括元类。
+
+④元类属性会被类获取  
+类能通过继承关系从元类获得方法；  
+类通过类的 `__class__` 链接来获取元类属性，这跟普通实例从它们的类获取名称是一样的，但是通过 `__dict__` 继承的名称会被优先搜索；  
+当同一名称同时出现在元类和父类，父类的版本（通过继承）会被优先使用，而元类（作为元类的实例）会被忽略；  
+而类的 `__class__` 不会被它本身的实例所继承。
+
+``` python
+class MetaOne(type):
+    def __new__(meta, classname, supers, classdict):
+        print('In MetaOne.new:', classname)
+        return type.__new__(meta, classname, supers, classdict)
+
+    def toast(self):
+        return 'toast'
+
+class Super(metaclass=MetaOne):
+    def spam(self):
+        return 'spam'
+
+class Sub(Super):
+    def eggs(self):
+        return 'eggs'
+```
+
+上面代码运行时，元类会同时处理2个客户类的构建，并且实例继承类属性而不是元类：
+
+``` python
+X = Sub()
+print(X.eggs(), X.spam())
+print(X.toast()) # 会出错：AttributeError: 'Sub' object has no attribute 'toast'
+```
+
+但类可以从父类继承名字，也可以从元类获取名字；  
+从元类获取的方法被绑定到了主体类上，从普通类获取的方法通过类获取是非绑定的，而通过实例获取是绑定的：
+
+``` python
+print(Sub.eggs(X), Sub.spam(X))
+print(Sub.toast())
+print(Sub.toast)
+print(Sub.spam)
+print(X.spam)
+```
+
+**2、元类 vs 父类**
+简单地来说，类作为元类的实例继承了元类的属性，但是这个属性不能被类自己的实例继承：
+
+``` python
+class A(type): attr = 1
+class B(metaclass=A): pass
+I = B()
+print(B.attr)
+print(I.attr) # 出现错误：AttributeError: 'B' object has no attribute 'attr'
+print('attr' in B.__dict__, 'attr' in A.__dict__)
+```
+
+把 A 从元类改为父类：
+
+``` python
+class A: attr = 1
+class B(A): pass
+I = B()
+print(B.attr)
+print(I.attr)
+print('attr' in B.__dict__, 'attr' in A.__dict__)
+```
+
+同一名称出现在父类和元类中的情形：
+
+``` python
+class M(type): attr = 1
+class A: attr = 2
+class B(A, metaclass=M): pass
+I = B()
+print(B.attr, I.attr)
+print('attr' in B.__dict__, 'attr' in A.__dict__, 'attr' in M.__dict__)
+```
+
+python 会优先通过 MRO （通过继承）检查每个类的 `__dict__` ，之后再到元类（作为实例）中获取：
+
+``` python
+class M(type): attr = 1
+class A: attr = 2
+class B(A): pass
+class C(B, metaclass=M): pass
+I = C()
+print(I.attr, C.attr)
+print([x.__name__ for x in C.__mro__])
+```
+
+类通过自身的 `__class__` 链接来获取元类属性（即实例通过 `__class__` 获取类属性的方式）；  
+但是实例继承是将其作用域限制在 MRO 顺序搜索到的每一个类的 `__dict__` 中，即跟随每个类的 `__bases__` ，而且只使用实例的 `__class__` 链接一次：
+
+``` python
+print(I.__class__)
+print(C.__bases__)
+print(C.__class__)
+print(C.__class__.attr)
+```
+
+**3、继承：完整的例子**
+①实例从它的类继承；类则从类和元类继承；元类从父元类继承：  
+
+``` python
+class M1(type): attr1 = 1
+class M2(M1): attr2 = 2
+
+class C1: attr3 = 3
+class C2(C1,metaclass=M2): attr4 = 4
+
+I = C2()
+print(I.attr3, I.attr4)
+print(C2.attr1, C2.attr2, C2.attr3, C2.attr4)
+print(M2.attr1, M2.attr2)
+
+print(I.__class__, C2.__bases__)
+print(C2.__class__, M2.__bases__)
+
+print(M2.__class__)
+print([x.__name__ for x in C2.__mro__]) # __bases__ tree from I.__class__
+print([x.__name__ for x in M2.__mro__]) # __bases__ tree from C2.__class__
+```
+
+综上所述，继承会在利用 `__class__` 之前先利用 `__bases__` ，因为 `__bases__` 被用于创造类的时候建立 `__mro__` 顺序，而继承基于 MRO 。  
+普通实例没有 `__bases__` ；而类二者都有，包括类和元类。
+
+②继承算法顺序  
+- 从实例 I 出发，先搜索该实例，再搜索它的类，之后搜索所有父类：  
+    - 实例 I 的 `__dict__`；   
+    - 所有在 I 的 `__class__` 中的 `__mro__` 找到的类的 `__dict__`。  
+- 从类 C 出发，先搜索该类，再搜索它的所有父类，之后搜索它的元类树：  
+    - 所有 C 的 `__mro__` 中的类的 `__dict__` ； 
+    - 所有在 C 的 `__class__` 中的 `__mro__` 找到的类的 `__dict__` ；  
+- 步骤 b 出现的数据描述符具有优先权；
+- 内置操作跳过步骤 a ，从步骤 b 开始搜索。
+
+③描述符特例  
+
+``` python
+class D:
+    def __get__(self, instance, owner): print('__get__')
+    def __set__(self, instance, value): print('__set__')
+
+class C: d = D() # Data descriptor attribute
+I = C()
+I.d
+I.d = 1
+I.__dict__['d'] = 'spam'
+I.d # 命名空间的d不会覆盖数据描述符
+```
+
+④内置操作特例  
+实例和类都会跳过内置操作；  
+比如，str 是内置操作，`__str__` 是它等价的显式名称，实例在内置操作的搜索被跳过：
+
+``` python
+class C:
+    attr = 1
+    def __str__(self): return('class')
+
+I = C()
+print(I.__str__(), str(I)) # 都来自类C
+
+I.__str__ = lambda: 'instance'
+print(I.__str__(), str(I)) # 前者来自实例的命名空间，后者来自C的命名空间，即显式调用来自实例，内置操作来自类
+```
+
+同样规则也适用于类与元类，显式名称搜索从类开始，内置操作从类的类开始，即元类（默认是 type ）：
+
+``` python
+class D(type):
+    def __str__(self): return('D class')
+class C(D):
+    pass
+print(C.__str__(C), str(C)) # C的元类是type
+
+class C(D):
+    def __str__(self): return('C class')
+print(C.__str__(C), str(C))
+
+class C(metaclass=D):
+    def __str__(self): return('C class')
+print(C.__str__(C), str(C))
+```
+
+所有的类也继承自 object ，包括默认的 type 元类。
+
+比如下面，C 按照继承（ MRO ）从 object 获取了默认的 `__str__` ，而非从元类中：
+
+``` python
+class C(metaclass=D):
+    pass
+print(C.__str__(C), str(C))
+print(C.__str__)
+
+for k in (C, C.__class__, type): print([x.__name__ for x in k.__mro__])
+```
+
+### 四、Metaclass Methods
+**1、元类方法**  
+元类方法能够处理对应的实例类，不是普通实例对象 self ，而是类本身：
+
+``` python
+class A(type):
+    def x(cls): print('ax', cls) # 注意：不是self
+    def y(cls): print('ay', cls)
+
+class B(metaclass=A):
+    def y(self): print('by', self)
+    def z(self): print('bz', self)
+
+print(B.x, B.y, B.z)
+B.x()
+
+I = B()
+I.y()
+I.z()
+I.x() # 出现错误：AttributeError: 'B' object has no attribute 'x'
+```
+
+**2、元类方法中的运算符重载**
+
+``` python
+class A(type):
+    def __getattr__(cls, name):
+        return getattr(cls.data, name)
+
+class B(metaclass=A):
+    data = 'spam'
+
+print(B.upper())
+print(B.upper)
+print(B.__getattr__)
+I = B()
+I.upper # 出现错误：AttributeError: 'B' object has no attribute 'upper'
+I.__getattr__ # 出现错误：AttributeError: 'B' object has no attribute '__getattr__'
+```
+
+### 五、Examples
+**1、实例：向类添加方法**
+
+``` python
+def eggsfunc(obj):
+    return obj.value * 4
+
+def hamfunc(obj, value):
+    return value + 'ham'
+
+class Extender(type):
+    def __new__(meta, classname, supers, classdict):
+        classdict['eggs'] = eggsfunc
+        classdict['ham'] = hamfunc
+        return type.__new__(meta, classname, supers, classdict)
+
+class Client1(metaclass=Extender):
+    def __init__(self, value):
+        self.value = value
+    def spam(self):
+        return self.value * 2
+
+class Client2(metaclass=Extender):
+    value = 'ni?'
+
+X = Client1('Ni!')
+print(X.spam())
+print(X.eggs())
+print(X.ham('bacon'))
+
+Y = Client2()
+print(Y.eggs())
+print(Y.ham('bacon'))
+```
+
+上述示例中的元类把2个已知的方法添加到了声明了元类的每个类中。
+
+**2、基于装饰器的上述代码**
+
+``` python
+def eggsfunc(obj):
+    return obj.value * 4
+
+def hamfunc(obj, value):
+    return value + 'ham'
+
+def Extender(aClass):
+    aClass.eggs = eggsfunc
+    aClass.ham = hamfunc
+    return aClass
+
+@Extender
+class Client1:
+    def __init__(self, value):
+        self.value = value
+    def spam(self):
+        return self.value * 2
+
+@Extender
+class Client2:
+    value = 'ni?'
+
+X = Client1('Ni!')
+print(X.spam())
+print(X.eggs())
+print(X.ham('bacon'))
+
+Y = Client2()
+print(Y.eggs())
+print(Y.ham('bacon'))
+```
+
+**3、元类 vs 类装饰器**
+①类装饰器可以管理类和实例，但是通常不能创建类，需要额外步骤来创建新的类；  
+②元类可以管理类和实例，但是管理实例需要一些额外的工作； 
+
+类装饰器在 class 语句末尾，把类名绑定到装饰器函数或类的结果；  
+元类通过一条 class 语句末尾把类对象的创建路由到一个对象，从而创建新的类。
+
+本章后面有元类和类装饰器比较以及结合的例子，因为暂无学习的必要性，未作摘抄，大致了解即可，之后面向需求学习。
