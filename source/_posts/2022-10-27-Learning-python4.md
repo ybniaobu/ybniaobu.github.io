@@ -7,7 +7,7 @@ tags:
   - python
   - 读书笔记
 top_img: /images/black.jpg
-cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
+cover: https://s2.loli.net/2022/11/27/R9htYK5LyFuEGTk.jpg
 ---
 
 > 该笔记为 **《Learning Python》** 的读书笔记，由于是早期未搞熟博客系统时所写，笔记结构较为混乱；  

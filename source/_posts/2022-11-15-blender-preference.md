@@ -7,7 +7,7 @@ tags:
 categories:
   - [blender, blender设置及插件]
 top_img: /images/black.jpg
-cover: https://s2.loli.net/2022/09/14/2DeSNmsE9tLWjOI.jpg
+cover: https://s2.loli.net/2022/11/27/n42YODsjIzNtwue.jpg
 ---
 
 > 本文章记录blender个人设置的偏好以及安装的插件，方便换电脑时重新设置。  
