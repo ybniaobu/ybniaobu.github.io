@@ -1,12 +1,12 @@
 ---
 title: Blender偏好设置及插件记录
-date: 2022-10-27 19:09:10
+date: 2022-11-15 14:09:30
 tags:
   - blender
   - 3d建模
 categories:
   - [blender, blender设置及插件]
-top_img: https://s2.loli.net/2022/09/14/9VxOCUtbv5gLcPu.png
+top_img: /images/black.jpg
 cover: https://s2.loli.net/2022/09/14/2DeSNmsE9tLWjOI.jpg
 ---
 

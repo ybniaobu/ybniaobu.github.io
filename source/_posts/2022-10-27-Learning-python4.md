@@ -1,16 +1,17 @@
 ---
-title: 《Learning Python》读书笔记（九）
-date: 2022-11-24 14:08:00
+title: 《Learning Python》读书笔记（四）
+date: 2022-10-27 19:09:10
 categories: 
   - [python, python读书笔记]
 tags:
   - python
   - 读书笔记
+top_img: /images/black.jpg
 cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 ---
 
-> 该笔记为 **《Learning Python》** 的读书笔记，未经过系统的整理；  
-> 该书涉及的内容可能过于啰嗦，但包含一些python背后的逻辑和机制，值得初学者观看；  
+> 该笔记为 **《Learning Python》** 的读书笔记，由于是早期未搞熟博客系统时所写，笔记结构较为混乱；  
+> 该书涉及的内容可能过于啰嗦，但包含一些python背后的逻辑和机制，可以粗略过一遍，但若仔细阅读就是在坑自己；  
 > 该笔记内容过多，所以不展示部分代码的结果，需复制到编辑器中查看；  
 > 学习完成日期为2022年10月20日。  
 > 本篇主要内容为：第7部分异常和第8部分高级主题：unicode编码、字节字符串、被管理的属性、装饰器、元类。
@@ -18,6 +19,7 @@ cover: https://s2.loli.net/2022/09/17/JxdLBRD5Cjfvg37.jpg
 <div  align="center">  
 <img src="https://s2.loli.net/2022/09/17/ri9Ue6nguJdq1Ca.jpg" width = "80%" height = "80%" alt="Learning Python"/>
 </div>
+
 
 **<font size=5>PART VII Exceptions and Tools</font>**
 ## Chapter 33 Exception Basics
