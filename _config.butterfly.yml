@@ -36,7 +36,7 @@ copy:
 # formal:
 #   icon: link || the description
 social:
-  # fab fa-github: https://github.com/xxxxx || Github
+  fab fa-github: https://github.com/ybniaobu/ybniaobu.github.io || Github
   fas fa-envelope: mailto:niaobubob@gmail.com || Email
 
 # search (搜索)
