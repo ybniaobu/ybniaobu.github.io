@@ -657,9 +657,9 @@ aside:
     description:
     button:
       enable: true
-      icon: fa-solid fa-ghost
-      text: 这个按钮正在等待灵魂
-      link: 
+      icon: fa-solid fa-book
+      text: My Notion
+      link: https://notion-niaobu.vercel.app/
   card_announcement:
     enable: true
     content: 为了蒂法！！！
