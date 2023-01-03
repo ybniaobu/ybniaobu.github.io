@@ -659,7 +659,7 @@ aside:
       enable: true
       icon: fa-solid fa-book
       text: My Notion
-      link: https://niaobu-notion.vercel.app/
+      link: https://niaobu.notion.site/787824630ea6480e944c1ae5ae7f4792
   card_announcement:
     enable: true
     content: 为了蒂法！！！
