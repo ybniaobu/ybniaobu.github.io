@@ -28,3 +28,5 @@ cover: https://s2.loli.net/2022/11/29/uXNZDocJpQx5yrh.jpg
 ①开发者的官方下载见<https://github.com/machin3io/MACHIN3tools> - Code - Download ZIP  
 ②或者使用一瓶辣椒酱的魔改版本<https://shimo.im/docs/ckYQ8xq6JhVtrGjh/read>，优化了快捷键，尽可能顺应用户习惯以及中文弥补，代码层面完善了BLT部分函数类型中文化。
 
+3、Quixel Bridge插件：Epic旗下的三维扫描库，官网为<https://quixel.com/>，可用Epic账户登录，需要下载Bridge软件并下载其对应的Blender插件，这样可以直接在Bridge软件导入进Blender，不用一次一次下载再导入了。如果导入进来没有贴图，需要在偏好设置里的翻译一栏把新建数据勾上。
+
