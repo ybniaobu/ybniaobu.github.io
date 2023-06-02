@@ -18,9 +18,15 @@ cover: https://s2.loli.net/2022/11/29/uXNZDocJpQx5yrh.jpg
 
 2、系统 System - 内存&限额 Memory&Limits - 撤销次数 Undo Steps - 加大次数，大概128次或256次
 
-3、插件 Add-ons - 节点：NW Node：Node Wrangler
+3、插件 Add-ons - 节点：NW（Node：Node Wrangler）
 
-4、插件 Add-ons - 网格：编辑网格工具 Mesh：Edit Mesh Tools
+4、插件 Add-ons - 添加网格：Extra Objects（Add Mesh：Extra Objects）
+
+5、插件 Add-ons - 网格：编辑网格工具（Mesh：Edit Mesh Tools）
+
+6、插件 Add-ons - 界面：Modifier Tools 修改器工具（Interface：Modifier Tools）
+
+7、插件 Add-ons - 界面：Copy Attributes Menu 复制属性菜单（Interface：Copy Attributes Menu）
 
 # 非官方插件 Add-ons
 1、BLT插件：一个综合的Blender资源和学习一体化的平台，包括插件翻译，资产库一键导入，和学习交流平台：<https://pan.baidu.com/s/1o2-oQcnRf5Ivvx-xNoJpJA>或见一瓶辣椒酱的网站<https://shimo.im/docs/ckYQ8xq6JhVtrGjh/read>或者自己的百度云备份。
@@ -34,3 +40,4 @@ cover: https://s2.loli.net/2022/11/29/uXNZDocJpQx5yrh.jpg
 
 4、摄像机反求插件Fspy：一个免费开源的软件以及插件，官网为<https://fspy.io>，其原理是通过2D图像或照片计算出相机的位置以及对应参数，并应用于静态合成工作，将3D渲染结果和2D图像融合。
 
+# M3工具的快捷键
