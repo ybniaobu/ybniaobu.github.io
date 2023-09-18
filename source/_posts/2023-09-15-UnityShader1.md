@@ -1,5 +1,5 @@
 ---
-title: 《Unity Shader 入门精要》读书笔记（一）
+title: 《Unity Shader入门精要》读书笔记（一）
 date: 2023-09-15 12:03:32
 categories: 
   - [unity, unity shader]
@@ -125,4 +125,43 @@ OpenGL 和 DirectX 这些图像应用编程接口，架起了上层应用程序�
 ③ Cg 则是真正意义上的跨平台。它会根据平台的不同，编译成相应的中间语言。Cg 语言的跨平台性很大原因取决于与微软的合作哦，这也导致 Cg 语言的语法与 HLSL 非常像，Cg 语言可以无缝移植成 HLSL 代码。但缺点是可能无法完全发挥出 OpenGL 的最新特性。
 
 ### Draw Call
-Draw Call 就是
+Draw Call 就是 CPU 调用图像编程接口，如 OpenGL 中的 glDrawElements 命令或者 DirectX 中的 DrawIndexedPrimitive 命令，以命令 GPU 进行渲染操作。
+
+Draw Call 中造成性能问题的是 CPU，而非 GPU。
+
+① CPU 和 GPU 并行工作  
+若 CPU 需要等待 GPU 完成上一个渲染任务才能再次发送渲染命令，会造成效率低下。为了并行工作，使用了**命令缓冲区 Command Buffer**：命令缓冲区包含一个命令队列，CPU 通过图像编程接口向命令缓冲区中添加命令，而 GPU 从中读取命令并执行，从而使它们相互独立工作。命令缓冲区的命令有很多种类，而 Draw Call 就是其中的一种。
+
+②为什么 Draw Call 多了会影响帧率？  
+CPU 每次调用 Draw Call 都要经过一系列工作，多次调用 Draw Call 会进行许多重复性操作。如果 Draw Call 太多，CPU 会把大量时间花费在提交 Draw Call 上，造成 CPU 的过载。
+
+③如何减少 Draw Call  
+方法很多，其一就是**批处理 Batching** 方法：将许多小的 Draw Call 合并成一个大的 Draw Call。由于要在 CPU 的内存里合并网格，合并的过程很耗时，所以批处理技术跟适用于静态物体。
+
+在游戏开发中，为减少 Draw Call 的开销，尽量避免使用大量很小的网格，若不可避免考虑合并它们；避免使用过多材质，考虑空用材质。
+
+### 固定渲染管线
+**固定函数的流水线 Fixed-Function Pipeline，简称固定管线**。通常指在较旧的 CPU 上实现的渲染流水线。这种流水线只给开发者提供一些配置操作，但开发者没有完全控制权。随着时代发展，可编程渲染管线应运而生。
+
+
+# 第二章 Unity Shader
+在没有 Unity 这类编辑器的情况下，若想对模型设置渲染状态，需要大量复杂初始化的代码。Unity 提供了能够让开发者管理着色器代码以及渲染设置（比如开启关闭混合、深度测试、设置渲染顺序等）的地方，也就是 Unity Shader。
+
+## Material 和 Unity Shader
+
+> 材质和着色器老是傻傻分不清，材质可以理解为物体的不同物理属性，比如颜色、纹理和反射率等等，而着色器根据这些数据渲染。
+
+在 Unity 中需要配合使用**材质 Material 和 Unity Shader** 来达到需要的效果。首先创建需要的 Unity Shader 和材质，然后把 Unity Shader 赋给材质，并在材质面板上调整属性（如使用的纹理、漫反射系数等）。最后将材质赋给相应模型。Unity Shader 定义了渲染所需代码、属性和指令，而材质允许我们调节这些属性。
+
+① Unity 中的材质  
+Unity 中材质需要结合一个 GameObject 的 Mesh 或者 Particle Systems 组件来工作。默认情况下新建的材质使用 Unity 内置的 Standard Shader，是一种基于物理渲染的着色器，见后面章节。
+
+② Unity 中的 Shader
+Unity 一共提供了五种 Unity Shader 模板：  
+&emsp;&emsp; - Standard Surface Shader：包含了标准光照模型的表面着色器模板；  
+&emsp;&emsp; - Unlit Shader：不包含光照（但包含雾效）的基本的顶点/片元着色器；  
+&emsp;&emsp; - Image Effect Shader：为我们实现各种屏幕后处理效果提供了一个基础模版；  
+&emsp;&emsp; - Compare Shader：产生一种特殊的shader文件，利用GPU的并行性来进行一些与常规渲染流水线无关的计算；  
+&emsp;&emsp; - Ray Tracing Shader：支持光追的着色器。
+
+
