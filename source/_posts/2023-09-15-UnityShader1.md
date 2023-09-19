@@ -164,4 +164,116 @@ Unity 一共提供了五种 Unity Shader 模板：
 &emsp;&emsp; - Compare Shader：产生一种特殊的shader文件，利用GPU的并行性来进行一些与常规渲染流水线无关的计算；  
 &emsp;&emsp; - Ray Tracing Shader：支持光追的着色器。
 
+Unity Shader 本质上就是一个文本文件。Unity Shader 有导入设置面板，在 project 里点击任意 Unity Shader 可在 Inspector 面板中看到。
+
+<table><tr>
+<td><img src='https://s2.loli.net/2023/09/19/K4aG83wSf5PVhDJ.png' width="300" alt="图4- Unity Shader导入设置面板"></td>
+<td><img src='https://s2.loli.net/2023/09/19/WQBKVwqGFHhfpvU.png' width="300" alt="图5- Compile and show code下拉列表"></td>
+</tr></table>
+
+可以在 Default Map 中指定该 Unity Shader 使用的默认纹理。在下方的面板中，Unity 会显示出和该 Unity Shader 相关的信息，例如它是否是一个表面着色器 Surface Shader、是否是一个固定函数着色器 Fixed Function Shader，还有些信息和标签设置有关，如是否会投射阴影、使用的渲染队列、LOD 值等。
+
+对于表面着色器，点击 Show generated code 可以打开一个新的文件，该文件里将显示 Unity 在背后为该表面着色器生成的顶点/片元着色器。若该 Unity Shader 是固定函数着色器，在 Fixed function 后面也会出现 Show generated code 按钮。Compile and show code 下拉列表可以让开发者检查 Unity Shader 针对不同图像编程接口最终编译成的 Shader 代码。
+
+## Unity Shader 的基础：ShaderLab
+在 Unity 中，所有的 Unity Shader 都是使用 ShaderLab 来编写的。ShaderLab 是 Unity 提供的编写 Unity Shader 的一种说明性语言。使用了嵌套在花括号内部的语义来描述结构，这些结构包含了渲染所需的数据，比如 Properties 语句块中定义了着色器所需的各种属性。一个 Unity Shader 的基础结构如下：
+
+```
+Shader "ShaderName" {
+    Properties {
+      // 属性
+    }
+    SubShader {
+      // 显卡A使用的子着色器
+    }
+    SubShader {
+      // 显卡B使用的子着色器
+    }
+    Fallback "VertexLit"
+}
+```
+
+Unity 会根据使用的平台来把这些结构编译成真正的代码和 Shader 文件。
+
+## Unity Shader 的结构
+### Unity Shader 的名字
+每个 Unity Shader 文件的第一行都需要通过 Shader 语义来指定 Unity Shader 的名字。当为材质选择使用的 Unity Shader 时，名字就会出现在材质的 Inspector 面板的下拉列表里。通过在名字添加斜杠 / ，可以控制 Unity Shader 在材质面版中出现的位置：`Shader "Custom/MyShader"`。那么这个 Unity Shader 在材质面板的位置就是：Shader -> Custom -> MyShader。
+
+### Properties 语义块
+Properties 语义块中包含了一系列属性，这些属性会出现在材质面板中。Properties 语义块的定义通常如下：
+
+```
+Properties {
+    Name ("display name", PropertyType) = DefaultValue
+    Name ("display name", PropertyType) = DefaultValue
+    // 更多属性
+}
+```
+
+在 Shader 中需要访问材质属性的名字 Name，这些属性名字由一个下划线开始。display name 则是显示在材质面板上的名字。我们需要为每个属性指定它的类型和默认值。常见属性类型如下表：  
+
+| 属性类型 | 默认值的定义语法 | 示例 |
+| :---- | :---- | :---- |
+| Int | number | _Int("Int",Int) = 2 |
+| Float | number | _Float("Float",Float) = 1.5 |
+| Range(min, max) | number | _Range("Range",Range(0.0, 5.0)) = 3.0 |
+| Color | (number,number,number,number) | _Color("Color",Color) = (1,1,1,1) |
+| Vector | (number,number,number,number) | _Vector("Vector",Vector) = (2,6,3,1) |
+| 2D | "defaulttexture" { } | _2D("2D",2D) = "" { } |
+| Cube | "defaulttexture" { } | _Cube("Cube",Cube) = "white" { } |
+| 3D | "defaulttexture" { } | _3D("3D",3D) = "black" { } |
+
+对于 2D、Cube、3D 这种纹理类型，默认值的定义稍微复杂，默认值是通过一个字符串后跟一个花括号来指定的，其中，字符串要么是空的，要么是内置的纹理名称，如 "white"，“black”，“gray" 或者 "bump”。
+
+### SubShader
+每一个 Unity Shader 可以包含多个 SubShader 语义块，但最少要有一个。 当 Unity 需要加载这个 Unity Shader 时，Unity 会扫描所有的 SubShader 语义块， 然后选择第一个能够在目标平台上运行的 SubShader。 如果都不支持的话，Unity 就会使用 Fallback 语义指定的 Unity Shader。Unity 提供这种语义的原因是因为不同显卡的能力不同，高级的显卡能支持更多的指令数，我们希望在差性能显卡使用计算复杂度较低的着色器，在高级显卡上使用计算复杂度较高的着色器。
+
+SubShader 语义块通常如下：  
+
+```
+SubShader {
+    // 可选的
+    [Tags]
+
+    // 可选的
+    [RenderSetup]
+
+    Pass {
+    }
+    // Other Passes
+}
+```
+
+SubShader 中定义了一系列 Pass 以及可选的状态 \[RenderSetup\] 和标签 \[Tags\] 设置。每个Pass 定义了一次完整的渲染流程，但如果 Pass 的数目过多，往往会造成渲染性能的下降。 因此，我们应尽量使用最小数目的 Pass。状态和标签同样可以在 Pass 声明。不同的是，SubShader 中的一些标签设置是特定的。也就是说，这些标签设置和 Pass 中使用的标签是不一样的。而对于状态设置来说，其使用的语法是相同的。但是，如果我们在 SubShader 进行了这些设置，那么将会用于所有的 Pass。
+
+***状态设置***  
+ShaderLab 提供了一系列渲染状态的指令，这些指令可以设置显卡的各种状态，例如混合/开启深度测试等。常见的渲染状态设置选项如下表：
+
+| 状态名称 | 设置指令 | 解释 |
+| :---- | :---- | :---- |
+| Cull | Cull Back &verbar; Front &verbar; Off | 设置剔除模式：剔除背面/正面/关闭剔除 |
+| ZTest | ZTest Less Greator &verbar; LEqual &verbar; GEqual &verbar; Equal &verbar; NotEqual &verbar; Always | 设置深度测试时使用的函数 |
+| ZWrite | ZWrite On &verbar; Off	| 开启/关闭深度写入 |
+| Blend | Blend SrcFactor DstFactor | 开启并设置混合模式 |
+
+当在 SubShader 块中设置了上述渲染状态时，将会应用到所有的 Pass，如果不想这样，可以在 Pass 语义块中单独进行上面的设置。
+
+***SubShader 的标签***  
+标签 Tags 是一个键值对，键和值都是字符串类型，这些键值对用来告诉 Unity 的渲染引擎希望怎样以及何时渲染这个对象。标签结构：`Tags { "TagName1" = "Value1" "TagName2" = "Value2" }`
+
+SubShader 的标签块支持的标签类型如下：
+
+| <font size=2>标签类型</font> | <font size=2>说明</font> | <font size=2>例子</font> |
+| :---- | :---- | :---- |
+| <font size=2>Queue</font> | <font size=2>控制渲染顺序，指定该物体属于哪个渲染队列，通过这种方式可以保证所有的透明物体可以在所有不透明物体后面被渲染，我们也可以自定义使用的渲染队列来控制物体的渲染顺序</font>	| <font size=2>Tags {  "Queue" = "Transparent" }</font> |
+| <font size=2>RenderType</font> | <font size=2>对着色器进行分类，例如这是一个不透明的着色器，或是一个透明的着色器等。可以被用于着色器替换 Shader Replacement 功能</font> | <font size=2>Tags { "RenderType" = "Opaque" }</font> |
+| <font size=2>DisableBatching</font> | <font size=2>一些 SubShader 在使用 Unity 的批处理功能时会出现问题，例如使用了模型空间下的坐标进行顶点动画。这时可以通过该标签来直接指明是否对该 SubShader 使用批处理</font> | <font size=2>Tags { "DisableBatching" = "True" }</font> |
+| <font size=2>ForceNoShadowCasting</font> | <font size=2>控制使用该 SubShader 的物体是否会投射阴影</font> | <font size=2>Tags { "ForceNoSdowCasting" = "True" }</font> |
+| <font size=2>lgnoreProjector</font> | <font size=2>如果该标签值为 “True” 那么使用该 SubShader 的物体将不会受 Projector 的影响。通常用于半透明物体</font> | <font size=2>Tags { "lgnoreProjector" = "True" }</font> |
+| <font size=2>CanUseSpriteAtlas</font>	| <font size=2>当该 SubShader 是用于精灵 sprites 时，将该标签设为 “False”</font> | <font size=2>Tags { "CanUseSpriteAtlas" = "False" }</font> |
+| <font size=2>PreviewType</font> | <font size=2>指明材质面板将如何预览该材质。默认情况下，材质将显示为一个球形，我们可以通过把该标签的值设为 “Plane” “SkyBox” 来改变预览类型</font> | <font size=2>Tags { "PreviewType" = "Plane" }</font> |
+
+注意：上述标签可以在 SubShader 中声明，而不可以在 Pass 块中声明，Pass 块虽然也可以定义标签，但这些标签是不同于 SubShader 的标签类型。
+
+***Pass 语义块***
 
