@@ -226,6 +226,11 @@ Properties {
 对于 2D、Cube、3D 这种纹理类型，默认值的定义稍微复杂，默认值是通过一个字符串后跟一个花括号来指定的，其中，字符串要么是空的，要么是内置的纹理名称，如 "white"，“black”，“gray" 或者 "bump”。
 
 ### SubShader
+
+> 一个 SubShader 可理解为 Shader 中的一个渲染方案。即针对不同的渲染情况，需要编写不同的子着色器。  
+> 
+> In a shader program, a **"pass"** refers to a single rendering operation that is performed on a set of geometry or pixels. It can include multiple shader stages, such as vertex, geometry, and fragment shaders. 
+
 每一个 Unity Shader 可以包含多个 SubShader 语义块，但最少要有一个。 当 Unity 需要加载这个 Unity Shader 时，Unity 会扫描所有的 SubShader 语义块， 然后选择第一个能够在目标平台上运行的 SubShader。 如果都不支持的话，Unity 就会使用 Fallback 语义指定的 Unity Shader。Unity 提供这种语义的原因是因为不同显卡的能力不同，高级的显卡能支持更多的指令数，我们希望在差性能显卡使用计算复杂度较低的着色器，在高级显卡上使用计算复杂度较高的着色器。
 
 SubShader 语义块通常如下：  
@@ -244,7 +249,7 @@ SubShader {
 }
 ```
 
-SubShader 中定义了一系列 Pass 以及可选的状态 \[RenderSetup\] 和标签 \[Tags\] 设置。每个Pass 定义了一次完整的渲染流程，但如果 Pass 的数目过多，往往会造成渲染性能的下降。 因此，我们应尽量使用最小数目的 Pass。状态和标签同样可以在 Pass 声明。不同的是，SubShader 中的一些标签设置是特定的。也就是说，这些标签设置和 Pass 中使用的标签是不一样的。而对于状态设置来说，其使用的语法是相同的。但是，如果我们在 SubShader 进行了这些设置，那么将会用于所有的 Pass。
+**SubShader 中定义了一系列 Pass 以及可选的状态 \[RenderSetup\] 和标签 \[Tags\] 设置。每个 Pass 定义了一次完整的渲染流程**，但如果 Pass 的数目过多，往往会造成渲染性能的下降。 因此，我们应尽量使用最小数目的 Pass。状态和标签同样可以在 Pass 声明。不同的是，SubShader 中的一些标签设置是特定的。也就是说，这些标签设置和 Pass 中使用的标签是不一样的。而对于状态设置来说，其使用的语法是相同的。但是，如果我们在 SubShader 进行了这些设置，那么将会用于所有的 Pass。
 
 ***状态设置***  
 ShaderLab 提供了一系列渲染状态的指令，这些指令可以设置显卡的各种状态，例如混合/开启深度测试等。常见的渲染状态设置选项如下表：
@@ -276,4 +281,137 @@ SubShader 的标签块支持的标签类型如下：
 注意：上述标签可以在 SubShader 中声明，而不可以在 Pass 块中声明，Pass 块虽然也可以定义标签，但这些标签是不同于 SubShader 的标签类型。
 
 ***Pass 语义块***
+Pass 语义块包含的语义如下：  
 
+``` 
+Pass {
+	  [Name]
+	  [Tags]
+	  [RenderSetup]
+	  // Other Code
+}
+```
+
+我们可以在 Pass 中定义该 Pass 的名称，例如：`Name "MyPassName"`。通过这个名称，我们可以使用 ShaderLab 的 UsePass 命令来直接使用其他 Unity Shader 中的 Pass，例如：`UsePass "MyShader/MYPASSNAME"`。由于 Unity 内部会把所以 Pass 的名称转换成大写字母表示，因此，在使用 UsePass 命令时必须使用大写形式的名字。
+
+可以对 Pass 设置渲染状态， SubShader 的状态设置同样适用于 Pass，除此之外，还可以使用固定管线的着色器命令，见后面。Pass 同样可以设置标签，但它的标签不同于 SubShader 的标签。这些标签也是用于告诉渲染引擎我们希望怎么样来渲染该物体。
+
+| 标签类型 | 说明 | 例子 |
+| :---- | :---- | :---- |
+| LightMode | 定义该 Pass 在 Unity 的渲染流水线中的角色 | Tags { "LightMode" = "ForwardBase" } |
+| RequireOptions | 用于指定当满足某些条件时才渲染该 Pass, 它的值是一个由空格分隔的字符串。目前， Unity 支待的选项有：SoftVegetation 。在后面的版本中，可能会增加更多的选项 | Tags { "RequireOptions" = "SoftVegetation" } |
+
+Unity Shader 还支持一些特殊的 Pass：  
+UsePass：可以使用该命令来复用其他 Unity Shader 中的 Pass；  
+GrabPass：该 Pass 负责抓取屏幕并将结果储存在一张纹理中，以用于后续的 Pass 处理。
+
+### Fallback
+Fallback 指令用于告诉 Unity：如果上面所有 SubShader 不能在该显卡上运行，那么就使用这个最低级的 Shader 吧。它的语义如下：  
+
+```
+Fallback "name"
+// 或者
+Fallback off
+```
+
+事实上 Fallback 还会影响阴影的投射。在渲染阴影纹理时，Unity 会在每个 Unity Shader 中寻找一个阴影投射的 Pass。通常情况下，我们不需要自己专门实现一个 Pass，Fallback 使用的内置 Shader中包含一个通用的 Pass。因此，为每个 UnityShader 正确设置 Fallback 是非常重要的。
+
+### 其他语义
+除了上述语义，还有一些不常用的语义：比如，使用 CustomEditor 语义来扩展材质面板的编辑界面；使用 Category 语义来对 Unity Shader 中的命令进行分组。
+
+
+## Unity Shader 的形式
+Unity Shader 最重要的任务还是指定各种着色器所需的代码。这些着色器代码可以写在 SubShader 语义块里（表面着色器的做法），也可以写在 Pass 语义块里（顶点/片元着色器和固定函数着色器的做法）。
+
+### 表面着色器 Surface Shader
+表面着色器是 Unity 自己创造的着色器类型，代码量很少，但是 Unity 在背后做了很多工作，渲染代价比较大。本质上与顶点/片元着色器相同，Unity 内部会将该着色器转换为对应顶点/片元着色器，表面着色器是对顶点/片元着色器更高一层的抽象，Unity 为我们处理了很多光照细节。一个非常简单的表面着色器示例代码如下：
+
+```
+Shader "Custom/Simple Surface Shader" {
+    SubShader {
+        Tags { "RenderType" = "Opaque" }
+        CGPROGRAM
+        #progma surface surf Lambert
+        struct Input{
+            float color : COLOR;
+        };
+        void surf (Input IN, inout SurfaceOutput o) {
+            o.Albedo = 1;
+        }
+        ENDCG
+    }
+    Fallback "Diffuse"
+}
+```
+
+表面着色器被定义在 SubShader 语义块中的 CGPROGRAM 和 ENDCG 之间，表面着色器不需要关心使用多少个 Pass、每个 Pass 如何渲染等问题，Unity 会在背后做好这些事情，把表面着色器转换成一个包含多 Pass 的顶点/片元着色器。我们只需要告诉表面着色器使用哪些纹理填充颜色，使用哪个法线纹理去填充法线，使用 Lambert 光照模型等。
+
+**CGPROGRAM 和 ENDCG 之间的代码使用的是 CG/HLSL 编写的，需要将 CG/HLSL 语言嵌入 ShaderLab 语言中。**但是这里的 CG/HLSL 是 Unity 封装后的，它的语法和标准的 CG/HLSL 几乎一致，但是有细微差别，有些函数和用法 Unity 没有提供支持。
+
+### 顶点/片元着色器 Vertex/Fragment Shader
+在 Unity 中，我们可以使用 Cg/HLSL 语言来编写顶点/片元着色器。它们更加复杂，但灵活性也更高。一个非常简单的顶点/片元着色器示例代码如下：  
+
+```
+Shader "Custom/Simple Surface Shader" {
+    SubShader {
+        Pass { 
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            float4 vert(float4 v : POSITION) : SV_POSITION {
+                return mul (UNITY_MATRIX_MVP, v);
+            }
+
+            fixed4 frag() : SV_Target {
+                return fixed4(1.0, 0.0, 0.0, 1.0);
+            }
+
+            ENDCG
+        }
+    }
+}
+```
+
+和表面着色器类似，顶点/片元着色器的代码也需要定义在 CGPROFRAM 和 ENDCG 之间。但不同的是，顶点/片元着色器是写在 Pass 语义块中，而非 SubShader 内的。我们需要自己定义每个 Pass 需要使用的 Shader 代码。
+
+### 固定函数着色器 Fixed Function Shader
+对于一些较旧的设备，不支持可编程管线着色器。因此，我们需要使用固定函数着色器来完成渲染。这些着色器往往只可以完成一些非常简单的效果。一个非常简单的固定函数着色器示例代码如下：  
+
+```
+Shader "Tutorial/Basic" {
+    Properties {
+        _Color ("Main Color", Color) = (1, 1, 1, 1)
+    }
+    SubShader {
+        Pass {
+            Material {
+                Diffuse [_Color]
+            }
+            Lighting On
+        }
+    }
+}
+```
+
+固定函数着色器的代码被定义在 Pass 语义块内，相当于 Pass 的一些渲染设置。对于固定函数着色器，需要完全使用 ShaderLab 语法，而非 Cg/HLSL 。
+
+由于绝大多数 GPU 都支持可编程的渲染管线，这种固定渲染管线的编程方式已经逐渐被抛弃了。实际上，在现在的 Unity 中，所有固定函数着色器都会在背后被 Unity 编译成对应的顶点/片元着色器，因此，真正意义上的固定函数着色器已经不存在了。
+
+### 选择哪种着色器
+①除非你有非常明确的需求必须要使用固定函数着色器，例如需要在非常旧的设备上运行你的游戏，否则请使用可编程管线的着色器，即表面着色器或顶点/片元着色器；  
+②如果你想和各种光源打交道，你可能更喜欢使用表面着色器，但需要小心它在移动平台的性能表现；  
+③如果你需要使用的光照数目非常少，例如只有一个平行光，那么使用顶点/片元着色器是一个更好的选择；  
+④如果你有很多自定义的渲染效果，那么请选择顶点/片元着色器。
+
+## 其他补充
+### Unity Shader 和真正的 Shader 的区别
+①在 Shader 中，我们仅可以编写特定类型的 Shader，例如顶点着色器、片元着色器等。而在 Unity Shader 中，我们可以在同一个文件里同时包含需要的顶点着色器和片元着色器代码；  
+②在 Shader 中，我们无法设置一些渲染设置，例如是否开启混合、深度测试等，这些是开发者在另外的代码中自行设置的。而在 Unity Shader 中，我们通过一行特定的指令就可以完成这些设置；  
+③在 Shader 中，我们需要编写冗长的代码来设置着色器的输入和输出，要小心地处理这些输入输出的位置对应关系等。而在 Unity Shader 中，我们只需要在特定语句块中声明一些属性，就可以依靠材质来方便地改变这些属性。而且对于模型自带的数据（如顶点位置、纹理坐标、法线等），Unity Shader 也提供了直接访问的方法，不需要开发者自行编码来传给着色器。
+
+由于 Unity Shader 的高度封装性，可以编写的 Shade 类型和语法被限制了，对应一些特定类型的 Shader 如曲面细分着色器和几何着色器等相关功能就支持得差一点。作为开发者，我们绝大部分时候只需要和 Unity Shader 打交道，而不需要关心渲染引擎底层得实现细节。
+
+
+# 第三章 Shader 数学基础
