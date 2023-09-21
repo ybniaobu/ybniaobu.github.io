@@ -415,3 +415,16 @@ Shader "Tutorial/Basic" {
 
 
 # 第三章 Shader 数学基础
+## 笛卡儿坐标系
+我们平时使用的是**笛卡儿坐标系 Cartesian Coordinate System**。在三维笛卡儿坐标系中，需要定义三个坐标轴和一个原点。这三个坐标轴也就是该坐标系的**基矢量 basis vector**。若这三个坐标轴是相互垂直的，且长度为1，这样的基矢量被称为**标准正交基 orthonormal basis**，但这不是必须的。若这三个坐标轴仅仅相互垂直的，这样的基矢量被称为**正交基 orthogonal basis**。
+
+三维笛卡儿坐标系并不都是等价的，具有**旋向性 handedness**，即分为**左手坐标系 left-handed coordinate space** 和**右手坐标系 right-handed coordinate space**。除了坐标轴朝向不同之外，左手坐标系和右手坐标系对于正向旋转的定义也不同，即**左手法则 left-handed rule**和**右手法则 right-handed rule**。
+
+在 Unity 中使用的坐标系就是左手坐标系。但在观察空间使用右手坐标系，观察空间是以摄像头为原点的坐标系，摄像头的前方是 z 轴的负方向，z 轴坐标的减少意味着景深的增加。
+
+## 点和矢量
+**矢量或向量 vector** 与**标量 scalar** 区分。矢量指 n 维空间中一种包含了**模 magnitude** 和方向的有向线段。
+
+矢量的运算此处不再摘录，见 [Unity基础 - 三维数学基础](https://ybniaobu.github.io/2023/07/09/2023-07-09-Unity%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E6%9D%82%E8%AE%B0/#%E4%B8%89%E7%BB%B4%E6%95%B0%E5%AD%A6%E5%9F%BA%E7%A1%80)。
+
+## 矩阵
