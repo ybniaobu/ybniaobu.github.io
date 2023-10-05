@@ -526,8 +526,60 @@ $$ \begin{bmatrix} M_{3 \times 3} & t_{3 \times 1} \\ 0_{1 \times 3} & 1 \end{bm
 左上角的矩阵 $ M_{3\times3} $ 用于表示旋转和缩放，$t_{3\times1}$ 用于表示平移，$0_{1\times3}$ 表示零矩阵，右下角元素为标量1。
 
 ### 平移矩阵
-使用矩阵乘法来表示对一个点的平移变换：
+使用矩阵乘法来表示对一个 *点* 的平移变换：
 
 $$ \begin{bmatrix} 1 & 0 & 0 & t_x \\ 0 & 1 & 0 & t_y \\ 0 & 0 & 1 & t_z \\ 0 & 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} x \\ y \\ z \\ 1 \end{bmatrix} = \begin{bmatrix} x + t_x \\ y + t_y \\ z + t_z \\ 1 \end{bmatrix} $$
 
 点的x、y、z分量分别增加一个位置偏移，可以看作点 $(x, y, z)$ 在坐标空间被平移了 $(t_x,t_y,t_z)$ 个单位。
+
+若使用矩阵乘法来表示对一个 *向量* 的平移变换：  
+
+$$ \begin{bmatrix} 1 & 0 & 0 & t_x \\ 0 & 1 & 0 & t_y \\ 0 & 0 & 1 & t_z \\ 0 & 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} x \\ y \\ z \\ 0 \end{bmatrix} = \begin{bmatrix} x \\ y \\ z \\ 0 \end{bmatrix} $$
+
+可以发现，平移变换不会对向量产生任何影响。
+
+平移矩阵的逆矩阵就是反向平移得到的矩阵（可以看出，平移矩阵不是一个正交矩阵）：  
+
+$$ \begin{bmatrix} 1 & 0 & 0 & -t_x \\ 0 & 1 & 0 & -t_y \\ 0 & 0 & 1 & -t_z \\ 0 & 0 & 0 & 1 \end{bmatrix} $$
+
+### 缩放矩阵
+使用矩阵乘法来表示对一个 *点* 的缩放变换：  
+
+$$ \begin{bmatrix} k_x & 0 & 0 & 0 \\ 0 & k_y & 0 & 0 \\ 0 & 0 & k_z & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} x \\ y \\ z \\ 1 \end{bmatrix} = \begin{bmatrix} k_xx \\ k_yy \\ k_zz \\ 1 \end{bmatrix} $$
+
+使用矩阵乘法来表示对一个 *向量* 的缩放变换： 
+
+$$ \begin{bmatrix} k_x & 0 & 0 & 0 \\ 0 & k_y & 0 & 0 \\ 0 & 0 & k_z & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} x \\ y \\ z \\ 0 \end{bmatrix} = \begin{bmatrix} k_xx \\ k_yy \\ k_zz \\ 0 \end{bmatrix} $$
+
+如果缩放系数 $k_x = k_y = k_z$ ，把这样的缩放叫做**统一缩放 uniform scale**，否则称为**非统一缩放 ununiform scale**。统一缩放是扩大整个模型，非统一缩放会拉伸或挤压模型。统一缩放不会改变角度和比例信息，而非统一缩放会改变与模型相关角度和比例。例如对法线进行变换时，如果存在非统一缩放，直接使用用于变换顶点的变换矩阵，会产生错误结果。
+
+缩放矩阵的逆矩阵是使用原缩放系数的倒数来对点或向量进行缩放（缩放矩阵一般不是正交矩阵）：  
+
+$$ \begin{bmatrix} \frac {1}{k_x} & 0 & 0 & 0 \\ 0 & \frac {1}{k_y} & 0 & 0 \\ 0 & 0 & \frac {1}{k_z} & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} $$
+
+上面的矩阵只适用于沿坐标轴方向进行缩放。若需要在任意方向上进行缩放，就需要使用复合变换。其中一个方法的主要思想就是，先将缩放轴变换成标准坐标轴，然后进行沿坐标轴缩放，再使用逆变换得到原来的缩放轴朝向。
+
+### 旋转矩阵
+①绕 x 轴旋转 θ 度：  
+
+$$ R_x(θ) = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & \cos θ & - \sin θ & 0 \\ 0 & \sin θ & \cos θ & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} $$
+
+②绕 y 轴旋转 θ 度： 
+
+$$ R_y(θ) = \begin{bmatrix} \cos θ & 0 & \sin θ & 0 \\ 0 & 1 & 0 & 0 \\ - \sin θ & 0 & \cos θ & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} $$
+
+③绕 z 轴旋转 θ 度： 
+
+$$ R_z(θ) = \begin{bmatrix} \cos θ & - \sin θ & 0 & 0 \\ \sin θ & \cos θ & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} $$
+
+旋转矩阵的逆矩阵是旋转相反角度得到的变换矩阵。旋转矩阵是正交矩阵，而且多个旋转矩阵串联同样是正交的。
+
+### 复合变换
+将平移，旋转，缩放组合起来，形成一个复杂的变换过程（假设 y 轴旋转）：
+
+$$ P_{new} = M_{translation}M_{rotation}M_{scale}P_{old} = \begin{bmatrix} 1 & 0 & 0 & t_x \\ 0 & 1 & 0 & t_y \\ 0 & 0 & 1 & t_z \\ 0 & 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} \cos θ & 0 & \sin θ & 0 \\ 0 & 1 & 0 & 0 \\ - \sin θ & 0 & \cos θ & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} k_x & 0 & 0 & 0 \\ 0 & k_y & 0 & 0 \\ 0 & 0 & k_z & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} $$
+
+$$ = \begin{bmatrix} k_x\cos θ & 0 & k_z \sin θ & t_x \\ 0 & k_y & 0 & t_y \\ - k_x \sin θ & 0 & k_z \cos θ & t_z \\ 0 & 0 & 0 & 1 \end{bmatrix} $$
+
+绝大多数情况下，我们约定变换的顺序即为先进行缩放，再进行旋转，最后进行平移。这样约定有原因的，比如初始位置为原点，先按 (0, 0, 5) 平移，再按坐标轴放大 2 倍，变为了 (0, 0, 10)，这不是我们想要的，应该先在原点缩放，再进行平移。
+
