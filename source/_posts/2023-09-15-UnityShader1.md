@@ -686,7 +686,7 @@ $$ P_{view} = M_{view}P_{world} = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 0.866 & 0
 ①为投影操作做准备。这是个迷惑点，投影矩阵并不是真正地做投影操作，而是为投影操作做准备工作。真正的投影发生在**齐次除法 homogeneous division** 过程中，真正的投影可以理解为降维，而投影矩阵不是降维。而经过投影矩阵的变换后，顶点的 w 分量将会具有特殊的意义。  
 ②对 x、y、z 分量进行缩放，经过投影矩阵的缩放后，可以直接使用 w 分量作为一个范围值，如果 x、y、z 分量都位于这个范围内，就说明顶点位于裁剪空间内。
 
-***1. 透视投影***
+***1. 透视投影***  
 视锥体的六个平面，在 Unity 中，由 Camera 组件中的参数和 Game 视图的纵横比共同决定。
 
 <div  align="center">  
@@ -707,4 +707,44 @@ $$ Aspect = \frac {nearClipPlaneWidth}{nearClipPlaneHeight} = \frac {farClipPlan
 $$ M_{frustum} = \begin{bmatrix} \cfrac {\cot \cfrac {FOV}{2}}{Aspect} & 0 & 0 & 0 \\ 0 & \cot \cfrac {FOV}{2} & 0 & 0 \\ 0 & 0 & - \cfrac {Far + Near}{Far - Near} & - \cfrac {2 \cdot Far \cdot Near}{Far - Near} \\ 0 & 0 & -1 & 0 \end{bmatrix} $$
 
 > 公式的推导有兴趣花时间去学习计算机图形学
+
+此公式仅针对观察空间为右手坐标系，即 Unity 对坐标系的假定，变换后 z 分量范围在 [-w, w] 之间。若在类似 DirectX 这样的图形接口中，变换后 z 分量范围在 [0, w] 之间，那么需要调整该公式。
+
+一个顶点与上述投影矩阵相乘后，可以由观察空间变换到裁剪空间，结果如下：
+
+$$ \begin{aligned} P_{clip} = M_{frustum}P_{view} &= \begin{bmatrix} \cfrac {\cot \cfrac {FOV}{2}}{Aspect} & 0 & 0 & 0 \\ 0 & \cot \cfrac {FOV}{2} & 0 & 0 \\ 0 & 0 & - \cfrac {Far + Near}{Far - Near} & - \cfrac {2 \cdot Far \cdot Near}{Far - Near} \\ 0 & 0 & -1 & 0 \end{bmatrix} \begin{bmatrix} x \\ y \\ z \\ 1 \end{bmatrix} \\ &= \begin{bmatrix} x \cfrac {\cot \cfrac {FOV}{2}}{Aspect} \\ y \cot \cfrac {FOV}{2} \\ -z \cfrac {Far + Near}{Far - Near} - \cfrac {2 \cdot Far \cdot Near}{Far - Near} \\ -z \end{bmatrix} \end{aligned} $$
+
+可以看出，投影矩阵本质上就是对 x、y、z 分量进行了不同程度的缩放，其目的是为了方便裁剪。而 w 分量也由 1 变成了 z 分量取反。若新的 x、y、z 分量满足大小在 [-w, w] 之间，则该点在视椎体内。任何不满足上述条件的图元都需要被剔除或者裁剪。视锥体变化如下图：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/10/07/1O2hYSysL6Pfupg.jpg" width = "70%" height = "70%" alt="图8- 在透视投影中，投影矩阵对顶点进行了缩放。图中标注了4个关键点经过投影矩阵
+变换后的结果。从这些结果可以看出x、y、z 和 w 分量的范围发生的变化。"/>
+</div>
+
+注意：裁剪矩阵会改变空间的旋向性，空间从观察空间的右手坐标系变换到了裁剪矩阵的左手坐标系。
+
+***2. 正交投影***  
+同透视投影，正交投影的视锥体的六个平面，在 Unity 中，也是由 Camera 组件中的参数和 Game 视图的纵横比共同决定。
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/10/07/k86bRY4fqShvdnM.jpg" width = "40%" height = "40%" alt="图9- 正交摄像机的参数对正交投影视锥体的影响。"/>
+</div>
+
+Camera 组件的 Size 属性表示视椎体竖直方向上高度的一半；Clipping Planes 的 Near 和 Far 控制视椎体的近裁剪平面、远裁剪平面距离摄像机的远近。即：
+
+$$ nearClipPlaneHeight = 2 \cdot Size $$
+$$ farClipPlaneHeight = nearClipPlaneHeight $$
+
+假设摄像机的横纵比为 Aspect，则：  
+
+$$ nearClipPlaneWidth = Aspect \cdot nearClipPlaneHeight $$
+$$ farClipPlaneWidth = nearClipPlaneWidth $$
+
+可以根据已知的 Near、Far、Size 和 Aspect 的值来确定正交投影的投影矩阵：  
+
+$$ M_{ortho} = \begin{bmatrix} \cfrac {1}{Aspect \cdot Size} & 0 & 0 & 0 \\ 0 & \cfrac {1}{Size} & 0 & 0 \\ 0 & 0 & - \cfrac {2}{Far - Near} & - \cfrac {Far + Near}{Far - Near} \\ 0 & 0 & 0 & 1 \end{bmatrix} $$
+
+一个顶点和上述投影矩阵相乘后的结果如下：  
+
+$$ \begin{aligned} P_{clip} = M_{ortho}P_{view} &= \begin{bmatrix} \cfrac {1}{Aspect \cdot Size} & 0 & 0 & 0 \\ 0 & \cfrac {1}{Size} & 0 & 0 \\ 0 & 0 & - \cfrac {2}{Far - Near} & - \cfrac {Far + Near}{Far - Near} \\ 0 & 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} x \\ y \\ z \\ 1 \end{bmatrix} \\ &= \begin{bmatrix} \cfrac {x}{Aspect \cdot Size} \\ \cfrac {y}{Size} \\ - \cfrac {2z}{Far - Near} - \cfrac {Far + Near}{Far - Near} \\ 1 \end{bmatrix} \end{aligned} $$
 
