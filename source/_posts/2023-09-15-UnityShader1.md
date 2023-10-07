@@ -649,4 +649,62 @@ $$ P_{world} = M_{model}P_{model} = \begin{bmatrix} -1.732 & 0 & 1 & 5 \\ 0 & 2 
 故该顶点的世界坐标为 (9, 4, 18.072)。
 
 ### 观察空间 view space
-观察空间也称为**摄像机空间 camera space**
+观察空间也称为**摄像机空间 camera space**。Unity 中观察空间的坐标轴是：+x 轴指向右方，+y 轴指向上方，而 +z 轴指向摄像机后方。模型空间和世界空间是左手坐标系，而观察空间是右手坐标系，这是为了符合 OpenGL 传统：在观察空间中，摄像机的前方指向 -z 轴方向。
+
+注意，观察空间和屏幕空间是不同的，观察空间是一个三维空间，屏幕空间是一个二维空间。从观察空间到屏幕空间需要**投影 projection** 操作。在后面讲到。
+
+顶点变换的第二步，即把顶点坐标从世界坐标变换到观察空间里，这个变换称为**观察变换 view transform**。观察空间的原点位于摄像机处。有两种方式可以得到顶点在观察空间的位置。方法①：计算观察空间的三个坐标轴在世界空间下的表示，构建从观察空间变换到是世界空间的变换矩阵，再求逆得到从世界空间到观察空间的变换矩阵。方法②：想象平移观察空间，让摄像机位于世界坐标原点，坐标轴与世界坐标中的坐标轴重合。这两种方式得到的变换矩阵应该是一样的。
+
+> 因为矩阵变换得到的是原坐标系下的坐标，顶点在世界坐标的位置是已知的，为了得到观察世界坐标，需要将观察空间变换到世界空间，这个矩阵变换乘以顶点在世界坐标的位置即顶点在观察世界的坐标。
+
+这里演示第二种方法：假设摄像机面板中的 Transform 组件的信息为 Position (0, 10, -10)；Rotation (30, 0, 0)；Scale (1, 1, 1)。由于摄像机在世界空间中的变换是先按 (30, 0, 0) 进行旋转，然后按 (0, 10, -10) 平移，所以为了将摄像机移回原位置，需要进行逆向变换，即先按 (0, -10, 10) 平移，再按 (-30, 0, 0) 进行旋转，以便让坐标轴重合：  
+
+$$ \begin{aligned} M_{model} &= \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & \cos θ & - \sin θ & 0 \\ 0 & \sin θ & \cos θ & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} 1 & 0 & 0 & t_x \\ 0 & 1 & 0 & t_y \\ 0 & 0 & 1 & t_z \\ 0 & 0 & 0 & 1 \end{bmatrix} \\ &= \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 0.866 & 0.5 & 0 \\ 0 & -0.5 & 0.866 & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & -10 \\ 0 & 0 & 1 & 10 \\ 0 & 0 & 0 & 1 \end{bmatrix} \\ &= \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 0.866 & 0.5 & -3.66 \\ 0 & -0.5 & 0.866 & 13.66 \\ 0 & 0 & 0 & 1 \end{bmatrix} \end{aligned} $$
+
+但是由于观察空间使用右手坐标系，需要对 z 分量进行取反操作：  
+
+$$ M_{view} = M_{negateZ}M_{view} = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & -1 & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 0.866 & 0.5 & -3.66 \\ 0 & -0.5 & 0.866 & 13.66 \\ 0 & 0 & 0 & 1 \end{bmatrix} = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 0.866 & 0.5 & -3.66 \\ 0 & 0.5 & -0.866 & -13.66 \\ 0 & 0 & 0 & 1 \end{bmatrix} $$
+
+然后对模型变换后的顶点进行观察变换：
+
+$$ P_{view} = M_{view}P_{world} = \begin{bmatrix} 1 & 0 & 0 & 0 \\ 0 & 0.866 & 0.5 & -3.66 \\ 0 & 0.5 & -0.866 & -13.66 \\ 0 & 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} 9 \\ 4 \\ 18.072 \\ 1 \end{bmatrix} = \begin{bmatrix} 9 \\ 8.84 \\ -27.31 \\ 1 \end{bmatrix} $$
+
+即观察空间中顶点坐标为 (9, 8.84 , -27.31)。
+
+### 裁剪空间 clip space
+顶点接下来要从观察空间转化到裁剪空间，也被称为**齐次裁剪空间**。用于变换的矩阵叫做**裁剪矩阵 clip matrix**，也被称作**投影矩阵 projection matrix**。
+
+裁剪空间的目的是能够方便地对渲染图元进行裁剪：完全位于这块空间内部地图元将会被保留，完全位于这块空间外部的图元将会被剔除，而与这块空间相交的图元就会被裁剪。这块空间由**视锥体 view frustum** 决定。
+
+视锥体由六个平面包围而成，这些平面被称为**裁剪平面 clip planes**，有两种投影类型：一种是**正交投影 orthographic projection**，一种是**透视投影 perspective projection**。在视锥体的六块裁剪平面中，有两块比较特殊，分别被称为**近裁剪平面 near clip plane** 和**远裁剪平面 far clip plane**。它们决定了摄像机可以看到的深度范围。
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/10/07/BfKUZVNHdocsTX5.jpg" width = "60%" height = "60%" alt="图6- 视锥体和裁剪平面。左图显示了透视投影的视锥体，右图显示了正交投影的视锥体。"/>
+</div>
+
+可以看到透视投影的视椎体是一个被砍掉尖角的四棱锥形状，而正交投影是一个长方体。为了方便对两者进行统一的裁剪处理，我们需要把顶点通过投影矩阵转换到裁剪空间中进行判断。投影矩阵有两个目的：  
+①为投影操作做准备。这是个迷惑点，投影矩阵并不是真正地做投影操作，而是为投影操作做准备工作。真正的投影发生在**齐次除法 homogeneous division** 过程中，真正的投影可以理解为降维，而投影矩阵不是降维。而经过投影矩阵的变换后，顶点的 w 分量将会具有特殊的意义。  
+②对 x、y、z 分量进行缩放，经过投影矩阵的缩放后，可以直接使用 w 分量作为一个范围值，如果 x、y、z 分量都位于这个范围内，就说明顶点位于裁剪空间内。
+
+***1. 透视投影***
+视锥体的六个平面，在 Unity 中，由 Camera 组件中的参数和 Game 视图的纵横比共同决定。
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/10/07/UwORdaTrMtKDlhJ.jpg" width = "40%" height = "40%" alt="图7- 透视摄像机的参数对透视投影视锥体的影响。"/>
+</div>
+
+Camera 组件的 Field of View（FOV）属性改变视椎体竖直方向的张开角度；Clipping Planes 的 Near 和 Far 分别对应视椎体近裁剪平面和远裁剪平面距离摄像机的远近；已知这两个属性，可以得到视椎体近裁剪平面、远裁剪平面的高度：  
+
+$$ nearClipPlaneHeight = 2 \times Near \times \tan \frac {FOV}{2} $$
+$$ farClipPlaneHeight = 2 \times Far \times \tan \frac {FOV}{2} $$
+
+接下来可根据摄像机的横纵比求得远近裁剪平面的宽度。在 Unity 中，一个摄像机的横纵比由 Game 视图的横纵比和 Viewport Rect 中的 W 和 H 属性共同决定（在脚本中可以通过 Camera.aspect 修改）。即摄像机的横纵比 Aspect 为：  
+
+$$ Aspect = \frac {nearClipPlaneWidth}{nearClipPlaneHeight} = \frac {farClipPlaneWidth}{farClipPlaneHeight} $$
+
+可以根据已知的 Near、Far、FOV 和 Aspect 的值来确定透视投影的投影矩阵（cot 为余切，即正切 tan 的倒数）：
+
+$$ M_{frustum} = \begin{bmatrix} \cfrac {\cot \cfrac {FOV}{2}}{Aspect} & 0 & 0 & 0 \\ 0 & \cot \cfrac {FOV}{2} & 0 & 0 \\ 0 & 0 & - \cfrac {Far + Near}{Far - Near} & - \cfrac {2 \cdot Far \cdot Near}{Far - Near} \\ 0 & 0 & -1 & 0 \end{bmatrix} $$
+
+> 公式的推导有兴趣花时间去学习计算机图形学
+
