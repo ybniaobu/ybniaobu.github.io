@@ -12,7 +12,7 @@ cover: https://s2.loli.net/2023/09/19/cDvdURBPhjwkOsY.gif
 mathjax: true
 ---
   
-> 本读书笔记主要内容为XXXXXXXXXXXXXX。
+> 本读书笔记为基础阶段，主要内容为渲染管线介绍、Unity Shader 介绍以及 Shader 的数学基础。
 > 读书笔记是对知识的记录与总结，但是对比较熟悉的内容不会再行描述。
 
 # 第一章 渲染管线 Rendering Pipeline
@@ -923,7 +923,7 @@ float4 row_mul_result = mul(v, M);
 之前讲了屏幕空间的转换。在写 Shader 中，有时希望获取片元在屏幕上的像素位置。在顶点/片元着色器中，有两种方式类获取片元的屏幕坐标。
 
 ①在片元着色器的输入中声明 VPOS 或 WPOS 语义  
-**VPOS** 是 HLSL 对屏幕坐标的语义，**WPOS** 是 Cg 对屏幕坐标的语义。两者在 Unity Shader 中是等价的。可以在 HLSL/Cg 中通过语义的方式来定义顶点/片元着色器的默认输入，而不需要自己定义输入输出的数据结构。使用这种方法，可以在片元着色器中这样写：  
+**VPOS** 是 HLSL 对屏幕坐标的语义，**WPOS** 是 Cg 对屏幕坐标的语义（语义见后面一章节）。两者在 Unity Shader 中是等价的。可以在 HLSL/Cg 中通过语义的方式来定义顶点/片元着色器的默认输入，而不需要自己定义输入输出的数据结构。使用这种方法，可以在片元着色器中这样写：  
 
 ```
 fixed4 frag(float4 sp : VPOS) : SV_Target {
@@ -932,5 +932,69 @@ fixed4 frag(float4 sp : VPOS) : SV_Target {
 }
 ```
 
-VPOS/WPOS 语义定义的输入是一个 float4 类型的变量。xy 值代表了屏幕空间中的像素坐标。如果屏幕分辨率为 400 × 300，那么 x 的范围就是 [0.5, 400.5]，y 的范围是 [0.5, 300.5]。这里的像素坐标不是整数值是因为 OpenGL 和 DirectX 10 以后的版本认为像素中心对应的是浮点数中的 0.5。
+VPOS/WPOS 语义定义的输入是一个 float4 类型的变量。
+xy 值代表了屏幕空间中的像素坐标。如果屏幕分辨率为 400 × 300，那么 x 的范围就是 [0.5, 400.5]，y 的范围是 [0.5, 300.5]。这里的像素坐标不是整数值是因为 OpenGL 和 DirectX 10 以后的版本认为像素中心对应的是浮点数中的 0.5。
 
+在 Unity 中，VPOS/WPOS 的 z 分量范围是 [0, 1]，在摄像机的近裁剪平面处，z 为 0，在远裁剪平面处，z 为 1。
+
+对于 w，若使用的是透视投影，那么 w 分量范围在 [1/Near, 1/Far]，若使用正交投影，w 分量为 1。这个值是对经过投影矩阵变换后的 w 分量取倒数后得到的。
+
+在上述代码的最后，屏幕空间除以屏幕分辨率得到的是**视口空间 viewport space** 中的坐标。视口坐标即归一化的屏幕坐标，左下角为 (0, 0)，右上角为 (1, 1)。
+
+②通过 Unity 提供的 **ComputeScreenPos** 函数  
+这个函数在 UnityCG.cginc 里被定义。通常有两个步骤，先在顶点着色器中将 ComputeScreenPos 的结果保存在输出结构体中，然后在片元着色器中进行一个齐次除法运算后得到视口空间中的坐标。例如：
+
+```
+struct vertOut {
+    float4 pos : SV_POSITION;
+    float4 scrPos : TEXCOORD0;
+}
+
+vertOut vert(appdata_base v) {
+    vertOut o;
+    o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
+    // 第一步：把 ComputeScreenPos 结果保存到 scrPos 中
+    o.scrPos = ComputeScreenPos(o.pos);
+    return o;
+}
+
+fixed4 frag(vertOut i) : SV_Target {
+    // 第二步：用 scrPos.xy 除以 scrPos.w 得到视口空间中的坐标
+    float2 wcoord = (i.scrPos.xy/i.scrPos.w);
+    return fixed4(wcoord, 0.0, 1.0);
+}
+```
+
+上面代码实现效果和第一种方式是一样的。之前说过如何将裁剪空间坐标映射到屏幕空间坐标，据此可以得到视口空间中的坐标，公式如下：  
+
+$$ viewport_x = \frac {clip_x}{2 \cdot clip_w} + \frac {1}{2} $$
+$$ viewport_y = \frac {clip_y}{2 \cdot clip_w} + \frac {1}{2} $$
+
+上面的公式本质就是，先对裁剪空间下的坐标进行齐次除法，得到范围在 [-1, 1] 的 NDC ，然后再将其映射到范围在 [0, 1] 的视口空间下的坐标。在 UnityCG.cginc 文件中的 ComputeScreenPos 函数的定义如下：
+
+```
+inline float4 ComputeScreenPos(float4 pos) {
+    float4 o = pos * 0.5f;
+    #if defined(UNITY_HALF_TEXEL_OFFSET)
+    o.xy = float2(o.x, o.y * _ProjectionParams.x) + o.w * _ScreenParams.zw;
+    #else
+    o.xy = float2(o.x, o.y * _ProjectionParams.x) + o.w;
+    #endif
+
+    o.zw = pos.zw;
+    return o;
+}
+```
+
+ComputeScreenPos 的输入参数 pos 是经过 MVP 矩阵变换后在裁剪空间中的顶点坐标。UNITY_HALF_TEXEL_OFFSET 是 Unity 在某些 DirectX 平台上使用的宏，这里先忽略。先只关注 #else 的部分。_ProjectionParams.x 在默认情况下是 1（如果使用了一个翻转的投影矩阵就是 -1）。那么上述代码实际上输出了：  
+
+$$ Output_x = \frac {clip_x}{2} + \frac {clip_w}{2} $$
+$$ Output_y = \frac {clip_y}{2} + \frac {clip_w}{2} $$
+$$ Output_z = clip_z $$
+$$ Output_w = clip_w $$
+
+显然，这里的 xy 不是真正的视口空间下的坐标。因此需要在片元着色器中进行一步处理，即除以裁剪坐标的 w 分量。所以，虽然 ComputeScreenPos 的函数名看起来意味着会直接得到屏幕空间中的位置，但并不是这样的。
+
+> Unity 为什么不直接在 ComputeScreenPos 中进行除以 w 分量的操作？因为如果 Unity 在顶点着色器这么做会破坏插值的结果。从顶点着色器到片元着色器的过程有一个插值的过程。如果我们直接在顶点着色器中进行这个除法，就需要对 x/w 和 y/w 直接进行插值，这样插值的结果会不准确。因为不可以在投影空间中进行插值，因为投影空间不是线性空间，而插值往往是线性的。
+
+经过除法操作后，视口坐标的 xy 范围都在 [0, 1] 之间。视口坐标的 zw 值，可以从 ComputeScreenPos 函数以及在顶点着色器中直接把裁剪空间的 zw 值存进结构体中看出，片元着色器输入的就是这些插值后的裁剪空间中的 zw 值。即若使用的是透视投影，z 的范围为 [-Near, Far]，w 的范围是 [Near, Far]；如果是正交投影，z 的范围为 [-1, 1]，而 w 值恒为 1。
