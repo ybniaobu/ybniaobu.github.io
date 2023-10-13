@@ -809,5 +809,128 @@ $$ screen_y = \frac {15.311 \cdot 300}{2 \cdot 27.31} + \frac {300}{2} = 234.096
 ## 法线变换
 **法线 normal**，也被称为**法矢量 normal vector**。模型的一个顶点往往会携带额外的信息，顶点法线就是其中一个信息，变换顶点时，也需要变换顶点法线，以便在片元着色器中计算光照。
 
-一般来说，点和绝大部分方向矢量都可以使用同一个 4 × 4 或 3 × 3 的变换矩阵把其从坐标空间 A 变换到坐标空间 B 中，但在变换法线的时候，如果使用同一个变换矩阵，就无法确保维持法线的垂直性。
+**切线 tangent**，也称**切矢量 tangent vector**，模型顶点携带的信息中也包含它，它通常和纹理空间对齐，并且与法线垂直。
+
+一般来说，点和绝大部分方向矢量都可以使用同一个 4 × 4 或 3 × 3 的变换矩阵把其从坐标空间 A 变换到坐标空间 B 中，但在变换法线的时候，如果使用同一个变换矩阵，就无法确保维持法线的垂直性。如下图：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/10/13/uSbKMsQidHhEcyO.jpg" width = "60%" height = "60%" alt="图12- 进行非统一缩放时，如果使用和变换顶点相同的变换矩阵来变换法线，就会得到错误的结果，即变换后的法线方向与平面不再垂直。"/>
+</div>
+
+由于切线是有两个顶点之间的差值计算得到的，因此我们可以直接使用用于顶点变换的矩阵来变换切线。假设，使用 3x3 的变换矩阵来变换顶点（法线不受平移影响，因此使用 3x3），可以由下面的式子直接得到变换后的切线：
+
+$$ T_B = M_{A \to B}T_A $$
+
+如果直接使用上述矩阵来变换法线，得到的新的法线方法可能不与表面垂直。为了得到正确的法线变换矩阵，我们使用由数学约束条件来推导，即切线 $T_A$ 和法线 $N_A$ 互相垂直：$T_A \cdot N_A = 0$。若给定切线变换矩阵 $M_{A \to B}$ ，要找到找到矩阵 G 来变换法线 $N_A$，使得变换后的法线仍然垂直于切线：
+
+$$ T_B \cdot N_B = (M_{A \to B}T_A) \cdot (GN_A) = 0 $$
+
+对上面式子推导可得：  
+
+$$ (M_{A \to B}T_A) \cdot (GN_A) = (M_{A \to B}T_A)^T(GN_A) = T_A^TM_{A \to B}^TGN_A = T_A^T(M_{A \to B}^TG)N_A = 0 $$
+
+由于 $T_A \cdot N_A = 0$，因此如果 $M_{A \to B}^TG = I$，那么上式成立。即，$G = (M_{A \to B}^T)^{-1} = (M_{A \to B}^{-1})^T$，即使用原变换矩阵的逆转置矩阵来变换法线就可以得到正确的结果。
+
+如果变换矩阵 $M_{A \to B}$ 是正交矩阵，那么 $M_{A \to B}^{-1} = M_{A \to B}^T$，因此 $(M_{A \to B}^T)^{-1} = M_{A \to B}$，也就是说我们可以使用用于变换顶点的变换矩阵直接变换法线。
+
+如果变换只包含旋转变换，那么这个矩阵变换就是正交矩阵。而如果变换只包含旋转和统一缩放，而不包含非统一缩放，我们可以利用统一缩放系数 k 来得到变换矩阵 $M_{A \to B}$ 的逆转置矩阵 $(M_{A \to B}^T)^{-1} = \cfrac {1}{k} M_{A \to B}$。如果变换中包含了非统一变换，那么我们就必须要求解逆矩阵来得到变换法线的矩阵。
+
+## Unity Shader 的内置变量（数学篇）
+Unity 内置了很多参数来方便我们编写 Shader，让我们无需手动计算一些值，这些内置变量封装在 Unity 的内置文件 UnityShaderVariables.cginc 中。
+
+### 变换矩阵
+下表给出了 Unity 的内置变换矩阵，下面的矩阵都是 float4×4 类型的：
+
+| 变量名 | 描述 |
+| :---- | :---- |
+| UNITY_MATRIX_MVP | 当前的的模型观察投影矩阵，用于将顶点/方向矢量从模型空间变换到裁剪空间 |
+| UNITY_MATRIX_MV | 当前的模型观察矩阵，用于将顶点/方向矢量从模型空间变换到观察空间 |
+| UNITY_MATRIX_V | 当前的观察矩阵，用于将顶点/方向矢量从世界空间变换到观察空间 |
+| UNITY_MATRIX_P | 当前的投影矩阵，用于将顶点/方向矢量从观察空间变换到裁剪空间 |
+| UNITY_MATRIX_VP | 当前的观察投影矩阵，用于将顶点/方向矢量从世界空间变换到裁剪空间 |
+| UNITY_MATRIX_T_MV | UNITY_MATRIX_MV 的转置 |
+| UNITY_MATRIX_IT_MV | UNITY_MATRIX_MV 的逆转置矩阵，用于将法线从模型空间变换到观察空间，也可以用于得到 UNITY_MATRIX_MV 的逆矩阵 |
+| _Object2World | 当前的模型矩阵，用于将顶点/方向矢量从模型空间变换到世界空间 |
+| _World2Object | _Object2World 的逆矩阵，用于将顶点/方向矢量从世界空间变换到模型空间 |
+
+需要关注的特殊矩阵： 
+
+①UNITY_MATRIX_T_MV  
+如果 UNITY_MATRIX_MV 是一个正交矩阵，则 UNITY_MATRIX_T_MV 就是它的逆矩阵，可以使用 UNITY_MATRIX_T_MV 把顶点和方向矢量从观察空间变换到模型空间。  
+&emsp;&emsp; - 如果一个模型的变换只包含旋转，那么 UNITY_MATRIX_MV 就是一个正交矩阵。  
+&emsp;&emsp; - 如果一个模型的变换只包含旋转和统一缩放（假设缩放系数是 k ），那么 UNITY_MATRIX_MV 几乎是正交矩阵，为什么是几乎？因为统一缩放可能会导致每一行（或每一列）的矢量长度不为 1，而是 k，这不符合正交矩阵的特性，但我们可以通过除以 k 将其变成正交矩阵，这种情况下，UNITY_MATRIX_MV 的逆矩阵就是 $\cfrac {1}{k} $ UNITY_MATRIX_T_MV。  
+&emsp;&emsp; - 如果我们只对方向矢量进行变换，即不用考虑平移变换，可以截取 UNITY_MATRIX_T_MV 的前3行3列来把方向矢量从观察空间变换到模型空间，对于方向矢量可以提前进行归一化处理以消除统一缩放的影响。
+
+②UNITY_MATRIX_IT_MV
+法线的变换需要使用原变换矩阵的逆转置矩阵，因此 UNITY_MATRIX_IT_MV 可以把法线从模型空间变换到观察空间。此外我们也可以对其进行转置得到 UNITY_MATRIX_MV 的逆矩阵。
+
+把顶点和方向矢量从观察空间变换到模型空间，可以使用类似以下的代码：
+
+```
+// 方法一：使用 transpose 函数对 UNITY_MATRIX_IT_MV 进行转置，
+// 得到 UNITY_MATRIX_MV 的逆矩阵，然后进行矩阵乘法
+// 把观察空间中的点或方向矢量变换到模型空间中
+float4 modelPos = mul(transpose(UNITY_MATRIX_IT_MV), viewPos);
+
+// 方法二：不直接使用转置函数 transpose，而是交换 mul 参数的位置，使用行矩阵乘法
+// 本质和方法一完全一样(原因见后面章节)
+float4 modelPos = mul(viewPos, UNITY_MATRIX_IT_MV);
+```
+
+### 摄像机和屏幕参数
+Unity 内置的摄像机和屏幕参数
+
+| 变量名 | 类型 | 描述 |
+| :---- | :---- | :---- |
+| _WorldSpaceCameraPos | float3 | 摄像机在世界空间的位置 |
+| _ProjectionParams | float4 | x = 1.0 (或 -1.0，如果正在使用一个翻转的投影矩阵进行渲染)，y = Near，z = Far，w = 1.0 + 1.0 / Far，其中 Near 和 Far 分别是近远裁剪平面和摄像机的距离 |
+| _ScreenParams | float4 | x = width，y = height，z = 1.0 + 1.0 / width，w = 1.0 + 1.0 / height，其中 width 和h eight 分别是该摄像机的渲染目标的像素宽度和高度 |
+| _ZBufferParams | float4 | x = 1 - Far / Near，y = Far / Near，z = x / Far，w = y / Far，该变量用于线性化 z 缓存中的深度值 |
+| unity_OrthoParams | float4 | x = width，y = height，z 没有定义，w = 1.0(正交摄像机)或 0.0(透视摄像机)，其中 width 和 height 是正交投影摄像机的宽度和高度 |
+| unity_CameraProjection | float4x4 | 该摄像机的投影矩阵 |
+| unity_CameraInvProjection | float4x4 | 该摄像机的投影矩阵的逆矩阵 |
+| unity_CameraWorldClipPlanes[6] | float4 | 摄像机的 6 个裁剪平面在空间下的等式，按左右下上近远裁剪平面的顺序 |
+
+## Cg 中的矢量和矩阵类型
+通常在 Unity Shader 中使用 Cg 作为着色器编程语言。在 Cg 中，矩阵类型是由 float3×3 等关键词定义的。对于 float3、float4 等类型的变量，可以把它当作行向量或者列向量，这取决于运算的种类以及它们在运算中的位置。例如，向量点积：
+
+```
+float4 a = float4(1.0, 2.0, 3.0, 4.0);
+float4 a = float4(1.0, 2.0, 3.0, 4.0);
+float result = dot(a, b);   // 进行点积操作
+```
+
+在矩阵乘法中，参数位置将决定按列矩阵还是行矩阵进行乘法。在 Cg 中，矩阵乘法是通过 `mul` 函数实现的：
+
+```
+float4 v = float4(1.0, 2.0, 3.0, 4.0);
+float4x4 M = float4x4(1.0, 0.0, 0.0, 0.0
+				      0.0, 1.0, 0.0, 0.0
+				      0.0, 0.0, 1.0, 0.0
+				      0.0, 0.0, 0.0, 1.0);
+// 列向量矩阵右乘
+float4 column_mul_result = mul(M, v); 
+// 行向量矩阵左乘
+float4 row_mul_result = mul(v, M); 
+// 注意：column_mul_result 不等于 row_mul_result，而是：
+// mul(M, v) == mul(v, transpose(M))
+// mul(v, M) == mul(transpose(M), v)
+```
+
+一般使用右乘方式，因为 Unity 提供的内置矩阵都是按列存储的。有时使用左乘的方式是为了省去对矩阵转置的操作。在 Cg 中，对 float4×4 等类型的变量是按行优先的方式进行填充的，索引同理。但是 Unity 脚本提供的矩阵类型 Matrix4×4 是列优先的方式。
+
+## Unity 中的屏幕坐标：ComputeScreenPos/VPOS/WPOS
+之前讲了屏幕空间的转换。在写 Shader 中，有时希望获取片元在屏幕上的像素位置。在顶点/片元着色器中，有两种方式类获取片元的屏幕坐标。
+
+①在片元着色器的输入中声明 VPOS 或 WPOS 语义  
+**VPOS** 是 HLSL 对屏幕坐标的语义，**WPOS** 是 Cg 对屏幕坐标的语义。两者在 Unity Shader 中是等价的。可以在 HLSL/Cg 中通过语义的方式来定义顶点/片元着色器的默认输入，而不需要自己定义输入输出的数据结构。使用这种方法，可以在片元着色器中这样写：  
+
+```
+fixed4 frag(float4 sp : VPOS) : SV_Target {
+    // 用屏幕坐标除以屏幕分辨率 _ScreenParams.xy，得到视口空间中的坐标
+    return fixed4(sp.xy/_ScreenParams.xy, 0.0, 1.0);
+}
+```
+
+VPOS/WPOS 语义定义的输入是一个 float4 类型的变量。xy 值代表了屏幕空间中的像素坐标。如果屏幕分辨率为 400 × 300，那么 x 的范围就是 [0.5, 400.5]，y 的范围是 [0.5, 300.5]。这里的像素坐标不是整数值是因为 OpenGL 和 DirectX 10 以后的版本认为像素中心对应的是浮点数中的 0.5。
 
