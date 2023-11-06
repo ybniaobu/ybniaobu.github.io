@@ -510,9 +510,9 @@ $$c_{emissive} = g_{emissive}$$
 
 漫反射光照符合**兰伯特定律 Lambert's law**：反射光线的强度与表面法线和光源方向之间夹角的余弦值成正比。
 
-$$c_{diffuse} = (c_{light} \cdot m_{diffuse}) max(0, \hat {n} \cdot \hat {l})$$
+$$c_{diffuse} = (c_{light} \cdot m_{diffuse}) max(0, \hat n \cdot \hat l)$$
 
-其中，$\hat {n}$ 是表面法线，$ \hat {l} $ 是指向光源的单位矢量，$m_{diffuse}$ 是材质的漫反射颜色，$c_{light}$ 是光源颜色。取最大值是为了防止点乘结果为负值，可以防止物体被后面来的光照亮。
+其中，$\hat n\,$ 是表面法线，$\hat l\,\,$ 是指向光源的单位矢量，$m_{diffuse}\,$ 是材质的漫反射颜色，$c_{light}\,$ 是光源颜色。取最大值是为了防止点乘结果为负值，可以防止物体被后面来的光照亮。
 
 ### 高光反射
 这里的高光反射是一种经验模型，即并不完全符合真实世界中的高光反射现象。它可用于计算那些沿着完全镜面反射方向被反射的光线。
@@ -525,19 +525,19 @@ $$\hat {r} = 2(\hat {n} \cdot \hat {l})\hat {n} - \hat {l}$$
 
 $$c_{specular} = (c_{light} \cdot m_{specular}) max(0, \hat {v} \cdot \hat {r})^{m_{gloss}}$$
 
-① $m_{gloss}$ 是材质的**光泽度 gloss**，也称为**反光度 shininess**，用于控制高光区域的亮点有多宽，$m_{gloss}$ 越大，亮点就越小。  
-② $m_{specular}$ 是材质的高光反射颜色，用于控制该材质对于高光反射的强度和颜色。  
-③ $c_{light}$ 是光源的颜色和强度。
+① $m_{gloss}\,$ 是材质的**光泽度 gloss**，也称为**反光度 shininess**，用于控制高光区域的亮点有多宽，$m_{gloss}\,$ 越大，亮点就越小。  
+② $m_{specular}\,$ 是材质的高光反射颜色，用于控制该材质对于高光反射的强度和颜色。  
+③ $c_{light}\,$ 是光源的颜色和强度。
 
 <div  align="center">  
 <img src="https://s2.loli.net/2023/11/06/tQmMHVJ4WfZSw3j.jpg" width = "50%" height = "50%" alt="图14- 使用 Phong 模型计算高光反射"/>
 </div>
 
-在 Phong 模型基础上，Blinn 简化了计算来得到类似的效果。为了避免计算反射方向 $\hat r$，Blinn 模型引入了一个新的矢量 $\hat h$，它是通过对 $\hat v$ 和 $\hat l$ 的取平均后再归一化得到的，即：  
+在 Phong 模型基础上，Blinn 简化了计算来得到类似的效果。为了避免计算反射方向 $\,\hat r\,$，Blinn 模型引入了一个新的矢量 $\,\hat h\,$，它是通过对 $\,\hat v\,$ 和 $\,\hat l\,\,$ 的取平均后再归一化得到的，即：  
 
 $$\hat {h} = \cfrac {\hat {v} + \hat {l}} {|\hat {v} + \hat {l}|}$$
 
-然后使用 $\hat n$ 和 $\hat h$ 之间的夹角进行计算，而非 $\hat v$ 和 $\hat r$ 之间的夹角：  
+然后使用 $\,\hat n\,$ 和 $\,\hat h\,$ 之间的夹角进行计算，而非 $\,\hat v\,$ 和 $\,\hat r\,$ 之间的夹角：  
 
 $$c_{specular} = (c_{light} \cdot m_{specular}) max(0, \hat {n} \cdot \hat {h})^{m_{gloss}}$$
 
@@ -548,3 +548,21 @@ $$c_{specular} = (c_{light} \cdot m_{specular}) max(0, \hat {n} \cdot \hat {h})^
 在硬件实现时，如果摄像机和光源距离模型足够远，Blinn 模型会快于 Phong 模型，因为此时可以认为 v 和 l 都是定值，因此 h 是一个常量。但是当 v 和 l 不是定值时，Phong 模型反而可能更快。注意，这两种光照模型都是经验模型，不能认为 Blinn 模型是对“正确的” Phong 模型的近似。在一些情况下 Blinn 模型更符合实验结果。
 
 ### 逐像素还是逐顶点
+①**逐像素光照 per-pixel lighting**：在片元着色器中计算，以每个像素为基础，得到它的法线（可以是对顶点法线插值得到的，也可以是从法线纹理中采样得到的），然后进行光照模型的计算。这种在面片之间对顶点法线进行插值的技术称为 **Phong 着色**，不同于与前面的 Phong 光照模型，也称 Phong 插值、法线插值着色技术。
+
+②**逐顶点光照 per-vertex lighting**：也被称为**高洛德着色 Gouraud shading**。在顶点着色器中计算，在每个顶点上计算光照，然后在渲染图元内部进行线性插值，最后输出像素颜色。
+
+由于顶点数往往小于像素数目，因此逐顶点光照的计算量往往小于逐像素光照。但是逐顶点光照依赖于线性插值来得到像素光照，因此，当光照模型中有非线性计算（比如：高光反射计算）时，逐顶点光照的效果会出现问题。而且由于逐顶点光照会在渲染图元内部对顶点颜色进行插值，这会导致渲染图元内部的颜色总是暗于顶点处的最高颜色值，某些情况下会产生明显的棱角现象。
+
+### 总结
+虽然 Blinn-Phong 模型并不完全符合真实世界中的光照现象，但由于易用性和计算速度快的特点，使它仍被广泛使用。
+
+但该模型也有很多的局限性，例如**菲涅尔反射 Fresnel reflection** 等物理现象就无法用 Blinn-Phong 模型表现出来，其次，Blinn-Phong 模型是**各向同性 isotropic** 的，即当我们固定视角和光源方向旋转这个表面时，反射不会发生任何改变。但是某些物体表面是**各向异性 anisotropic** 的，比如拉丝金属、毛发等。
+
+
+## Unity 中的环境光和自发光
+在 Unity 中，场景中的环境光可以在 Window -> Rendering -> Lighting -> Environment -> Environment Lighting 中控制。在 Shader 中，我们可以调用 Unity 的内置变量 UNITY_LIGHTMODEL_AMBIENT 就可以得到环境光的颜色和强度信息。  
+
+由于大多数物体没有自发光特性，因此在本书中绝大部分 Shader 都没有计算自发光 Shader。若需要，只需要在片元着色器输出最后的颜色之前，把材质的自发光颜色添加到输出颜色上即可。
+
+## 在 Unity Shader 中实现漫反射光照模型
