@@ -566,3 +566,239 @@ $$c_{specular} = (c_{light} \cdot m_{specular}) max(0, \hat {n} \cdot \hat {h})^
 由于大多数物体没有自发光特性，因此在本书中绝大部分 Shader 都没有计算自发光 Shader。若需要，只需要在片元着色器输出最后的颜色之前，把材质的自发光颜色添加到输出颜色上即可。
 
 ## 在 Unity Shader 中实现漫反射光照模型
+上面给出了基本光照模型中漫反射部分的计算公式，公式中 max 函数是为了防止点积结果为负值，Cg 语言中有另一个函数可以达到同样的目的，即 saturate 函数：
+
+    // 参数 x：可以是标量或矢量，float、float2、float3 等类型
+    // 如果是标量，将 x 截取在 [0, 1] 范围内；
+    // 如果是矢量，会对矢量的每一个分量进行 [0, 1] 范围的限制；
+    saturate(x)
+
+### 逐顶点光照实践
+***1. 准备工作***  
+①新建名为 Scene_6_4 的场景，去掉天空盒子；  
+②新建名为 DiffuseVertexLevelMat 的材质；  
+③新建名为 Chapter6-DiffuseVertexLevel 的 Unity Shader，并赋给上一步创建的材质；  
+④在场景中创建一个胶囊体，并将之前创建的材质赋给它；  
+⑤保存场景；
+
+***2. 编写 Shader***  
+打开 Chapter6-DiffuseVertexLevel，删除里面的所有代码，从第一行开始跟着下面的代码一行一行往下写，注释中已详细地对关键代码作了说明：
+
+``` C C for Graphics
+// 给Shader命名
+Shader "Unity Shaders Book/Chapter 6/Diffuse Vertex-Level"
+{
+    Properties
+    {
+        // 漫反射颜色的属性，默认设为白色
+        _Diffuse("Diffuse", Color) = (1, 1, 1, 1)
+    }
+    
+    SubShader
+    {
+        Pass
+        {
+            // LightMode 标签用于定义该 Pass 在 Unity 的光照流水线中的角色
+            // 后续会详细地了解，这里有个概念即可
+            // 只有定义了正确的 LightMode，才能得到一些 Unity 的内置光照变量，比如下面的 _LightColor0
+            Tags { "LightMode" = "ForwardBase" }
+
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            // 为了使用 Unity 内置的一些变量，比如：_LightColor0
+            #include "Lighting.cginc"
+
+            // 需要定义和 Properties 语义块中声明的属性相匹配的变量，用于获取漫反射参数，别忘了
+            fixed4 _Diffuse;
+
+            struct a2v
+            {
+                float4 vertex : POSITION; // 模型空间中的顶点位置 
+                float3 normal : NORMAL; // 模型顶点的法线信息
+            };
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION; // 裁剪空间中的顶点坐标
+                fixed3 color : COLOR; // 将顶点信息计算的光照颜色传递给片元着色器，这里不是必须使用 COLOR 语义，也可以使用 TEXCOORD0 语义
+            };
+
+            v2f vert (a2v v)
+            {
+                v2f o;
+                // 将顶点坐标由模型空间转到裁剪空间
+                o.pos = UnityObjectToClipPos(v.vertex);
+
+                // 通过 Unity 内置变量得到环境光的颜色值
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz;
+
+                // 见下面注
+                fixed3 worldNormal = normalize(mul(v.normal, (float3x3)unity_WorldToObject));
+
+                // 通过内置变量 _WorldSpaceLightPos0 获取世界空间下的光源方向，并进行归一化
+                // 因为本案例中光源只有一个并且是平行光，所以可以直接取该变量进行归一化，若还有其他类型光源，则该内置变量不能得到正确的结果
+                fixed3 worldLight = normalize(_WorldSpaceLightPos0.xyz);
+
+                // 下面使用漫反射公式得到漫反射的颜色值
+                // 通过内置变量 _LightColor0，来访问该 Pass 处理的光源的颜色和强度信息
+                // 利用 _Diffuse.rgb 获取材质漫反射颜色
+                // saturate，把取值范围截取到 [0, 1] 的范围内
+                fixed3 diffuse = _LightColor0.rgb * _Diffuse.rgb * saturate(dot(worldNormal, worldLight));
+
+                // 最后对环境光和漫反射光部分相加，得到最终的光照结果
+                o.color = ambient + diffuse;
+
+                return o;
+            }
+
+            fixed4 frag (v2f i) : SV_Target
+            {
+                // 将顶点输出的颜色值作为片元着色器的颜色输出，输出到屏幕上
+                return fixed4(i.color, 1.0);
+            }
+
+            ENDCG
+        }
+    }
+
+    // 使用内置的 Diffuse 作为该 Unity Shader 的回调 shader
+    Fallback "Diffuse"
+}
+```
+
+注：为了计算法线和光源方向的点积（即它们之间夹角的余弦值，因为是单位向量），需要把两者放置在同一坐标空间下，计算才有效，这里选择的是世界坐标空间。而 a2v 得到的顶点法线是在模型空间下，所以需要把法线转换到世界空间下。至于为什么法线的坐标空间转换需要用逆矩阵反向相乘，详见 Shader 数学基础的法线变换。法线变换矩阵为顶点变换矩阵的逆转置矩阵，所以使用模型空间到世界空间的逆矩阵 _World2Object，然后调换 mul 函数中的位置得到转置矩阵。由于法线是方向，所以只需要截取 _World2Object 的三行三列即可。（ _World2Object 因为版本问题更新为了 unity_WorldToObject）
+
+对于细分程度较高的模型，逐顶点光照已经可以得到较好的光照效果了。但是对于细分程度较低的模型，逐顶点光照会出现一些视觉问题，比如上述代码的胶囊体的背光面和向光面交界处会有一些锯齿，图见后面。
+
+### 逐像素光照实践
+***1. 准备工作***  
+①新建名为 DiffusePixelLevelMat 的材质；  
+②新建名为 Chapter6-DiffusePixelLevel 的 Unity Shader，并赋给上一步创建的材质；  
+③在原来的场景中创建一个新的胶囊体，将刚刚创建的材质赋给它；  
+④保存场景；
+
+***2. 编写 Shader***  
+打开 Chapter6-DiffusePixelLevel，删除里面的所有代码，并复制粘贴上一节编写的 Shader 代码，做部分修改。下面是逐像素光照的 Shader 代码，修改部分已用注释说明：  
+
+``` C C for Graphics
+// 修改着色器的名字
+Shader "Unity Shaders Book/Chapter 6/Diffuse Pixel-Level"
+{
+    Properties
+    {
+        _Diffuse("Diffuse", Color) = (1, 1, 1, 1)
+    }
+    
+    SubShader
+    {
+        Pass
+        {
+            Tags { "LightMode" = "ForwardBase" }
+
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Lighting.cginc"
+
+            fixed4 _Diffuse;
+
+            struct a2v
+            {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+            };
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                fixed3 worldNormal : TEXCOORD0; // 顶点着色器输出的世界空间下的法线，用于在片元着色器中编写光照计算逻辑
+            };
+
+            v2f vert (a2v v)
+            {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                // 顶点着色器只需要计算世界空间下的法线矢量，并传递给片元着色器即可
+                o.worldNormal = mul(v.normal, (float3x3)unity_WorldToObject);
+                return o;
+            }
+
+            //顶点着色器计算漫反射光照模型：
+            fixed4 frag (v2f i) : SV_Target 
+            {
+                // 获取环境光颜色
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz;
+                
+                // 将世界空间下的法线矢量进行归一化
+                fixed3 worldNormal = normalize(i.worldNormal);
+                // 通过内置变量 _WorldSpaceLightPos0 获取世界空间下的光照方向，并进行归一化
+                fixed3 worldLightDir = normalize(_WorldSpaceLightPos0.xyz);
+
+                // 根据漫反射公式计算漫反射颜色值
+                fixed3 diffuse = _LightColor0.rgb * _Diffuse.rgb * saturate(dot(worldNormal, worldLightDir));
+
+                // 将环境光和漫反射光相加，输出到屏幕
+                fixed3 color = ambient + diffuse;
+                return fixed4(color, 1.0);
+            }
+
+            ENDCG
+        }
+    }
+
+    Fallback "Diffuse"
+}
+```
+
+逐像素光照可以的得到更加平滑的效果，图见后面。光照无法到达的区域模型外观通常是全黑的，使模型背光的区域看起来和一个平面一样，失去了模型的细节表现，如果从完全背对光的一面看模型，模型几乎看不到立体的效果。对于此问题，使用**半兰伯特 Half Lambert** 光照模型改善。
+
+### 半兰伯特模型
+之前使用的漫反射光照模型也被称为兰伯特光照模型，符合兰伯特定律，即在平面某点漫反射光的光强和该反射点的法线和入射角度的余弦值成正比。
+
+为了改善上一小节提到的问题，Valve 公司在开发半条命时提出了**半兰伯特光照模型**，对原模型进行了简单的修改。广义的半兰伯特光照模型的公式如下：  
+
+$$c_{diffuse} = (c_{light} \cdot m_{diffuse}) (α(\hat n \cdot \hat l) + β)$$
+
+半兰伯特光照模型没有使用 max 操作防止点乘出现负值，而是对其结果进行了 α 倍的缩放再加上 β 的偏移，绝大多数情况下 α 和 β 的值均为 0.5 。即公式为：  
+
+$$c_{diffuse} = (c_{light} \cdot m_{diffuse}) (0.5(\hat n \cdot \hat l) + 0.5)$$
+
+这样可以将两个矢量点积的结果范围由 [-1, 1] 映射到 [0, 1]，也就实现了：即使观察点在背光面，原模型的点积都是 0，而新模型中，背面也将会有明暗变化。
+
+***1. 准备工作***  
+①新建名为 HalfLambertMat 的材质；  
+②新建名为 Chapter6-HalfLambert 的 Unity Shader，并赋给上一步创建的材质；  
+③在原来场景中创建一个新的胶囊体，并将第一步创建的材质赋给它；  
+④保存场景；
+
+***2. 编写 Shader***  
+打开 Chapter6-HalfLambert，删除里面的所有代码，并复制粘贴 Chapter6-DiffusePixelLevel 的代码，并使用半兰伯特公式修改片元着色器中计算漫反射光照的部分（别忘了修改着色器名字）：  
+
+``` C C for Graphics
+fixed4 frag(v2f i) : SV_Target
+{
+    ...
+
+    // 计算漫反射的半兰伯特值
+    fixed halfLambert = dot(worldNormal, worldLightDir) * 0.5 + 0.5;
+    // 将公式修改为半兰伯特模型的公式
+    fixed3 diffuse = _LightColor0.rgb * _Diffuse.rgb * halfLambert;
+
+    fixed3 color = ambient + diffuse;
+    return fixed4(color, 1.0);
+}
+```
+
+下图是上面三种光照的对比效果，从左到右分别是逐顶点漫反射光照、逐像素漫反射光照、半兰伯特光照，可以看到逐顶点会有一些锯齿，半兰伯特光照太白是因为 0.5 的偏移值太大了：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/07/9OnPoypKNL8Yi7g.png" width = "70%" height = "70%" alt="图16- 逐顶点漫反射光照、逐像素漫反射光照、半兰伯特光照的对比效果"/>
+</div>
+
+
+## 在 Unity Shader 中实现高光反射光照模型
