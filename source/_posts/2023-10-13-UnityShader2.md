@@ -802,3 +802,211 @@ fixed4 frag(v2f i) : SV_Target
 
 
 ## 在 Unity Shader 中实现高光反射光照模型
+之前给出了基本光照模型中高光反射部分的计算公式：  
+
+$$c_{specular} = (c_{light} \cdot m_{specular}) max(0, \hat {v} \cdot \hat {r})^{m_{gloss}}$$
+
+计算高光反射需要知道 4 个参数：入射光线的颜色和强度 $c_{light}$，材质的高光反射系数 $m_{specular}$，视角方向 $\,\hat v\,$ 以及反射方向 $\,\hat r\,$。其中，反射方向 $\,\hat r\,$ 由表面法线 $\,\hat n\,$ 和光源方向 $\,\hat l\,$ 计算而得：  
+
+$$\hat {r} = \hat {l} - 2(\hat {n} \cdot \hat {l})\hat {n}$$
+
+> 这里的公式和之前是反过来的，原因是光源方向和之前相反（点乘结果为负数），见下图。
+
+Cg 提供了计算反射方向的函数 `reflect(i , n)`，其中 i 为**入射方向**（与之前指向光源的方向相反），n 是法线方向，可以是 float，float2，float3 等类型。
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/08/D4gSraRV1XhTG2K.jpg" width = "50%" height = "50%" alt="图17- Cg 的 reflect 函数"/>
+</div>
+
+### 逐顶点光照实践
+***1. 准备工作***  
+①新建名为 Scene_6_5 的场景，并去掉天空盒子；  
+②新建名为 SpecularVertexLevelMat 的材质；  
+③新建名为 Chapter6-SpecularVertexLevel 的 Unity Shader，并赋给刚刚创建的材质；  
+④在场景中创建一个胶囊体，并将刚刚创建的材质赋给赋给它；  
+⑤保存场景；
+
+***2. 编写 Shader***  
+打开 Chapter6-SpecularVertexLevel，删除里面的所有代码，编写如下代码：  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 6/Specular Vertex-Level"
+{
+    Properties
+    {
+        _Diffuse ("Diffuse", Color) = (1, 1, 1, 1) // 控制漫反射颜色
+        _Specular ("Specular", Color) = (1, 1, 1, 1) // 控制高光反射颜色
+        _Gloss ("Gloss", Range(8.0, 256)) = 20 // 控制高光区域大小，值越小，区域越大，因为点乘结果小于 1，指数越大，结果越小
+    }
+
+    SubShader
+    {
+        Pass
+        {
+            // 为了正确地得到一些 Unity 的内置光照变量，如_LightColor0
+            Tags { "LightMode" = "ForwardBase" }
+
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Lighting.cginc"
+
+            // 获取 Properties 语义中声明的属性
+            fixed4 _Diffuse;
+            fixed4 _Specular;
+            float _Gloss; // 光泽度数值范围较大，使用 float 精度
+
+            struct a2v
+            {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+            };
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                fixed3 color : COLOR;
+            };
+
+            v2f vert (a2v v)
+            {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+
+                // 获取环境光
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz;
+
+                fixed3 worldNormal = normalize(mul(v.normal, (float3x3)unity_WorldToObject));
+                fixed3 worldLightDir = normalize(_WorldSpaceLightPos0.xyz);
+
+                // 计算出漫反射光
+                fixed3 diffuse = _LightColor0.rgb * _Diffuse.rgb * saturate(dot(worldNormal, worldLightDir));
+                
+                // 计算反射方向
+                // 使用 reflect 函数求出入射光线关于表面法线的反射方向，并进行归一化
+                // 因为 reflect 函数的入射方向要求由光源指向交点处（worldLightDir 是交点处指向光源），所以需要取反
+                fixed3 reflectDir = normalize(reflect(-worldLightDir, worldNormal));
+
+                // 计算视角方向
+                // 通过 Unity 内置变量 _WorldSpaceCameraPos 得到世界空间中的相机位置
+                // 通过与世界空间中的顶点坐标进行相减，得到世界空间下的视角方向
+                fixed3 viewDir = normalize(_WorldSpaceCameraPos.xyz - mul(unity_ObjectToWorld, v.vertex).xyz);
+
+                // 计算出高光反射光
+                fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(saturate(dot(reflectDir, viewDir)), _Gloss);
+                
+                // 环境光 + 漫反射 + 高光反射
+                o.color = ambient + diffuse + specular;
+                return o;
+            }
+
+            fixed4 frag (v2f i) : SV_Target
+            {
+                return fixed4(i.color, 1.0);
+            }
+            ENDCG
+        }
+    }
+    Fallback "Specular"
+}
+```
+
+使用逐顶点的方法得到的高光效果会有较大问题，因为高光反射的计算是非线性的，而顶点着色器中计算光照再进行插值的过程是线性的，破坏了原计算的非线性关系，就会有较大的视觉问题。效果图见后面。
+
+### 逐像素光照实践
+***1. 准备工作***  
+①新建名为 SpecularPixelLevelMat 的材质；  
+②新建名为 Chapter6-SpecularPixelLevel 的 Unity Shader，并赋给上一步的材质；  
+③在原来的场景新建一个胶囊体，并将刚刚创建的材质赋给它；  
+④保存场景；
+
+***2. 编写 Shader***  
+打开 Chapter6-SpecularPixelLevel，删除里面所有代码，并复制粘贴上一节编写 Chapter6-SpecularVertexLevel 代码，做部分修改，修改后的代码如下，修改部分已用注释说明：  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 6/Specular Pixel-Level"
+{
+    Properties
+    {
+        _Diffuse("Diffuse", Color) = (1, 1, 1, 1)
+        _Specular("Specular", Color) = (1, 1, 1, 1)
+        _Gloss("Gloss", Range(8.0, 256)) = 20
+    }
+
+    SubShader
+    {
+        Pass
+        {
+            Tags { "LightMode" = "ForwardBase" }
+
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Lighting.cginc"
+
+            fixed4 _Diffuse;
+            fixed4 _Specular;
+            float _Gloss;
+
+            struct a2v
+            {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+            };
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                float3 worldNormal : TEXCOORD0; //顶点着色器输出的世界空间下的法线
+                float3 worldPos : TEXCOORD1; //顶点着色器输出的世界空间下的坐标
+            };
+
+            v2f vert(a2v v)
+            {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+
+                // 将法线由模型空间转到世界空间
+                o.worldNormal = mul(v.normal, (float3x3)unity_WorldToObject);
+                // 将顶点坐标由模型空间转到世界空间
+                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+
+                return o;
+            }
+
+            fixed4 frag(v2f i) : SV_Target
+            {
+                // 获取环境光
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz;
+
+                // 对法线进行归一化
+                fixed3 worldNormal = normalize(i.worldNormal);
+                // 对光照方向进行归一化
+                fixed3 worldLightDir = normalize(_WorldSpaceLightPos0.xyz);
+
+                // 计算漫反射
+                fixed3 diffuse = _LightColor0.rgb * _Diffuse.rgb * saturate(dot(worldNormal, worldLightDir));
+
+                // 计算反射方向并进行归一化
+                fixed3 reflectDir = normalize(reflect(-worldLightDir, worldNormal));
+                // 计算视角方向并进行归一化
+                fixed3 viewDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPos.xyz);
+                // 计算高光反射
+                fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(saturate(dot(reflectDir, viewDir)), _Gloss);
+                
+                return fixed4(ambient + diffuse + specular, 1.0);
+            }
+            ENDCG
+        }
+    }
+    Fallback "Specular"
+}
+```
+
+逐像素处理光照可以得到更加平滑的高光效果，效果见后面图。至此，实现了一个完整的 Phong 光照模型。
+
+### Blinn-Phong 光照模型
