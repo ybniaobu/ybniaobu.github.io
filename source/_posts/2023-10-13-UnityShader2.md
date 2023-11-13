@@ -1092,3 +1092,106 @@ OpenGL 的纹理空间的原点位于左下角；DirectX 的纹理空间的原�
 ④在场景中新建一个胶囊体，并把第二步的材质赋给它；  
 ⑤保存场景；
 
+***2. 编写 Shader***  
+打开 Chapter7-SingleTexture，删除里面所有代码，编写如下代码：
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 7/Single Texture"
+{
+    Properties
+    {
+        //使用纹理替代了漫反射颜色，漫反射颜色由 Color 和纹理颜色共同作用
+        _Color ("Color Tint", Color) = (1, 1, 1, 1) //控制物体整体色调
+        _MainTex ("Main Tex", 2D) = "white" {} //之前提到过，2D 是纹理属性的声明方式，"white" 是内置纹理的名字
+        _Specular ("Specular", Color) = (1, 1, 1, 1)
+        _Gloss ("Gloss", Range(8.0, 256)) = 20
+    }
+
+    SubShader
+    {
+        Pass
+        {
+            Tags { "LightMode" = "ForwardBase"}
+
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Lighting.cginc"
+
+            fixed4 _Color;
+            // 纹理和其他属性类型不同，还需要为纹理类型的属性声明一个 float4 类型的变量 _MainTex_ST。这个名字是因为在 Unity 中需要使用 纹理名_ST 的方式来声明某个纹理的属性
+            // ST 指纹理缩放 scale 和平移 translation，_MainTex_ST.xy 存储缩放值，_MainTex_ST.zw 存储偏移值，在材质面板的纹理属性中可以调节（Tiling 平铺即缩放，Offset 偏移即平移）
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            fixed4 _Specular;
+            float _Gloss;
+
+            struct a2v
+            {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float4 texcoord : TEXCOORD0; // 存储模型的第一组纹理坐标
+            };
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                float3 worldNormal : TEXCOORD0;
+                float3 worldPos : TEXCOORD1;
+                // 存储纹理坐标的 uv 值，以便在片元着色器中使用该坐标进行纹理采样
+                float2 uv : TEXCOORD2;
+            };
+
+            v2f vert(a2v v)
+            {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.worldNormal = UnityObjectToWorldNormal(v.normal);
+                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+
+                // 通过缩放和平移后的纹理 uv 值
+                o.uv = v.texcoord.xy * _MainTex_ST.xy + _MainTex_ST.zw;
+                // 也可以调用 Unity 提供的内置宏 TRANSFORM_TEX，得到缩放和平移后的纹理 uv 值，与上面的计算逻辑是一致的，可以在 UnityCG.cginc 中找到该内置宏的定义：
+                // #define TRANSFORM_TEX(tex, name) (tex.xy * name##_ST.xy + name##_ST.zw)
+                o.uv = TRANSFORM_TEX(v.texcoord, _MainTex);
+
+                return o;
+            }
+
+            float4 frag(v2f i) : SV_Target
+            {
+                fixed3 worldNormal = normalize(i.worldNormal);
+                fixed3 worldLightDir = normalize(UnityWorldSpaceLightDir(i.worldPos));
+
+                // 通过 Cg 的 tex2D 函数对纹理进行采样。第一个参数是被采样的纹理，第二个参数是一个 float2 类型的纹理坐标，函数返回计算得到的纹素值
+                // 使用采样结果和颜色属性的乘积作为材质的反射率颜色 albedo
+                fixed3 albedo = tex2D(_MainTex, i.uv).rgb * _Color.rgb;
+
+                // 环境光照和反射率相乘得到环境光部分
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz * albedo;
+                
+                // 使用反射率颜色 albedo 来计算漫反射光照的结果
+                fixed3 diffuse = _LightColor0.rgb * albedo * max(0, dot(worldNormal, worldLightDir));
+
+                fixed3 viewDir = normalize(UnityWorldSpaceViewDir(i.worldPos));
+                fixed3 halfDir = normalize(worldLightDir + viewDir);
+                fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(max(0, dot(worldNormal, halfDir)), _Gloss);
+
+                return fixed4(ambient + diffuse + specular, 1.0);
+            }
+            ENDCG
+        }
+    }
+    Fallback "Specular"
+}
+```
+
+对材质的纹理进行赋值后，效果如下图：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/13/ZPDyJmzEOpkVNg9.png" width = "70%" height = "70%" alt="图19- 使用单张纹理"/>
+</div>
+
+### 纹理的属性
