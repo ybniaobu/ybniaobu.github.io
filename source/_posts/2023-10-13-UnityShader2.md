@@ -483,6 +483,8 @@ BRDF，即**双向反射分布函数 Bidirectional Reflectance Distribution Func
 本文涉及的 BRDF 是对真实场景进行理想化或简化后的模型。也就是说，他们不能真实地反映问题和光线之间的交互，这些模型被称为经验模型。在实时渲染中，考虑到性能消耗，一般还是会使用经验模型。虽然他们不能很真实地反映光照情况，但是它们“看起来是对的”。如果希望更真实地模拟光和物体的交互，一般会使用基于物理的 BRDF 模型（后面章节会学到）。
 
 ## 标准光照模型
+在 BRDF 理论被提出来之前，标准光照模型已经被广泛使用了。
+
 **标准光照模型**，也称为 **Phong 光照模型**，由著名 CG 学者裴祥风 Bui Tuong Phong 于 1973 年提出。标准光照模型只关心直接光照，即直接从光源发射出来照射到物体表面后，经过物体表面地一次反射直接进入摄像机的光线。
 
 其基本方法就是把进入到摄像机内的光线分为 4 个部分，每个部分使用一种方法计算它的贡献度：  
@@ -533,7 +535,7 @@ $$c_{specular} = (c_{light} \cdot m_{specular}) max(0, \hat {v} \cdot \hat {r})^
 <img src="https://s2.loli.net/2023/11/06/tQmMHVJ4WfZSw3j.jpg" width = "50%" height = "50%" alt="图14- 使用 Phong 模型计算高光反射"/>
 </div>
 
-在 Phong 模型基础上，Blinn 简化了计算来得到类似的效果。为了避免计算反射方向 $\,\hat r\,$，Blinn 模型引入了一个新的矢量 $\,\hat h\,$，它是通过对 $\,\hat v\,$ 和 $\,\hat l\,\,$ 的取平均后再归一化得到的，即：  
+在 Phong 模型基础上，Blinn 简化了计算来得到类似的效果。为了避免计算反射方向 $\,\hat r\,$，Blinn 模型引入了一个新的矢量 $\,\hat h\,$ （**半角向量 halfway vector**），它是通过对 $\,\hat v\,$ 和 $\,\hat l\,\,$ 的取平均后再归一化得到的，即：  
 
 $$\hat {h} = \cfrac {\hat {v} + \hat {l}} {|\hat {v} + \hat {l}|}$$
 
@@ -1010,3 +1012,83 @@ Shader "Unity Shaders Book/Chapter 6/Specular Pixel-Level"
 逐像素处理光照可以得到更加平滑的高光效果，效果见后面图。至此，实现了一个完整的 Phong 光照模型。
 
 ### Blinn-Phong 光照模型
+之前提过 Blinn 光照模型，不使用反射方向，而是引入了一个新的矢量 $\,\hat h\,$ ，它是通过对 $\,\hat v\,$ 和 $\,\hat l\,\,$ 的取平均后再归一化得到的，即：  
+
+$$\hat {h} = \cfrac {\hat {v} + \hat {l}} {|\hat {v} + \hat {l}|}$$
+
+而 Blinn 光照模型计算高光反射的公式如下：  
+
+$$c_{specular} = (c_{light} \cdot m_{specular}) max(0, \hat {n} \cdot \hat {h})^{m_{gloss}}$$
+
+***1. 准备工作***  
+①新建名为 BlinnPhongMat 的材质；  
+②新建名为 Chapter6-BlinnPhong 的 Unity Shader，并赋给上一步创建的材质；  
+③在原来的场景中新建一个胶囊体，并将第一步创建的材质赋给它；  
+④保存场景；
+
+***2. 编写 Shader***  
+打开 Chapter6-BlinnPhong，删除里面的所有代码，将上一节 Chapter6-SpecularPixelLevel 代码复制粘贴进去，做部分修改：  
+
+``` C C for Graphics
+fixed4 frag(v2f i) : SV_Target
+{
+    ...
+
+    fixed3 viewDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPos.xyz);
+    // 通过归一化入射方向 + 视角方向，得到半角向量 h
+    fixed3 halfDir = normalize(worldLightDir + viewDir);
+    // 根据 Blinn 光照模型公式计算高光反射部分
+    fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(saturate(dot(worldNormal, halfDir)), _Gloss);
+
+    return fixed4(ambient + diffuse + specular, 1.0);
+}
+```
+
+可以看出，Blinn-Phong 的高光反射部分看起来更大更亮，实际渲染中绝大多数情况会选择 Blinn-Phong 光照模型。注意，上述模型都是经验模型。
+
+下图是上面三种光照的对比效果（为了更清晰看到高光效果，把漫反射颜色改为了灰色），从左到右分别是逐顶点高光反射光照、逐像素高光反射光照、Blinn-Phong 光照：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/13/YSbDIz87glZePkV.png" width = "70%" height = "70%" alt="图18- 逐顶点的高光反射光照、逐像素的高光反射光照（Phong 光照模型）和 Blinn-Phong 高光反射光照的对比结果"/>
+</div>
+
+## 使用 Unity 内置的函数
+在之前的案例中，我们手动计算了光源方向和视角方向信息。光源方向是基于平行光的实现，如果遇到更复杂的光照类型（比如：点光源、聚光灯），使用上面的代码会得到错误的结果。这需要我们在代码中先判断光源类型，在计算其他光源信息，在后面会讲到。
+
+手动计算光源信息的过程比较麻烦，Unity 则提供了一些内置函数来帮助我们计算这些信息。详见第五章的 UnityCG.cginc 的内容。表格中的 9 个函数中，有 5 个我们已经掌握了其内部实现，甚至在案例中已经写过，例如 WorldSpaceViewDir 函数实现如下：  
+
+    inline float3 UnityWorldSpaceViewDir(float3 worldPos)
+    {
+        return _WorldSpaceCameraPos.xyz - worldPos;
+    }
+
+可以看出，这和之前计算视角方向的方法一致，**但要注意的是，使用前要先归一化**。  
+
+与计算光源方向相关的 3 个函数：WorldSpaceLightDir、UnityWorldSpaceLightDir 和 ObjSpaceLightDir，它们的内部逻辑会稍微复杂一些，因为 Unity 要针对不同种类的光源做不同的逻辑。需要注意的是，这 3 个函数仅可用于前向渲染（也就是之前 Pass 中 Tags 写的 "LightMode" = "ForwardBase"，后续会详细了解），因为函数内使用的一些内置变量，如 _WorldSpaceLightPos0 等，只有在前向渲染中才会被正确赋值。
+
+接下来基于前面写的 Blinn-Phong 案例代码，使用内置函数进行调整：  
+①在顶点着色器中，使用内置的 UnityObjectToWorldNormal 来计算世界空间下的法线方向：`o.worldNormal = mul(v.normal, (float3x3)unity_WorldToObject);` 改为 `o.worldNormal = UnityObjectToWorldNormal(v.normal);`  
+②在片元着色器中，使用内置的 UnityWorldSpaceLightDir 计算世界坐标下光照方向，使用内置的 UnityWorldSpaceViewDir 计算世界坐标下的视角方向：`fixed3 worldLightDir = normalize(_WorldSpaceLightPos0.xyz);` 改为 `fixed3 worldLightDir = normalize(UnityWorldSpaceLightDir(i.worldPos));`，  
+以及 `fixed3 viewDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPos.xyz);` 改为 `fixed3 viewDir = normalize(UnityWorldSpaceViewDir(i.worldPos));`
+
+
+# 第七章 基础纹理
+纹理，即使用**纹理映射 texture mapping** 技术来使用图片控制模型的外观，逐**纹素 texel** (用于和像素区分)地控制模型颜色。美术建模时，通常会在建模软件中利用纹理展开技术把纹理映射坐标存储在每个顶点上。**纹理映射坐标**定义了该顶点在纹理中对应的 2D 坐标。通常使用二维变量 (u, v) 来表示，u 是横向坐标，v 是纵向坐标，因此纹理映射坐标也被称为 **UV 坐标**。
+
+尽管纹理大小各不相同，但是顶点 UV 坐标的范围通常都被归一化为 [0, 1] 范围内。但，纹理采样使用的纹理坐标不一定在 [0, 1] 范围内。实际上，不在 [0, 1] 范围内的纹理坐标有时很有用，与之关系紧密的是纹理的平铺模式，详见后面章节。
+
+OpenGL 的纹理空间的原点位于左下角；DirectX 的纹理空间的原点位于左上角；Unity 在绝大多数情况下会帮我们处理好差异。但 Unity 本身使用的是符合 OpenGL 传统的，即原点位于左下角。
+
+## 单张纹理
+本节学习使用一张纹理代替物体的漫反射颜色。
+
+### 实践
+本例中仍然使用 Blinn-Phong 光照模型来计算光照。
+
+***1. 准备工作***  
+①新建名为 Scene_7_1 的场景，并去掉天空盒子；  
+②新建名为 SingleTextureMat 的材质；  
+③新建名为 Chapter7-SingleTexture 的 Shader，并赋给上一步创建的材质；  
+④在场景中新建一个胶囊体，并把第二步的材质赋给它；  
+⑤保存场景；
+
