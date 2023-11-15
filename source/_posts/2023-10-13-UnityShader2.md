@@ -1260,3 +1260,144 @@ $$normal = pixel \times 2 - 1$$
 由以上的优点分析，可见切线空间的灵活性和可重用性让它很多情况下都优于模型空间下的法线纹理，因此大多数情况下会使用切线空间下的纹理坐标，原书使用的也是切线空间下的法线纹理。
 
 ### 实践
+在计算光照模型中需要统一各个方向矢量所在的坐标空间，法线纹理中存储的是切线空间下的法线方向，处理光照有两种选择：  
+①在切线空间下计算光照，将光照方向、视角方向变换到切线空间下；  
+②在世界空间下计算光照，将采样得到的法线方向变换到世界空间下，再和世界空间下的光照方向和视角方向进行计算；  
+
+从效率上讲，前一种更优，因为前者可在顶点着色器上完成对光照方向和视角方向的变换，而后者因为光照计算在采样获得法线方向之后，所以光照方向和视角方向的变换过程必须在片元着色器上实现；从通用性上将，后一种更优，因为有时候需要在世界空间中进行其他的计算，比如使用 Cubemap 进行环境映射时，需要使用世界空间下的反射方向对 Cubemap 进行采样（见第九章）。
+
+#### 在切线空间下计算
+***1. 准备工作***  
+①新建名为 Scene_7_2_3 的场景，并去掉天空盒子；  
+②新建名为 NormalMapTangentSpaceMat 的材质；  
+③新建名为 Chapter7-NormalMapTangentSpace 的 Shader，并赋给上一步创建的材质；  
+④在场景中新建一个胶囊体，并将第二步创建的材质赋给它；  
+⑤保存场景；
+
+***2. 编写 Shader***  
+在切线空间下计算光照模型的基本思路就是：在片元着色器中通过纹理采样得到切线空间下的法线，然后再与切线空间下的视角方向、光照方向等进行计算，得到最终的光照效果。
+
+因此我们需要知道从模型空间到切线空间的变化矩阵。这个变化矩阵的逆矩阵，即从切线空间到模型空间的变换矩阵，非常容易求：按切线（x 轴）、副切线（y 轴）、法线（z 轴）的顺序，以它们在模型空间的坐标**按列**排列即可（数学原理忘了详见数学基础章节）。因为从模型空间到切线空间的变换仅存在平移、旋转和缩放变换，而我们只关心方向，并假设不存在非统一缩放，故截取变换矩阵前三列前三行的矩阵是旋转矩阵，而旋转矩阵是正交矩阵，那么这个变换的逆矩阵就等于它的转置矩阵。因此，从模型空间到切线空间的变换矩阵就是从切线空间到模型空间的变换矩阵的转置矩阵，把切线（x 轴）、副切线（y 轴）、法线（z 轴）的顺序**按行**排列即可。
+
+> 原书中这一段存在些许错误，上面是我更正后的版本，了解逻辑比较重要，故保留书中原代码。作者冯乐乐在 Github 中对该错误进行了修正和解释，可以去看看，下面代码（原书代码）只适用于只存在统一缩放的情形下，不然会出现视觉问题。若存在非统一缩放，就必须求逆，但 Unity 不支持 Cg 的 inverse 函数，需要自己定义一个（冯乐乐的 github 中有写），比较麻烦，建议直接使用转换到世界空间的方法计算，会比较简单，不用求逆（因为不需要将 XX 向量转换到切线空间）。  
+> 
+> 实际上，在 Unity 4.x 版本及其之前的版本中，内置的 shader 一直是原来书上那种不严谨的转换方法，这是因为 Unity 5 之前，如果我们对一个模型 A 进行了非统一缩放，Unity 内部会重新在内存中创建一个新的模型 B，模型 B 的大小和缩放后的 A 是一样的，但是它的缩放系数是统一缩放。换句话说，在 Unity 5 以前，实际上我们在 Shader 中根本不需要考虑模型的非统一缩放问题，因为在 Shader 阶段非统一缩放根本就不存在了。但从 Unity 5 以后，我们就需要考虑非统一缩放的问题了。  
+> 
+> **注意：**区分模型顶点的真实法线和渲染法线（贴图上的法线）。对于模型顶点的真实法线，即切线空间中的法线，不论处于任何空间之时，它必须与模型表面垂直。即切线空间的三条线，切线 Tagent，副切线 Bitangent，法线 Normal，相互垂直。这三条线构成的变换矩阵，称为 **TBN 矩阵**（分为到模型空间和世界空间两种）。注：曲面上某点的切线理论上有无数条，建模软件计算切线时，会选择和 UV 展开方向相同的方向作为切线方向。法线纹理的原理就是修改了法线的方向，来得到看似凹凸的效果，故需要用真实法线的 TBN 矩阵把贴图记录的法线（渲染法线）转换到其他空间上去，以使用法线的偏移信息。渲染法线（用于光照计算）和切线不需要相互垂直，想想 Blender 里面对法线的修改产生不一样的视觉效果。
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 7/Normal Map In Tangent Space"
+{
+    Properties
+    {
+        _Color ("Color Tint", Color) = (1, 1, 1, 1)
+        _MainTex ("Main Tex", 2D) = "white" {}
+        _BumpMap ("Normal Map", 2D) = "bump" {} // 法线纹理，默认使用 "bump" ，是 Unity 内置的法线纹理，当没有提供任何法线纹理时，"bump" 就对应模型自带的法线信息
+        _BumpScale ("Bump Scale", Float) = 1.0 // 控制凹凸程度，当它为 0 时，表示该法线纹理不会对光照产生任何影响
+        _Specular ("Specular", Color) = (1, 1, 1, 1)
+        _Gloss ("Gloss", Range(8.0, 256)) = 20
+    }
+
+    SubShader
+    {
+        Pass
+        {
+            Tags { "LightMode" = "ForwardBase" }
+
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Lighting.cginc"
+
+            fixed4 _Color;
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            sampler2D _BumpMap;
+            float4 _BumpMap_ST; //同样，为了得到纹理的平铺和偏移属性
+            float _BumpScale;
+            fixed4 _Specular;
+            float _Gloss;
+
+            struct a2v
+            {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float4 tangent : TANGENT; // 切线方向，使用 float4 类型（不同于法线的 float3），因为需要 tangent.w 分量来决定切线空间的副切线的方向性
+                float4 texcoord : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                float4 uv : TEXCOORD0; // UV 使用 float4 类型，xy 存储主纹理坐标，zw 存储法线纹理坐标，出于减少插值寄存器的使用数量的目的
+                float3 lightDir : TEXCOORD1; //输出切线空间下光照方向
+                float3 viewDir : TEXCOORD2; //输出切线空间下视角方向
+            };
+
+
+            v2f vert (a2v v)
+            {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+
+                // 存储主纹理的 uv 值
+                o.uv.xy = v.texcoord.xy * _MainTex_ST.xy + _MainTex_ST.zw;
+                // 存储法线纹理的 uv 值
+                o.uv.zw = v.texcoord.xy * _BumpMap_ST.xy + _BumpMap_ST.zw;
+
+                // 计算副切线，乘以 w 分量确定副切线的方向性（与法线、切线垂直的有两个方向）
+                // float3 binormal = cross(normalize(v.normal), normalize(v.tangent.xyz)) * v.tangent.w;
+                // Cg 中 float4×4 是按行排列的，所以获取从从模型空间到切线空间的变换矩阵直接按行排列前后即可
+                // float3x3 rotation = float3x3(v.tangent.xyz, binormal, v.normal);
+                
+                // 直接使用下述内置宏（在 UnityCG.cginc 中被定义)即可，它的实现和上述代码完全一样
+                TANGENT_SPACE_ROTATION;
+
+                // 将光照、视角方向由模型空间转到切线空间
+                o.lightDir = mul(rotation, ObjSpaceLightDir(v.vertex)).xyz;
+                o.viewDir = mul(rotation, ObjSpaceViewDir(v.vertex)).xyz;
+
+                return o;
+            }
+
+            fixed4 frag(v2f i) : SV_Target
+            {
+                fixed3 tangentLightDir = normalize(i.lightDir);
+                fixed3 tangentViewDir = normalize(i.viewDir);
+
+                // 对法线纹理进行采样，获取纹素值
+                fixed4 packedNormal = tex2D(_BumpMap, i.uv.zw);
+                fixed3 tangentNormal;
+
+                // 如果纹理没有被标记为 Normal map ，则需要手动反映射得到法线方向
+                // tangentNormal.xy = packedNormal.xy * 2 - 1;
+
+                // 如果纹理被标记为 Normal map，Unity 就会根据不同的平台来选择不同的压缩方法，需要调用 UnpackNormal 来进行反映射。如果这时再手动计算反映射就会出错，因为 _BumpMap 的 rgb 分量不再是切线空间下的法线方向 xyz 值了。本大节第四小节会解释
+                tangentNormal = UnpackNormal(packedNormal);
+
+                tangentNormal.xy *= _BumpScale; //控制凹凸程度
+
+                // 因为贴图存储的法线为单位向量，且 z 分量为正。所以我们可以通过勾股定理计算 z 分量的值，下面通过点乘计算 x 的平方加上 y 的平方
+                tangentNormal.z = sqrt(1.0 - saturate(dot(tangentNormal.xy, tangentNormal.xy)));
+
+                fixed3 albedo = tex2D(_MainTex, i.uv).rgb * _Color.rgb;
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz * albedo;
+                fixed3 diffuse = _LightColor0.rgb * albedo * max(0, dot(tangentNormal, tangentLightDir));
+
+                fixed3 halfDir = normalize(tangentLightDir + tangentViewDir);
+                fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(max(0, dot(tangentNormal, halfDir)), _Gloss);
+
+                return fixed4(ambient + diffuse + specular, 1.0);
+            }
+            ENDCG
+        }
+    }
+    Fallback "Specular"
+}
+```
+
+效果见在世界空间下计算的后面。
+
+#### 在世界空间下计算
