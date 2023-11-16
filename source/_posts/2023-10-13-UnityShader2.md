@@ -1529,3 +1529,157 @@ Shader "Unity Shaders Book/Chapter 7/Normal Map In World Space"
 </div>
 
 ### Unity 中的法线纹理类型
+#### 纹理压缩
+前面代码中提到，必须将法线纹理标识为 Normal map，使用 Unity 的内置函数 UnpackNormal 才能得到正确的法线方向（Unity 会在材质面板中提醒你修正这个问题）。
+
+这样做可以让 Unity 根据不同平台对纹理进行压缩（例如使用 DXT5nm 格式），再通过 UnpackNormal 函数来针对不同的压缩格式对法线纹理进行正确的采样。UnityCG.cginc 里 UnpackNormal 函数的内部实现（最新版的有细微变化）：  
+
+    inline fixed3 UnpackNormalDXT5nm(fixed4 packednormal)
+    {
+        fixed3 normal;
+        normal.xy = packnormal.wy * 2 - 1;
+        normal.z = sqrt(1 - saturate(dot(normal.xy, normal.xy)));
+        return normal;
+    }
+
+    inline fixed3 UnpackNormal(fixed4 packednormal)
+    {
+    #if defined(UNITY_NO_DXT5nm)
+        return packednormal.xyz * 2 - 1;
+    #else
+    	return UnpackNormalDXT5nm(packednormal);
+    #endif
+    }
+
+在 DXT5nm 格式的法线纹理中，纹理的 a 通道对应了法线的 x 分量，g 通道对应了法线的 y 分量，而纹理的 r 和 b 通道则会被舍弃，法线的 z 分量可以由 xy 分量推导而得。这种压缩方式可以减少法线纹理占用的内存空间。
+
+#### 高度图的纹理类型
+若要从高度图生成法线纹理，因为高度图本身记录的是相对高度，是一张灰度图，白色相对高，黑色相对低，所以把一张高度图导入 Unity 之后，除了需要将纹理类型设置为 Normal map 外，还需要勾选 **Create from Grayscale**，然后 Unity 会根据高度图来生成一张切线空间下的法线纹理（灰色变蓝色）。
+
+勾选 Create from Grayscale 后，会多出 Bumpiness 和 Filtering 两个选项。Bumpiness 用于控制凹凸程度；Filtering 决定了使用什么方式计算凹凸程度，选择 Smooth，法线纹理会比较平滑，选择 Sharp，会使用 Sobel 滤波（一种边缘检测时使用的滤波器）来生成法线。
+
+Sobel 滤波的实现是在一个 3×3 的滤波器中计算 x 和 y 方向上的导数，然后从中得到法线即可。具体方法是：对于高度图中的每个像素，考虑它与水平方向和竖直方向上的像素差，把它们的差当成该点对应的法线在 x 和 y 方向上的位移，然后使用映射函数存储成法线纹理的 r 和 g 分量即可。
+
+
+## 渐变纹理
+最开始纹理只是为了定义物体的颜色，后来发现，纹理可以存储任何表面属性。其中一种用法就是使用渐变纹理来控制漫反射光照的结果。这种技术在游戏《军团要塞 2》（Team Fortress 2）中流行起来，它也是由 Valve 公司提出来的，他们使用这种技术来渲染游戏中具有插画风格的角色。Valve 发表了一篇著名的论文来专门讲述在制作《军团要塞 2》时使用的技术。
+
+这项技术最初由 Gooch 等人在 1998 年发表的一篇著名的论文《A Non-Photorealistic Lighting Model For Automatic Technical Illustration》中被提出，在这篇论文中，作者提出一种基于**冷到暖色调 cool-to-warm tones** 的着色技术，用来得到一种插画风格的渲染效果。使用这种技术，可以保证物体的轮廓线相比传统的漫反射光照更加明显，而且能够提供多种色调变化。现在，很多卡通风格的渲染中都使用了这种技术，在第十三章，会专门学习如何编写卡通风格的 Unity Shader。
+
+### 实践
+***1. 准备工作***  
+①新建名为 Scene_7_3 的场景，并关闭天空盒子；  
+②新建名为 RampTextureMat 的材质；  
+③新建名为 Chapter7-RampTexture 的 Shader，并赋给上一步创建的材质；  
+④往场景中拖拽一个名为 Suzanne 的模型，并把第二步创建的材质赋给它，模型可以从文章开头的 Git 仓库中找，路径为 Assets/Models/Chap7/；  
+⑤保存场景
+
+***2. 编写 Shader***  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 7/Ramp Texture"
+{
+    Properties
+    {
+        _Color ("Color Tint", Color) = (1, 1, 1, 1)
+        _RampTex ("Ramp Tex", 2D) = "white" {} // 渐变纹理
+        _Specular ("Specular", Color) = (1, 1, 1, 1)
+        _Gloss ("Gloss", Range(8.0, 256)) = 20
+    }
+
+    SubShader
+    {
+        Pass
+        {
+            Tags { "LightMode" = "ForwardBase" }
+
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Lighting.cginc"
+
+            fixed4 _Color;
+            sampler2D _RampTex;
+            float4 _RampTex_ST;
+            fixed3 _Specular;
+            float _Gloss;
+
+            struct a2v
+            {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float4 texcoord : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                float3 worldNormal : TEXCOORD0;
+                float3 worldPos : TEXCOORD1;
+                float2 uv : TEXCOORD2;
+            };
+
+            v2f vert (a2v v)
+            {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.worldNormal = UnityObjectToWorldNormal(v.normal);
+                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz; //不能使用 UnityObjectToWorldDir ，该帮助函数会把坐标点标准化，适用于方向，不使用于位置
+                o.uv = TRANSFORM_TEX(v.texcoord, _RampTex); //使用内置宏计算经过平铺偏移后的纹理坐标
+                return o;
+            }
+
+            fixed4 frag (v2f i) : SV_Target
+            {
+                fixed3 worldNormal = normalize(i.worldNormal);
+                fixed3 worldLightDir = normalize(UnityWorldSpaceLightDir(i.worldPos));
+
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz;
+
+                //半兰伯特模型
+                fixed halfLambert = 0.5 * dot(worldNormal, worldLightDir) + 0.5;
+                //见代码后面补充
+                fixed3 diffuseColor = tex2D(_RampTex, fixed2(halfLambert, halfLambert)).rgb * _Color.rgb;
+                fixed3 diffuse = _LightColor0.rgb * diffuseColor;
+
+                fixed3 viewDir = normalize(UnityWorldSpaceViewDir(i.worldPos));
+                fixed3 halfDir = normalize(worldLightDir + viewDir);
+                fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(max(0, dot(worldNormal, halfDir)), _Gloss);
+                
+                return fixed4(ambient + diffuse + specular, 1.0);
+            }
+
+            ENDCG
+        }
+    }
+    Fallback "Specular"
+}
+```
+
+补充：为什么这样计算可以使用渐变纹理，即使用 halfLambert 来构建纹理坐标。首先渐变纹理本质上是一个一维纹理（它在纵轴方向上颜色不变），所以渐变纹理本身不是和模型的纹理坐标一一对应的，而是和顶点的法线方向和光照之间的角度，一一对应。首先，halfLambert 被映射到了 [0, 1] 之间，假设顶点法线和光照方向相反，即点乘为 -1 ，halfLambert 值为零，这样得到的是渐变纹理最左边的颜色（一般为深颜色，可以看下面效果图）；若顶点法线和光照方向一致，即点乘为 1，halfLambert 值为 1，这样得到的是渐变纹理最右边的颜色（一般为浅色）。所以通过这样的方法，可以获得一个根据角度进行颜色渐变的模型。这也是为什么按 halfLambert 对渐变纹理进行采样，也就是 diffuseColor 的变量本质上已经反应了半兰伯特模型对光照的修改，所以 diffuse 变量不需要再乘上 halfLambert。
+
+使用不同的渐变纹理的效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/16/nAixmBu37kfQRYg.jpg" width = "80%" height = "80%" alt="图23- 使用不同的渐变纹理控制漫反射光照，左下角给出了每张图使用的渐变纹理"/>
+</div>
+
+需要注意的是，渐变纹理的 WrapMode 需要设置为 Clamp，否则采样时由于浮点数精度造成问题。使用 Repeat 模式在高光区域会有些黑点，因为使用 halfLambert 采样时，理论上范围在 [0, 1]，但实际上会出现 1.00001 这样的值出现，使用 Repeat 模型，会舍弃整数部分，保留 0.00001 ，对应渐变图的最左边，即黑色。
+
+
+## 遮罩纹理
+**遮罩纹理 mask texture** 允许我们保护某些区域，使其免于被修改。例如之前，我们都是把高光反射应用到模型表面的所有的地方，即所有的像素都使用同样大小的高光强度和高光指数，但有时，我们希望模型表面某些区域的反光强烈一些，而某些区域弱一些。为了得到更细腻的效果，我们使用一张遮罩纹理来控制光照。另一个常见的应用就是在制作地形材质时，需要混合多张图片，例如草地纹理、石子纹理、土地纹理等，使用遮罩纹理可以控制如何混合这些纹理。
+
+使用遮罩纹理的一般流程：采样得到遮罩纹理的纹素值，然后取纹素值的某个（或某几个）通道的值（如：r，rg）与某种表面属性相乘。这样，若该通道的值为 0，可以保护表面不受该属性影响。总之，遮罩纹理可以让美术人员更加精准（像素级别）地控制模型表面的各种性质。
+
+### 实践
+***1. 准备工作***  
+①新建名为 Scene_7_4 的场景，并去掉天空盒子；  
+②新建名为 MaskTextureMat 的材质；  
+③新建名为 Chapter7-MaskTexture 的 Shader，并赋给上一步创建的材质；  
+④在场景中创建一个胶囊体，并将第二步的材质赋给它；  
+⑤保存场景；
+
+***2. 编写 Shader***  
