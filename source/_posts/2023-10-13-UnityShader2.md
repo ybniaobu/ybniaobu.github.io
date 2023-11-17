@@ -1683,3 +1683,132 @@ Shader "Unity Shaders Book/Chapter 7/Ramp Texture"
 ⑤保存场景；
 
 ***2. 编写 Shader***  
+原书中用的是在切线空间下计算的方法，我把它改为了在世界空间下计算：
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 7/Mask Texture"
+{
+    Properties
+    {
+        _Color ("Color Tint", Color) = (1, 1, 1, 1)
+        _MainTex ("Main Tex", 2D) = "white" {}
+        _BumpMap ("Normal Map", 2D) = "bump" {}
+        _BumpScale ("Bump Scale", Float) = 1.0
+        _SpecularMask ("Specular Mask", 2D) = "white" {} //高光反射遮罩纹理
+        _SpecularScale ("Specular Scale", Float) = 1.0 //控制遮罩影响程度的系数
+        _Specular ("Specular", Color) = (1, 1, 1, 1)
+        _Gloss ("Gloss", Range(8.0, 256)) = 20
+    }
+
+    SubShader
+    {
+        Pass
+        {
+            Tags { "LightMode" = "ForwardBase" }
+
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Lighting.cginc"
+
+            fixed4 _Color;
+            sampler2D _MainTex;
+            float4 _MainTex_ST; // _MainTex、_BumpMap 和 _SpecularMask 共用同一套纹理属性变量 _MainTex_ST，这样意味着修改主纹理的平铺系数和偏移系数，会同时影响 3 个纹理的采样，这样可以节省存储的纹理坐标数，减少差值寄存器的使用。
+            sampler2D _BumpMap;
+            float _BumpScale;
+            sampler2D _SpecularMask; 
+            float _SpecularScale;
+            fixed4 _Specular;
+            float _Gloss;
+
+            struct a2v
+            {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float4 tangent : TANGENT;
+                float4 texcoord : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                float4 uv : TEXCOORD0;
+                float4 TtoW0 : TEXCOORD1;
+                float4 TtoW1 : TEXCOORD2;
+                float4 TtoW2 : TEXCOORD3;
+            };
+
+
+            v2f vert (a2v v)
+            {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.uv.xy = v.texcoord.xy * _MainTex_ST.xy + _MainTex_ST.zw;
+
+                
+                float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+                fixed3 worldNormal = UnityObjectToWorldNormal(v.normal);
+                fixed3 worldTangent = UnityObjectToWorldDir(v.tangent.xyz);
+                fixed3 worldBinormal = cross(worldNormal, worldTangent) * v.tangent.w;
+
+                o.TtoW0 = float4(worldTangent.x, worldBinormal.x, worldNormal.x, worldPos.x);
+                o.TtoW1 = float4(worldTangent.y, worldBinormal.y, worldNormal.y, worldPos.y);
+                o.TtoW2 = float4(worldTangent.z, worldBinormal.z, worldNormal.z, worldPos.z);
+                return o;
+            }
+
+            fixed4 frag(v2f i) : SV_Target
+            {
+                float3 worldPos = float3(i.TtoW0.w, i.TtoW1.w, i.TtoW2.w);
+                fixed3 lightDir = normalize(UnityWorldSpaceLightDir(worldPos));
+                fixed3 viewDir = normalize(UnityWorldSpaceViewDir(worldPos));
+
+                fixed3 bump = UnpackNormal(tex2D(_BumpMap, i.uv));
+                bump.xy *= _BumpScale;
+                bump.z = sqrt(1.0 - saturate(dot(bump.xy, bump.xy)));
+                bump = normalize(half3(dot(i.TtoW0.xyz, bump), dot(i.TtoW1.xyz, bump), dot(i.TtoW2.xyz, bump)));
+
+                fixed3 albedo = tex2D(_MainTex, i.uv).rgb * _Color.rgb;
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz * albedo;
+                fixed3 diffuse = _LightColor0.rgb * albedo * max(0, dot(bump, lightDir));
+
+                fixed3 halfDir = normalize(lightDir + viewDir);
+                // 先对遮罩纹理进行采样，本书使用的遮罩纹理的每个纹素的 rgb 分量是一样的，表示该点对应的高光强度，这里选择 r 分量来计算掩码值。然后乘上 _SpecularScale 来控制高光反射的强度
+                fixed specularMask = tex2D(_SpecularMask, i.uv).r * _SpecularScale;
+                fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(max(0, dot(bump, halfDir)), _Gloss) * specularMask;
+
+                return fixed4(ambient + diffuse + specular, 1.0);
+            }
+            ENDCG
+        }
+    }
+    Fallback "Specular"
+}
+```
+
+效果如下（为了效果明显一点，把 _Gloss 属性调成了 8）：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/17/B52lDu4dftmwkg8.png" width = "70%" height = "70%" alt="图24- 使用高光遮罩纹理。从左到右：只包含漫反射，未使用遮罩的高光反射，使用遮罩的高光反射"/>
+</div>
+
+### 其他遮罩纹理
+我们可以充分利用一张纹理 RGBA 四个通道，分别存储各种不同的属性来控制模型表面的渲染效果。例如，R 通道存储高光反射的强度；G 通道存储边缘光照的强度；B 通道存储高光反射的参数；A 通道存储自发光强度。
+
+在《DOTA 2》的开发中，开发人员为每个模型使用了 4 张纹理：一张用于定义模型颜色，一张用于定义表面法线，另外两张则都是遮罩纹理，可提供 8 种额外的表面属性。可以在官网上找到详细的制作资料，是非常好的学习资料。
+
+
+# 第七章 透明效果
+实时渲染中，通过控制渲染模型的**透明通道 Alpha Channel** 来实现透明效果。当开启透明混合后，当一个物体被渲染到屏幕上时，每个片元除了颜色值和深度值，还有透明值属性。
+
+在 Unity 中，我们通常使用两种方法来实现透明效果：第一种为使用**透明度测试 Alpha Test**，这种方式无法得到真正的半透明效果；另一种是**透明度混合 Alpha Blending**。
+
+当场景中存在多个模型时，渲染顺序问题非常重要。实际上，对于不透明 opaque 物体，不考虑它们的渲染顺序也能得到正确的排序效果，这是由于**深度缓冲 depth buffer**，也称 **z-buffer**，的存在。在实时渲染中，深度缓冲是用于解决可见性问题的。它的基本思路就是：根据深度缓冲中的值来判断该片元距离摄像机的距离，当渲染一个片元时，需要把它的深度值和已经存在于深度缓冲中的值进行比较（如果开启了深度测试），如果它的值距离摄像机更远，那么说明这个片元不应该被渲染到屏幕上（即有物体挡住了它）；否则，这个片元应该覆盖掉此时颜色缓冲中的像素值，并把它的深度值更新到深度缓冲中（如果开启了深度写入）。使用深度缓冲，可以不用关心不透明物体的渲染顺序，但如果要实现透明效果，就不那么简单了，因为要关闭深度写入。
+
+①**透明度测试**：只要一个片元的透明度不满足条件（通常是小于某个阈值），则该片元就会被舍弃，否则就按不透明的物体进行处理，即进行深度测试、深度写入等。即透明度测试不需要关闭深度写入，虽然简单，但是它的效果，要么看不见，要么完全不透明。  
+
+②**透明度混合**：可以得到半透明效果。使用当前片元的透明度作为混合因子，与已经存储在颜色缓冲中的颜色值进行混合，得到新的颜色。但是，透明度混合需要关闭深度写入（后面讲为什么），这使得要特别小心物体的渲染顺序。注意，透明度混合只关闭了深度写入（即对于透明度混合来说，深度缓冲是只读地），没关闭深度测试。即当不透明物体在透明物体前面，还是可以正常地遮挡。
+
+## 渲染顺序的重要性
