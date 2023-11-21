@@ -1812,3 +1812,203 @@ Shader "Unity Shaders Book/Chapter 7/Mask Texture"
 ②**透明度混合**：可以得到半透明效果。使用当前片元的透明度作为混合因子，与已经存储在颜色缓冲中的颜色值进行混合，得到新的颜色。但是，透明度混合需要关闭深度写入（后面讲为什么），这使得要特别小心物体的渲染顺序。注意，透明度混合只关闭了深度写入（即对于透明度混合来说，深度缓冲是只读地），没关闭深度测试。即当不透明物体在透明物体前面，还是可以正常地遮挡。
 
 ## 渲染顺序的重要性
+对于透明度混合，关闭深度写入是必要的：如果不关闭深度写入，一个半透明表面背后的表面本来是可以透过它被看到的，但是由于深度测试时判断是该半透明体离摄像机更近，导致后面的表面会被剔除。而关闭深度写入，会导致渲染顺序变得非常重要。
+
+假设场景里存在半透明物体 A，和不透明物体 B，A 在 B 前面（A 离摄像头更近），此时不同的渲染顺序会有不同的结果：  
+①先渲染 B，再渲染 A：由于不透明物体开启了深度测试和深度写入，B 会首先写入颜色缓冲和深度缓冲。随后渲染 A，透明物体仍然会进行深度测试，因为 A 离摄像头更近，因此使用 A 的透明度和颜色缓冲中 B 的颜色进行混合就可以得到正确的半透明效果。  
+②先渲染 A，再渲染 B：渲染 A 时，深度缓冲区没有任何有效数据，因此 A 直接写入颜色缓冲，但由于对半透明物体关闭了深度写入，因此 A 不会修改深度缓冲。等到渲染 B 时，B 进行深度测试，由于深度缓冲中没有任何有效数据，B 就会写入颜色缓冲，结果就是 B 会直接覆盖 A 的颜色。
+
+假设场景中 A 和 B 都是半透明物体，半透明物体之间也要符合一定的渲染顺序：  
+①先渲染 B，再渲染 A：B 会正常写入颜色缓冲，然后 A 和颜色缓冲中的 B 颜色进行混合，得到正确的半透明效果。  
+②先渲染 A，再渲染 B：A 先正常写入颜色缓冲，随后 B 会和颜色缓冲中的 A 进行混合，这样混合结果会完全反过来，看起来好像 B 在 A 的前面，得到错误的半透明结构。
+
+基于上面两个例子，渲染引擎一般会先对物体进行排序，再渲染。常用的方法是：  
+①先渲染所有不透明物体，并开启它们的深度测试和深度写入；  
+②把透明物体按照它们距离摄像机的远近进行排序，然后按照从后往前的顺序渲染这些半透明物体，开启它们的深度测试，但关闭深度写入。
+
+但是仍有问题没被解决，因为物体级别的顺序和像素级别的顺序会存在出入。由于某些情况下物体的排序存在循环重叠的情况（比如三个棒子，交叉循环），会导致渲染无法得到正确的结果。即使使用物体网格的相同顶点进行排序，仍然可能存在，A 的顶点在 B 的顶点前，但实际上，B 在 A 前的情况，如下图：
+
+<table><tr>
+<td><img src='https://s2.loli.net/2023/11/21/mP74J5snRhDW9MA.jpg' width="200" alt="图25- 循环重叠的半透明物体总是无法得到正确的半透明效果"></td>
+<td><img src='https://s2.loli.net/2023/11/21/ifpBgNaZwVH9CPW.jpg' width="200" alt="图26- 使用哪个深度对物体进行排序。红色点分别标明了网格上距离摄像机最近的点、最远的点以及网格中点"></td>
+</tr></table>
+
+尽管会有一些特殊情况，大多数游戏引擎仍然使用了这样的方法。为了减少错误顺序的情况，开发者尽可能让模型是凸面体，并考虑将复杂的模型拆分成可以独立排序的多个子模型。而若不想分割网格可以将透明通道更加柔和，使穿插不那么明显，同时也可以使用开启深度写入的半透明效果来近似模拟物体的半透明（见本章第 5 节）。
+
+
+## Unity Shader 的渲染顺序
+Unity 为了解决渲染顺序的问题提供了**渲染队列 render queue** 这一解决方案。可以使用 SubShader 的 **Queue** 标签来决定我们的模型将归于哪个渲染队列。Unity 在内部使用一系列整数索引来表示每个渲染队列，且索引号越小表示越早被渲染。下表给出了 Unity 提前定义的渲染队列以及它们的描述（在每个队列中间可以使用其他队列）：  
+
+| 名称 | 队列索引号 | 描述 |
+| :---- | :---- | :---- |
+| Background | 1000 | 会在任何其他队列之前渲染，通常使用该队列来渲染那些需要绘制在背景上的物体 |
+| Geometry | 2000 | 默认的渲染队列，大多数物体使用这个队列，不透明物体使用这个队列 |
+| AlphaTest | 2450 | 需要透明度测试的物体使用这个队列。Unity 5 中将它从 Geometry 中分离出来，因为在所有不透明物体渲染之后再渲染需要透明度测试的物体更加有效 |
+| Transparent | 3000 | 这个队列的物体会在所有的 Geometry 和 AlphaTest 物体渲染后，再按**从后往前**的顺序进行渲染。任何使用了透明底混合(例如关闭了深度写入的 Shader)的物体都应该使用该队列 |
+| Overlay | 4000 | 用于实现一些叠加效果。任何需要在最后渲染的物体都使用该队列 |
+
+想要通过透明度测试实现透明效果，代码应该包含类似下面的代码：  
+
+    SubShader {
+    	Tags {"Queue" = "AlphaTest"}
+    	Pass {
+    		...
+    	}
+    }
+
+想要通过透明度混合实现透明效果，代码应该包含类似下面的代码：  
+
+    SubShader {
+	    Tags {"Queue" = "Transparent"}
+	    Pass { 
+		    ZWrite Off
+		    ...
+	    }
+    }
+
+其中，**ZWrite Off** 用于关闭深度写入，这里选择写在 Pass 中。也可以写在 SubShader 中，意味着 SubShader 下的所有 Pass 都会关闭深度写入。
+
+
+## 透明度测试
+只要一个片元的透明度不满足条件（通常是小于某个阈值），则这个片元就会被舍弃，不进行任何处理，不会对颜色缓冲产生任何影响。否则按照普通的不透明物体的处理方式进行处理。通常在片元着色器中使用 `clip` 函数进行透明度测试，clip 是 Cg 中的一个函数，它的定义如下：  
+
+    // 函数的参数是裁剪时使用的标量或矢量条件
+    void clip(float4 x);
+    void clip(float3 x);
+    void clip(float2 x);
+    void clip(float1 x);
+    void clip(float x);
+
+    // 如果给定参数的任何一个分量是负数，就会舍弃当前像素的输出颜色
+    void clip(float4 x)
+    {
+        if (any(x < 0))
+            discard;
+    }
+
+### 实践
+***1. 准备工作***  
+①新建名为 Scene_8_3 的场景，并去掉天空盒子；  
+②新建名为 AlphaTestMat 的材质；  
+③新建名为 Chapter8-AlphaTest 的 Shader，并赋给上一步创建的材质；  
+④在场景中创建一个立方体，并把第二步的材质赋给它；  
+⑤保存场景。
+
+***2. 编写 Shader***  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 8/Alpha Test"
+{
+    Properties
+    {
+        _Color ("Main Tint", Color) = (1, 1, 1, 1)
+        _MainTex ("Main Tex", 2D) = "white" {}
+        _Cutoff ("Alpha Cutoff", Range(0, 1)) = 0.5 // 透明度测试的阈值
+    }
+    SubShader
+    {
+        // 透明度测试常用的三个标签
+        Tags {
+            // 设置渲染队列为 AlphaTest 队列
+            "Queue" = "AlphaTest"
+            // 让当前 Shader 不会受到投射器的影响
+            "IgnoreProjector" = "True"
+            // 让 Unity 把当前 Shader 归入到提前定义的组，这里指 TransparentCutout 组，以指明该 Shader 是一个使用了透明度测试的 Shader
+            "RenderType" = "TransparentCutout"
+        }
+
+        Pass
+        {
+            Tags { "LightMode" = "ForwardBase" }
+
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Lighting.cginc"
+
+            fixed4 _Color;
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            fixed _Cutoff;
+
+            struct a2v
+            {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float4 texcoord : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                float3 worldNormal : TEXCOORD0;
+                float3 worldPos : TEXCOORD1;
+                float2 uv : TEXCOORD2;
+            };
+
+            v2f vert (a2v v)
+            {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.worldNormal = UnityObjectToWorldNormal(v.normal);
+                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+                o.uv = TRANSFORM_TEX(v.texcoord, _MainTex);
+                return o;
+            }
+
+            fixed4 frag(v2f i) : SV_Target
+            {
+                fixed3 worldNormal = normalize(i.worldNormal);
+                fixed3 worldLightDir = normalize(UnityWorldSpaceLightDir(i.worldPos));
+
+                fixed4 texColor = tex2D(_MainTex, i.uv);
+
+                // 透明度测试：透明度小于 _Cutoff 的值，则当前片元会被丢弃
+                clip(texColor.a - _Cutoff);
+
+                // 等同于
+                // if ((texColor.a - _Cutoff) < 0.0) {
+                //     discard;
+                // }
+
+                fixed3 albedo = texColor.rgb * _Color.rgb;
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz * albedo;
+                fixed3 diffuse = _LightColor0.rgb * albedo * max(0, dot(worldNormal, worldLightDir));
+                return fixed4(ambient + diffuse, 1.0);
+            }
+            ENDCG
+        }
+    }
+
+    // 使用内置的 VertexLit Shader 作为回调 Shader。保证该 SubShader 无法在当前显卡工作时可以有合适的代替 shader，还保证使用透明度测试的物体可以正确地向其他物体投射阴影
+    Fallback "Transparent/Cutout/VertexLit"
+}
+```
+
+使用下图的半透明纹理来实现透明度测试。在 Github 中 /Assets/Textures/Chapter8 文件夹下的 transparent_texure.psd：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/21/VQ2bGYOuZXqWopi.jpg" width = "30%" height = "30%" alt="图27- 一张透明纹理，其中每个方格的透明度都不同"/>
+</div>
+
+效果如下（从左到右分别给 _Cutoff 值设置 0.6、0.7、0.8）：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/21/MsIvklBULaj94pD.png" width = "70%" height = "70%" alt="图28- 随着 Alpha cutoff 参数的增大，更多的像素由于不满足透明度测试条件而被剔除"/>
+</div>
+
+可以看出，透明度测试得到的效果，要么完全透明，要么完全不透明。而且，得到的透明效果在边缘处往往参差不齐，有锯齿，这是因为边界处纹理的透明度的变化精度问题。
+
+
+## 透明度混合
+使用当前片元的透明度作为混合因子，与已经存储在颜色缓冲中的颜色值进行混合得到新的颜色。但是需要关闭深度写入，所以我们需要非常小心物体的渲染顺序。为了进行混合，Unity 为我们提供了混合命令 —— **Blend**。Blend 是 Unity 提供的设置混合模式的命令。下表中给出了 Blend 命令的语义：  
+
+| 语义 | 描述 |
+| :---- | :---- |
+| Blend Off | 关闭混合 |
+| Blend SrcFactor DstFactor | 开启混合，并设置混合因子。源颜色（当前片元的颜色）x SrcFactor + 目标颜色（已经存在于颜色缓冲中的颜色） x DstFactor，得到的最终颜色存入颜色缓冲中 |
+| Blend SrcFactor DstFactor, SrcFactorA DstFactorA | 与上面几乎一样，使用不同的因子来混合透明通道 |
+| BlendOp BlendOperation | 并非源颜色和目标颜色的简单相加后混合，而使用 BlendOperation 对它们进行其他操作 |
+
