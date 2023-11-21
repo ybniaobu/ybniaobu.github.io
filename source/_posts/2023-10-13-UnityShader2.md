@@ -2012,3 +2012,189 @@ Shader "Unity Shaders Book/Chapter 8/Alpha Test"
 | Blend SrcFactor DstFactor, SrcFactorA DstFactorA | 与上面几乎一样，使用不同的因子来混合透明通道 |
 | BlendOp BlendOperation | 并非源颜色和目标颜色的简单相加后混合，而使用 BlendOperation 对它们进行其他操作 |
 
+在本节中，会使用第二种语义，即 Blend SrcFactor DstFactor 来进行混合（更多混合语义见本章第 6 节）。这个命令在设置混合因子的同时也开启了混合模式。Blend 命令设置混合因子的同时，Unity 会自动帮我们开启混合模式。
+
+我们把源颜色的混合因子 SrcFactor 设为 SrcAlpha，目标颜色的混合因子 DstFactor 设为 OneMinusSrcAlpha，那么混合后的新颜色是：
+
+$$ DstColor_{new} = SrcAlpha \times SrcColor + (1-SrcAlpha) \times DstColor_{old} $$
+
+Src 前缀即 source，Dst 前缀即 destination。OneMinusSrcAlpha （字面意思）就是对应 1 - SrcAlpha。
+
+### 实践
+***1. 准备工作***  
+①新建名为 Scene_8_4 的场景，并去掉天空盒子；  
+②新建名为 AlphaBlendMat 的材质；  
+③新建名为 Chapter8-AlphaBlend 的 Shader，并赋给上一步创建的材质；  
+④在场景中创建一个立方体，将第二步创建的材质赋给它；  
+⑤保存场景。
+
+***2. 编写 Shader***  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 8/Alpha Blend"
+{
+    Properties
+    {
+        _Color ("Main Tint", Color) = (1, 1, 1, 1)
+        _MainTex ("Main Tex", 2D) = "white" {}
+        _AlphaScale ("Alpha Scale", Range(0, 1)) = 1 // 用于在透明纹理的基础上控制整体的透明度
+    }
+
+    SubShader
+    {
+        // 透明度混合常用的 3 个标签
+        Tags {
+            // 将渲染队列修改为透明混合队列 Transparent
+            "Queue" = "Transparent"
+            "IgnoreProjector" = "True"
+            // 将当前 Shader 归入提前定义的组， Transparent 组。用来指明该 Shader 是一个使用了透明度混合的 Shader
+            "RenderType" = "Transparent"
+        }
+
+        Pass
+        {
+            Tags { "LightMode" = "ForwardBase" }
+
+            // 关闭深度写入
+            ZWrite Off
+            // 将源颜色（该片元着色器产生的颜色）的混合因子设为 SrcAlpha
+            // 将目标颜色（已存在颜色缓冲中的颜色）的混合因子设为 OneMinusSrcAlpha
+            Blend SrcAlpha OneMinusSrcAlpha
+
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Lighting.cginc"
+
+            fixed4 _Color;
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            fixed _AlphaScale;
+
+            struct a2v
+            {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float4 texcoord : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                float3 worldNormal : TEXCOORD0;
+                float3 worldPos : TEXCOORD1;
+                float2 uv : TEXCOORD2;
+            };
+
+            v2f vert (a2v v)
+            {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.worldNormal = UnityObjectToWorldNormal(v.normal);
+                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+                o.uv = TRANSFORM_TEX(v.texcoord, _MainTex);
+                return o;
+            }
+
+            fixed4 frag(v2f i) : SV_Target
+            {
+                fixed3 worldNormal = normalize(i.worldNormal);
+                fixed3 worldLightDir = normalize(UnityWorldSpaceLightDir(i.worldPos));
+
+                fixed4 texColor = tex2D(_MainTex, i.uv);
+
+                // 这里移除了透明度测试的代码
+
+                fixed3 albedo = texColor.rgb * _Color.rgb;
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz * albedo;
+                fixed3 diffuse = _LightColor0.rgb * albedo * max(0, dot(worldNormal, worldLightDir));
+
+                // 在返回值中设置透明通道
+                return fixed4(ambient + diffuse, texColor.a * _AlphaScale);
+            }
+            ENDCG
+        }
+    }
+    // 修改回调的 Shader
+    Fallback "Transparent/VertexLit"
+}
+```
+
+不同的 Alpha Scale 参数下的半透明效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/21/Xz57i9gSQTWs2PG.jpg" width = "70%" height = "70%" alt="图29- 随着 Alpha Scale 参数的增大，模型变得越来越透明"/>
+</div>
+
+之前解释过由于关闭深度写入带来的各自问题，即当模型本身有复杂的遮挡关系或是包含了复杂的非凸网格时，会因为排除错误而导致错误的透明效果。下图给出了使用上面的 Shader 渲染 Knot 模型出现的问题：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/21/nUf5Yat6L21Qdgs.jpg" width = "30%" height = "30%" alt="图30- 当模型网格之间有互相交叉的结构时，往往会得到错误的半透明效果"/>
+</div>
+
+这都是由于关闭了深度写入，无法对模型进行像素级别的深度排序。对此，可以通过分割网格或者重新利用深度写入，从而让模型可以像半透明模型一样淡入淡出。
+
+
+## 开启深度写入的半透明效果
+为了解决上面描述的问题，一种解决办法是**使用两个 Pass** 来渲染模型：第一个 Pass 开启深度写入，但不输出颜色，仅仅是为了把模型的深度值写入深度缓冲；第二个 Pass 进行正常的透明度混合，由于上一个 Pass 已经得到了逐像素的正确的深度值，该 Pass 就可以按照像素级别的深度排序进行透明渲染。缺点就是 Pass 多了影响性能。
+
+### 实践
+***1. 准备工作***  
+①新建名为 Scene_8_5 的场景，并关闭天空盒子；  
+②新建名为 AlphaBlendZWriteMat 材质；  
+③新建名为 Chapter8-AlphaBlendZWrite 的 Shader，并赋给上一步创建的材质；  
+④在场景中创建一个立方体，并将第二步创建的材质赋给它；  
+⑤保存场景。
+
+***2. 编写 Shader***  
+
+这里的代码跟上一节的几乎一模一样，只需要在原来的 Pass 上面再增加一个新的 Pass 即可：  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 8/Alpha Blending ZWrite" {
+    Properties {...}
+    SubShader {
+        Tags {...}
+
+        // 额外的 pass
+        Pass {
+            ZWrite On
+            ColorMask 0
+        }
+
+        Pass {
+            // 上一节的 pass
+        }
+    }
+    Fallback "Diffuse"
+}
+```
+
+新添加的 Pass 的目的仅仅是将模型的深度信息写入深度缓冲中，从而剔除被遮挡的片元。Pass 的第一行开启了深度写入。第二行，使用了新的渲染命令 ColorMask，在 ShaderLab 中，ColorMask 用于设置颜色通道的写掩码 write mask。语义为 `ColorMask RGB | A | 0 | 其他任何R、G、B、A的组合` ，当设为 0 时，表示该 Pass 不写入任何颜色通道。与上一节，效果对比如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/21/xj5VIvprgBOuo8S.png" width = "70%" height = "70%" alt="图31-  开启了深度写入的半透明效果（右图）和没有开启深度写入的效果（左图）的对比"/>
+</div>
+
+可以看出有深度写入的模型内部有遮挡关系，而没有深度写入的模型看不出前后遮挡关系。但有深度写入的物体的内部没有半透明颜色的融合效果。
+
+## ShaderLab 的混合命令
+混合和两个操作数有关：**源颜色 source color** 用 S 表示，指由片元着色器产生的颜色值；**目标颜色 destination color** 用 D 表示，指从颜色缓冲中读取到的颜色值。对它们进行混合后得到的**输出颜色**，用 O 表示，重新写入颜色缓冲中。需要注意，当谈及混合中的源颜色、目标颜色和输出颜色时，它们都包含了 RGBA 四个通道的值。
+
+想要使用混合，我们必须首先开启它。在 Unity 中，当我们使用 Blend 命令时，除了设置混合状态外也开启了混合。但在其他图形 API 中需要手动开启，比如在 OpenGL 中，需要使用 glEnable(GL_BLEND) 来开启混合。
+
+### 混合等式和参数
+混合是一个逐片元的操作，且是不可编程的，却是高度可配置的。我们可以设置混合时使用的运算操作、混合因子等来影响混合。
+
+从两个操作数 S 和 D，得到输出颜色 O 的等式称为**混合等式 blend equation**。当进行混合时，我们需要使用两个混合等式：一个用于混合 RGB 通道，一个用于混合 A 通道。当设置混合状态时，实际上设置的就是混合等式中的**操作**和**因子**。默认情况下，混合等式使用的操作都是加操作，我们只需要再设置一下混合因子即可。由于需要两个等式，每个等式有两个因子，因此一共需要四个因子。
+
+`Blend SrcFactor DstFactor` 这个命令只提供了两个因子，意味着使用同样的混合因子来混合 RGB 通道和 A 通道，即：  
+
+$$ O_{rgb} = SrcFactor \times S_{rgb} + DstFactor \times D_{rgb} $$
+$$ O_{a} = SrcFactorA \times S_{a} + DstFactorA \times D_{a} $$
+
+这些混合因子可以有以下值，下表给出了 ShaderLab 支持的几种混合因子：  
+
+
