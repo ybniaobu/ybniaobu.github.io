@@ -12,7 +12,7 @@ cover: https://s2.loli.net/2023/10/15/RZftaNSscWoLH1u.gif
 mathjax: true
 ---
 
-> 本读书笔记主要内容为XXXXXXXXXXXXXXXXXXXX。
+> 本读书笔记为初级篇，主要内容为 Unity Shader 的结构及 Unity 提供的便利、基础光照、基础纹理和透明效果。  
 > 读书笔记是对知识的记录与总结，但是对比较熟悉的内容不会再行描述。
 
 # 第四章 开始 Unity Shader 学习之旅
@@ -2175,7 +2175,7 @@ Shader "Unity Shaders Book/Chapter 8/Alpha Blending ZWrite" {
 新添加的 Pass 的目的仅仅是将模型的深度信息写入深度缓冲中，从而剔除被遮挡的片元。Pass 的第一行开启了深度写入。第二行，使用了新的渲染命令 ColorMask，在 ShaderLab 中，ColorMask 用于设置颜色通道的写掩码 write mask。语义为 `ColorMask RGB | A | 0 | 其他任何R、G、B、A的组合` ，当设为 0 时，表示该 Pass 不写入任何颜色通道。与上一节，效果对比如下：  
 
 <div  align="center">  
-<img src="https://s2.loli.net/2023/11/21/xj5VIvprgBOuo8S.png" width = "70%" height = "70%" alt="图31-  开启了深度写入的半透明效果（右图）和没有开启深度写入的效果（左图）的对比"/>
+<img src="https://s2.loli.net/2023/11/21/xj5VIvprgBOuo8S.png" width = "70%" height = "70%" alt="图31- 开启了深度写入的半透明效果（右图）和没有开启深度写入的效果（左图）的对比"/>
 </div>
 
 可以看出有深度写入的模型内部有遮挡关系，而没有深度写入的模型看不出前后遮挡关系。但有深度写入的物体的内部没有半透明颜色的融合效果。
@@ -2197,4 +2197,133 @@ $$ O_{a} = SrcFactorA \times S_{a} + DstFactorA \times D_{a} $$
 
 这些混合因子可以有以下值，下表给出了 ShaderLab 支持的几种混合因子：  
 
+| 参数 | 描述 |
+| :---- | :---- |
+| One | 因子为 1 |
+| Zero | 因子为 0 |
+| SrcColor | 因子为源颜色值。用于混合 RGB 时，使用 SrcColor 的 RGB 分量作为混合因子。用于混合 A 时，使用 SrcColor 的 A 分量作为混合因子 |
+| SrcAlpha | 因子为源颜色的透明度值（A 通道） |
+| DstColor | 因子为目标颜色值。用于混合 RGB 时，使用 DstColor 的 RGB 分量作为混合因子。用于混合 A 时，使用 DstColor 的 A 分量作为混合因子 |
+| DstAlpha | 因子为目标颜色的透明度值（A 通道） |
+| OneMinusSrcColor | 因子为（1-源颜色）。用于混合 RGB 时，使用计算结果的 RGB 分量作为混合因子。用于混合 A 时，使用计算结果的 A 分量作为混合因子 |
+| OneMinusSrcAlpha | 因子为（1-源颜色的透明度） |
+| OneMinusDstColor | 因子为（1-目标颜色）。用于混合 RGB 时，使用计算结果的 RGB 分量作为混合因子。用于混合 A 时，使用计算结果的 A 分量作为混合因子 |
+| OneMinusDstAlpha | 因子为（1-目标颜色的透明度） |
+
+如果想使用不同的参数混合 RGB 通道和 A 通道，可以使用 `Blend SrcFactor DstFactor, Srcfactor DstFactorA` 指令。例如，下面的命令在混合后，输出颜色的透明值就是源颜色的透明值：`Blend SrcAlpha OneMinusSrcAlpha, One Zero`
+
+### 混合操作
+上面涉及的两个混合等式中，都是加操作。若要使用其他混合操作，可以使用 ShaderLab 的 `BlendOp BlendOperation` 命令，即混合操作命令。下表给出了支持的混合操作：  
+
+| 操作 | 描述 |
+| :---- | :---- |
+| Add | 将混合后的颜色相加，默认的混合操作。使用的混合等式是： <br> $$ O_{rgb} = SrcFactor \times S_{rgb} + DstFactor \times D_{rgb} $$ <br> $$ O_{a} = SrcFactorA \times S_{a} + DstFactorA \times D_{a} $$ |
+| Sub | 用混合后的源颜色减去混合后的目标颜色。使用的混合等式是： <br> $$ O_{rgb} = SrcFactor \times S_{rgb} - DstFactor \times D_{rgb} $$ <br> $$ O_{a} = SrcFactorA \times S_{a} - DstFactorA \times D_{a} $$ |
+| RevSub | 用混合后的目标颜色减去混合后的源颜色。使用的混合等式是： <br> $$ O_{rgb} = DstFactor \times D_{rgb} - SrcFactor \times S_{rgb} $$ <br> $$ O_{a} = DstFactorA \times D_{a} - SrcFactorA \times S_{a} $$ |
+| Min | 使用源颜色和目标颜色中较小的值，是逐分量比较的。使用的混合等式是： <br> $$ O_{rgba} = (min(S_r, D_r),min(S_g, D_g),min(S_b, D_b),min(S_a, D_a))$$ |
+| Max | 使用源颜色和目标颜色中较大的值，是逐分量比较的。使用的混合等式是： <br> $$ O_{rgba} = (max(S_r, D_r),max(S_g, D_g),max(S_b, D_b),max(S_a, D_a))$$ |
+| 其他逻辑操作 | 仅在 DirectX 11.1 中支持 |
+
+混合操作命令通常是与混合因子命令一起工作的。但当使用 Min 或 Max 混合操作时，混合因子实际上不起任何作用，它们仅会判断原始的源颜色和目标颜色之间的比较结果。
+
+### 常见的混合类型
+通过混合操作和混合因子命令的组合，可以得到一些类似 Photoshop 混合模式中的混合效果：  
+
+    // 正常（Normal），即透明度混合
+    Blend SrcAlpha OneMinusSrcAlpha
+
+    // 柔和相加（Soft Additive）
+    Blend OneMinusDstColor One
+
+    // 正片叠底（Multiply），即相乘
+    Blend DstColor Zero
+
+    // 两倍相乘（2x Multiply）
+    Blend DstColor SrcColor
+
+    // 变暗（Darken）
+    BlendOp Min
+    Blend One One
+
+    // 变亮（Lighten）
+    BlendOp Max
+    Blend One One
+
+    // 滤色（Screen）
+    Blend OneMinusDstColor One
+    // 等同于
+    Blend One OneMinusSrcColor
+
+    // 线性减淡（Linear Dodge）
+    Blend One One
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/22/ikua92s7pQZ3Mbf.jpg" width = "70%" height = "70%" alt="图32- 不同混合状态设置得到的效果"/>
+</div>
+
+需要注意的是，虽然上面使用 Min 和 Max 混合操作时仍然设置了混合因子，但实际上它们并不会对结果产生影响。另一点是，虽然上面有些混合模式没有设置混合操作的种类，但是默认是加法操作，相当于设置了 `BlendOp Add`。
+
+## 双面渲染的透明效果
+在前面实现的透明效果中，无论透明度测试还是混合，都无法观察到正方体内部及其背部的形状。这是因为，默认情况下，渲染引擎剔除了物体背面（相对于摄像机的方向）的渲染图元。如果想要得到双面渲染的效果，可以使用 **Cull** 指令来控制需要剔除哪个面的渲染图元。在 Unity 中，Cull 指令的语法如下：  
+
+    Cull Back | Front | Off
+
+如果设置为 Back，背对摄像机的渲染图元不会被渲染，这是默认的剔除状态；如果设置为 Front，朝向摄像机的渲染图元不会被渲染；如果设置为 Off，会关闭剔除功能。
+
+### 透明度测试的双面渲染
+只要在 Pass 的渲染设置中使用 Cull 指令来关闭剔除即可。新建名为 Scene_8_7_1 的场景，并去掉天空盒子；新建名为 AlphaTestBothSidedMat 的材质；新建名为 Chapter8-AlphaTestBothSided 的 Shader，赋给上一步创建的材质；在场景中创建一个立方体，将第二步的材质赋给它。代码和 Chapter8-AlphaTest 几乎完全一样，只需添加一行代码：  
+
+    Pass {
+        Tags { "LightMode" = "ForwardBase" }
+
+        // 关闭剔除功能
+        Cull Off
+
+效果如下图：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/22/S5JLAgPENwdWqy8.png" width = "70%" height = "70%" alt="图33- 双面渲染的透明度测试的物体"/>
+</div>
+
+### 透明度混合的双面渲染
+透明度混合实现双面渲染会更复杂，因为透明度混合要关闭深度写入，直接关闭剔除功能，无法保证同一个物体的正面和背面图元的渲染顺序，就可能得到错误的半透明效果。
+
+为此，需要把双面渲染的工作分为两个 Pass，第一个 Pass 只渲染背面，第二个 Pass 只渲染正面，Unity 会顺序执行 Subshader 中的各个 Pass，可以保证背面在正面被渲染之前渲染。
+
+新建名为 Scene_8_7_2 的场景；新建名为 AlphaBlendBothSidedMat 的材质；新建名为 Chapter8-AlphaBlendBothSided 的 shader，并赋给上一步创建的材质；在场景中创建一个立方体，将第二步创建的材质赋给它；代码和 Chapter8-AlphaBlend 相比较，只要做出两个改动：  
+①复制原 Pass 的代码，得到另一个 Pass；  
+②在两个 Pass 中分别使用 Cull 指令剔除不同朝向的渲染图元：
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 8/Alpha Blend With Both Side" {
+    Properties {...}
+    SubShader {
+        Tags {...}
+
+        Pass {
+            Tags {...}
+
+            // 第一个 Pass 只渲染背面
+            Cull Front
+
+            //和之前一样的代码
+        }
+
+        Pass {
+            Tags {...}
+
+            // 第二个 Pass 只渲染前面
+            Cull Back
+
+            //和之前一样的代码
+        }
+    }
+}
+```
+
+效果如下图：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/22/8kSUniB62ZGx5EM.png" width = "70%" height = "70%" alt="图34- 双面渲染的透明度混合的物体"/>
+</div>
 
