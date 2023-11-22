@@ -8,7 +8,7 @@ tags:
   - unity
   - 图形学
 top_img: /images/black.jpg
-cover: https://s2.loli.net/2023/10/15/RZftaNSscWoLH1u.gif
+cover: https://s2.loli.net/2023/11/22/dLhtrpKSmV4ZvU7.gif
 mathjax: true
 ---
 
