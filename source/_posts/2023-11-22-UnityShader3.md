@@ -272,15 +272,14 @@ Shader "Unity Shaders Book/Chapter 9/Forward Rendering"
     {
         Tags { "RenderType" = "Opaque" }
 
-        // Base pass
+        // Base pass，处理环境光和第一个逐像素光照（平行光）
         Pass
         {
-            // 设置为 ForwardBase，处理环境光和第一个逐像素光照（平行光）
             Tags { "LightMode" = "ForwardBase" }
 
             CGPROGRAM
 
-            // 执行该指令，让前向渲染路径的光照衰减等变量可以被正确赋值
+            // 执行该指令，让前向渲染路径的光照衰减等变量可以被正确赋值，不可缺少
             #pragma multi_compile_fwdbase
 
             #pragma vertex vert
@@ -317,17 +316,13 @@ Shader "Unity Shaders Book/Chapter 9/Forward Rendering"
             fixed4 frag(v2f i) : SV_Target
             {
                 fixed3 worldNormal = normalize(i.worldNormal);
-                // Unity会选择最亮的平行光传递给Base Pass进行逐像素处理
-                // 其他平行光会按照逐顶点或在Additional Pass中按逐像素的方式处理
-                // 对于Base Pass来说，处理逐像素光源类型一定是平行光
-                // 使用_WorldSpaceLightPos0得到这个平行光的方向
                 fixed3 worldLightDir = normalize(_WorldSpaceLightPos0.xyz);
 
-                // 环境光只需要计算在 Base Pass 中计算一次即可
+                // 环境光只需要计算在 Base Pass 中计算一次即可，Additional Pass 不会再计算。自发光同理，但本例中，假设无自发光效果。
                 fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz;
 
-                // 使用_LightColor0得到平行光的颜色和强度
-                // （_LightColor0已经是颜色和强度相乘后的结果）
+                // 若场景中包含了多个平行光，Unity 会选择最亮的平行光传递给 Base Pass 进行逐像素处理，其他平行光会按照逐顶点或在 Additional Pass 中按逐像素的方式处理。如果场景中没有任何平行光，那么 Base Pass 会当成全黑的光源处理。
+                // 对于 Base Pass 来说，处理逐像素光源类型一定是平行光，可以使用 _WorldSpaceLightPos0 得到这个平行光的方向；使用 _LightColor0 得到平行光的颜色和强度（_LightColor0 已经是颜色和强度相乘后的结果）
                 fixed3 diffuse = _LightColor0.rgb * _Diffuse.rgb * max(0, dot(worldNormal, worldLightDir));
 
                 fixed3 viewDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPos.xyz);
@@ -336,27 +331,22 @@ Shader "Unity Shaders Book/Chapter 9/Forward Rendering"
 
                 // 因为平行光没有衰减，直接令衰减值为 1.0
                 fixed atten = 1.0;
-
                 return fixed4(ambient + (diffuse + specular) * atten, 1.0);
             }
             ENDCG
         }
 
-        // Additional pass
+        // Additional pass，处理其他逐像素光照。Additional pass 中的顶点、片元着色器代码是根据 Base Pass 中的代码复制修改得到的，这些修改一般包括：去掉 Base Pass 中的环境光、自发光、逐顶点光照、SH 光照（球谐光照）的部分，并添加一些对不同光源类型的支持。
         Pass
         {
-            // 设置为ForwardAdd
             Tags { "LightMode" = "ForwardAdd" }
 
-            // 开启混合模式，将帧缓冲中的颜色值和不同光照结果进行叠加
-            // （Blend One One并不是唯一，也可以使用其他Blend指令，比如：Blend SrcAlpha One）
+            // 开启混合模式，因为希望帧缓冲中的颜色值和之前的光照结果进行叠加。如果没有使用 Blend 命令的话，Additional Pass 会直接覆盖掉之前的光照结果。本例中，选择的混合系数是 Blend One One，也可以使用其他 Blend 指令，比如：Blend SrcAlpha One
             Blend One One
 
-            // Additional pass中的顶点、片元着色器代码是根据Base Pass中的代码复制修改得到的
-            // 这些修改一般包括：去掉Base Pass中的环境光、自发光、逐顶点光照、SH光照的部分
             CGPROGRAM
 
-            // 执行该指令，保证Additional Pass中访问到正确的光照变量
+            // 同样执行该指令，保证 Additional Pass 中访问到正确的光照变量
             #pragma multi_compile_fwdadd
 
             #pragma vertex vert
@@ -385,46 +375,40 @@ Shader "Unity Shaders Book/Chapter 9/Forward Rendering"
             v2f vert(a2v v)
             {
                 v2f o;
-
                 o.pos = UnityObjectToClipPos(v.vertex);
                 o.worldNormal = UnityObjectToWorldNormal(v.normal);
                 o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
-
                 return o;
             }
 
             fixed4 frag(v2f i) : SV_Target
             {
-                // 去掉Base Pass中环境光
-
                 fixed3 worldNormal = normalize(i.worldNormal);
 
-                // 计算不同光源的方向
+                //由于 Additional Pass 处理的光源类型可能是平行光、点光源或聚光灯。通过使用 #ifdef 指令判断是否定义了 USING_DIRECTIONAL_LIGHT。若当前前向渲染 Pass 处理的光源类型是平行光，那么 Unity 的底层就会定义 USING_DIRECTIONAL_LIGHT。
                 #ifdef USING_DIRECTIONAL_LIGHT
-                    // 平行光方向可以直接通过_WorldSpaceLightPos0.xyz得到
+                    // 若判断是平行光，方向可以直接通过 _WorldSpaceLightPos0.xyz 得到
                     fixed3 worldLightDir = normalize(_WorldSpaceLightPos0.xyz);
                 #else
-                    // 点光源或聚光灯，_WorldSpaceLightPos0表示世界空间下的光源位置
-                    // 需要减去世界空间下的顶点位置才能得到光源方向
+                    // 若判断是点光源或聚光灯，_WorldSpaceLightPos0 表示世界空间下的光源位置，需要减去世界空间下的顶点位置才能得到光源方向
                     fixed3 worldLightDir = normalize(_WorldSpaceLightPos0.xyz - i.worldPos.xyz);
                 #endif
 
-                // 使用_LightColor0得到光源（可能是平行光、点光源或聚光灯）的颜色和强度
+                // 使用 _LightColor0 得到光源（可能是平行光、点光源或聚光灯）的颜色和强度
                 fixed3 diffuse = _LightColor0.rgb * _Diffuse.rgb * max(0, dot(worldNormal, worldLightDir));
 
                 fixed3 viewDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPos.xyz);
                 fixed3 halfDir = normalize(worldLightDir + viewDir);
                 fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(max(0, dot(worldNormal, halfDir)), _Gloss);
 
-                // 计算不同光源的衰减
+                // 处理不同光源的衰减
                 #ifdef USING_DIRECTIONAL_LIGHT
-                    // 平行光不衰减
+                    // 若为平行光，不衰减，衰减值为 1.0
                     fixed atten = 1.0;
                 #else
-                    // 将片元的坐标由世界空间转到光源空间
+                    // 若为其他光源，可以使用数学公式来计算衰减，但这些计算往往涉及开根号等计算量大的操作。因此 Unity 选择使用一张纹理作为查找表（Lookup Table, LUT），以在片元着色器中得到光源的衰减
+                    // 首先将片元的坐标由世界空间转到光源空间，再对衰减纹理进行采样得到衰减值
                     float3 lightCoord = mul(unity_WorldToLight, float4(i.worldPos, 1)).xyz;
-                    // Unity选择使用一张纹理作为查找表（Lookup Table, LUT）
-                    // 对衰减纹理进行采样得到衰减值
                     fixed atten = tex2D(_LightTexture0, dot(lightCoord, lightCoord).rr).UNITY_ATTEN_CHANNEL;
                 #endif
 
@@ -438,3 +422,34 @@ Shader "Unity Shaders Book/Chapter 9/Forward Rendering"
     Fallback "Specular"
 }
 ```
+
+得到如下效果：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/27/xM2JtD8bZmwKSdr.png" width = "70%" height = "70%" alt="图36- 使用一个平行光和一个点光源共同照亮物体。"/>
+</div>
+
+#### 实验：Base Pass 和 Additional Pass 的调用
+为了更直观地理解前向渲染的细节，接下来通过实验学习了解：
+
+***1. 准备工作***  
+①新建名为 Scene_9_2_2_2 的场景，并去掉天空盒子；  
+②将平行光的颜色调为绿色；  
+③在场景中创建一个胶囊体，将上一节的 ForwardRenderingMat 材质赋给该胶囊体；  
+④新建 4 个点光源，颜色调整成相同的红色；  
+⑤保存场景。
+
+得到如下效果：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/11/27/aejdl6LvOsbHEtf.png" width = "70%" height = "70%" alt="图37- 使用1个平行光 + 4个点光源照亮一个物体。"/>
+</div>
+
+当我们创建一个光源时，它的默认 Render Mode（Light 组件中设置）是 Auto，意味着 Unity 会自动为我们判断哪些光源会逐像素处理，哪些会逐顶点或球谐（SH）的方式处理。
+
+由于我们没有更改 Edit -> Project Settings -> Quality -> Pixel Light Count 中，因此默认情况下，一个物体可以接收出除最亮的平行光外的 4 个逐像素光照。
+
+而除了平行光在 Base Pass 中按逐像素的方式被处理，场景里刚好有 4 个点光源，它们的 Render Mode 为 Auto，因此它们会在 Additional Pass 中以逐像素的方式被处理，每个光源调用一次 Additional Pass。
+
+***2. 使用帧调试器 Frame Debugger 来查看场景的绘制过程***  
+
