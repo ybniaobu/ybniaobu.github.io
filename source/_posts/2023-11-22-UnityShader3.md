@@ -490,4 +490,47 @@ Unity 文档中没有给出内置衰减计算的相关说明，我们无法在 S
 
 在前向渲染路径中，如果场景中最重要的平行光开启了阴影，Unity 就会为该光源计算它的阴影映射纹理 shadowmap，这张阴影纹理本质上也是一张深度图，它记录了从该光源的位置出发、能看到的场景中距离它最近的表面位置(深度信息)。
 
-为了得到阴影映射纹理中的深度信息，一种方法是：先把摄像机放到光源的位置，然后按照正常的渲染流程，即调用 Base Pass 和 Additional Pass 来更新深度信息。但是这样会造成一定的性能浪费，所以Unity 使用了一个额外的 Pass 专门更新光源的阴影映射纹理，这个 Pass 的 LightMode 标签设置为 **ShadowCaster**。这个 Pass 的渲染目标
+为了得到阴影映射纹理中的深度信息，一种方法是：先把摄像机放到光源的位置，然后按照正常的渲染流程，即调用 Base Pass 和 Additional Pass 来更新深度信息。但是这样会造成一定的性能浪费，所以Unity 使用了一个额外的 Pass 专门更新光源的阴影映射纹理，这个 Pass 的 LightMode 标签设置为 **ShadowCaster**。这个 Pass 的渲染目标不是帧缓存，而是阴影映射纹理（或深度纹理）。Unity 会首先把摄像机放置到光源的位置上，然后调用该 Pass，通过对顶点变换后得到光源空间下的位置，并据此来输出深度信息到阴影映射纹理中。因此当开启了光源的阴影效果后，底层渲染会优先在当前渲染物体的 Unity Shader 中找到 LightMode 为 ShadowCaster 的 Pass，如果没有，会继续在 Fallback 指定的 Unity Shader 中找，如果仍然没有找到，该物体就不会向其他物体投射阴影（它仍然可以接收来自其他物体的阴影）。当找到后，Unity 会使用该 Pass 来更新光源的阴影映射纹理。
+
+- - -
+
+①传统的阴影映射纹理实现：  
+在正常渲染的 Pass 中把顶点位置变换到光源空间下，以得到光源空间中顶点的位置。然后使用 xy 分量对阴影映射纹理进行采样，得到阴影纹理记录的深度值，如果它小于这个顶点的 z 分量，则说明这个顶点在阴影中。
+
+②Unity 5 中的阴影采样技术：  
+Unity 使用了不同于上述传统的阴影采样技术，即**屏幕空间的阴影映射技术 Screenspace Shadow Map**。该技术原本是延迟渲染中产生阴影的方法，但并不是所有的 Unity 平台都是用该技术，因为其需要显卡支持 MRT，而有些移动平台不支持这种特性。使用该技术时，Unity 会首先调用 LightMode 为 ShadowCaster 的 Pass 得到可投射阴影的光源的阴影映射纹理和相机的深度纹理。然后，根据光源的阴影映射纹理和相机的深度纹理来得到屏幕空间的阴影图。
+
+如果相机深度纹理记录的深度大于转换到光源阴影映射纹理中的深度值，则说明这个物体表面虽然是可见的，但是却处于该光源的阴影中。通过这样的方式，生成的阴影图包含了屏幕空间中所有有阴影的区域。
+
+如果我们想要一个物体接受来自其他物体的阴影，首先需要把表面坐标从模型空间转换到屏幕空间中，然后使用该坐标对阴影图进行采样即可。
+
+- - -
+
+总结，一个物体接收来自其他物体的阴影，以及它向其他物体投射阴影是两个过程：  
+①如果想要一个物体接收来自其他物体的阴影，就必须在 Shader 中对阴影映射纹理（包括屏幕空间的阴影图）进行采样，把采样结果和最后的光照结果相乘来产生阴影效果。  
+②如果想要一个物体向其他物体投射阴影，就必须把该物体加入光源的阴影映射纹理的计算中，从而让其他物体在对阴影映射纹理采样时可以得到该物体的相关信息。 
+
+### 不透明物体的阴影的实践
+准备工作：  
+①新建名为 Scene_9_4_2 的场景，并去掉天空盒子；  
+②新建名为 ShadowMat 的材质，并将上面一节的 ForwardRendering 赋给它；  
+③在场景中创建 1 个正方体、2 个平面，并把上一步创建的材质赋给正方体，平面的材质保持默认；  
+④保存场景。
+
+本例中，平行光的 Shadow Type 选择了 Soft Shadows。
+
+#### 让物体投射阴影
+在 Unity 中，可以选择是否让一个物体投射或接受阴影，通过设置 Mesh Renderer 组件中的 Cast Shadows 和 Receive Shadows 属性来实现。
+
+当 **Cast Shadows** 被设置为 On，Unity 就会把该物体加入光源的阴影映射纹理的计算中。这个过程是通过为该物体执行 LightMode 为 ShadowCaster 的 Pass 来实现的。
+
+若 **Receive Shadows** 没有开启，当我们调用 Unity 的内置宏和变量计算阴影时，这些宏通过判断该物体没有开启接受阴影的功能，就不会再内部计算阴影。
+
+我们把正方形和两个平面的 Cast Shadows 和 Receive Shadows 都设为开启状态，可以得到下图的结果：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/02/Hbt5K4L3Bo9RSOX.png" width = "70%" height = "70%" alt="图38- 开启 Cast Shadows 和 Receive Shadows，从而让正方体可以投射和接收阴影。"/>
+</div>
+
+可以看到，尽管没有对正方体使用的 ForwardRendering 进行任何更改，正方体还是可以向下面的平面投射阴影。这是因为我们将内置的 Specular 作为 Fallback，虽然 Specular 本身也没有包含 LightMode 为 ShadowCaster 的 Pass，但是 Specular 的 Fallback 调用了 VertexLit。我们可以在 Unity 内置的着色器中找到它（内置着色器可以在官网上下载 <a href="http://unity3d.com/cn/get-unity/download/archive">http://unity3d.com/cn/get-unity/download/archive </a>，选择下载的下拉菜单里的 Built in shaders，下载得到的压缩包里面打开 DefaultResourcesExtra -> Normal-VertexLit.shader）。里面的 LightMode 为 ShadowCaster 的 Pass 如下：
+
