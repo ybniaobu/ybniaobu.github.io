@@ -532,5 +532,143 @@ Unity 使用了不同于上述传统的阴影采样技术，即**屏幕空间的
 <img src="https://s2.loli.net/2023/12/02/Hbt5K4L3Bo9RSOX.png" width = "70%" height = "70%" alt="图38- 开启 Cast Shadows 和 Receive Shadows，从而让正方体可以投射和接收阴影。"/>
 </div>
 
-可以看到，尽管没有对正方体使用的 ForwardRendering 进行任何更改，正方体还是可以向下面的平面投射阴影。这是因为我们将内置的 Specular 作为 Fallback，虽然 Specular 本身也没有包含 LightMode 为 ShadowCaster 的 Pass，但是 Specular 的 Fallback 调用了 VertexLit。我们可以在 Unity 内置的着色器中找到它（内置着色器可以在官网上下载 <a href="http://unity3d.com/cn/get-unity/download/archive">http://unity3d.com/cn/get-unity/download/archive </a>，选择下载的下拉菜单里的 Built in shaders，下载得到的压缩包里面打开 DefaultResourcesExtra -> Normal-VertexLit.shader）。里面的 LightMode 为 ShadowCaster 的 Pass 如下：
+可以看到，尽管没有对正方体使用的 ForwardRendering 进行任何更改，正方体还是可以向下面的平面投射阴影。这是因为我们将内置的 Specular 作为 Fallback，虽然 Specular 本身也没有包含 LightMode 为 ShadowCaster 的 Pass，但是 Specular 的 Fallback 调用了 VertexLit。我们可以在 Unity 内置的着色器中找到它（内置着色器可以在官网上下载 <a href="http://unity3d.com/cn/get-unity/download/archive">http://unity3d.com/cn/get-unity/download/archive </a>，选择下载的下拉菜单里的 Built in shaders，下载得到的压缩包里面打开 DefaultResourcesExtra -> Normal-VertexLit.shader）。该 shader 里面就有 LightMode 为 ShadowCaster 的 Pass。
 
+上图还有个特殊现象，就是右侧的平面没有向下面的平面投射阴影，尽管它的 Cast Shadow 已经被开启了。在默认情况下，计算光源的阴影映射纹理会剔除掉物体的背面。我们可以将 Cast Shadow 设置为 **Two Sided** 来允许对物体的所有面都计算阴影信息。
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/04/QXquABdU7ztsi9r.png" width = "70%" height = "70%" alt="图39- 把 Cast Shadows 设置为 Two Sided 可以让右侧平面的背光面也产生阴影。"/>
+</div>
+
+但是，这种图中正方体无法接收阴影，是因为使用的 Shader 没有对阴影进行任何处理。而下面的平面可以接收阴影是因为内置的 Standard Shader，该 Shader 进行了接受阴影的相关操作。
+
+#### 让物体接收阴影
+为了让立方体可以接收阴影，我们新建一个 Unity Shader，命名为 Chapter9-Shadow，复制 Chapter9-ForwardRendering 的代码，并做部分修改：
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 9/Shadow"
+{
+    Properties
+    {
+        _Diffuse("Diffuse", Color) = (1, 1, 1, 1)
+        _Specular("Specular", Color) = (1, 1, 1, 1)
+        _Gloss("Gloss", Range(8.0, 256)) = 20
+    }
+
+    SubShader
+    {
+        Tags { "RenderType" = "Opaque" }
+
+        Pass
+        {
+            Tags { "LightMode" = "ForwardBase" }
+
+            CGPROGRAM
+
+            #pragma multi_compile_fwdbase
+
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Lighting.cginc"
+            #include "AutoLight.cginc" // 下面计算阴影需要使用的宏都是在这个文件声明的
+
+            fixed4 _Diffuse;
+            fixed4 _Specular;
+            float _Gloss;
+
+            struct a2v
+            {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+            };
+
+            struct v2f
+            {
+                float4 pos : SV_POSITION;
+                float3 worldNormal : TEXCOORD0;
+                float3 worldPos : TEXCOORD1;
+                SHADOW_COORDS(2) // 这个宏声明一个用于对阴影纹理采样的坐标。这个宏的参数是下一个可用的插值寄存器的索引值，0 和 1 都使用了，所以传入 2
+            };
+
+            v2f vert(a2v v)
+            {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.worldNormal = UnityObjectToWorldNormal(v.normal);
+                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+                TRANSFER_SHADOW(o); // 这个宏计算 v2f 结构中声明的阴影纹理坐标
+                return o;
+            }
+
+            fixed4 frag(v2f i) : SV_Target
+            {
+                fixed3 worldNormal = normalize(i.worldNormal);
+                fixed3 worldLightDir = normalize(_WorldSpaceLightPos0.xyz);
+
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz;
+                fixed3 diffuse = _LightColor0.rgb * _Diffuse.rgb * max(0, dot(worldNormal, worldLightDir));
+
+                fixed3 viewDir = normalize(_WorldSpaceCameraPos.xyz - i.worldPos.xyz);
+                fixed3 halfDir = normalize(worldLightDir + viewDir);
+                fixed3 specular = _LightColor0.rgb * _Specular.rgb * pow(max(0, dot(worldNormal, halfDir)), _Gloss);
+
+                fixed atten = 1.0;
+                fixed shadow = SHADOW_ATTENUATION(i); // 这个宏计算阴影值
+                return fixed4(ambient + (diffuse + specular) * atten * shadow, 1.0);
+            }
+            ENDCG
+        }
+
+        Pass
+        {
+            ... // 和 Chapter9-ForwardRendering 里一样
+        }
+    }
+    Fallback "Specular"
+}
+```
+
+**SHADOW_COORDS**、**TRANSFER_SHADOW** 和 **SHADOW_ATTENUATION** 是计算阴影的“三剑客”。这些内置宏帮我们计算了光源的阴影，在 AutoLight.cginc 中可以找到它们的声明：  
+①**SHADOW_COORDS**：声明一个名为 _ShadowCoord 的阴影纹理坐标变量；  
+②**TRANSFER_SHADOW**：实现会根据平台变化。如果平台支持屏幕空间的阴影映射技术（通过判断是否定义了 UNITY_NO_SCREENSPACE_SHADOWS 来得到），会调用内置的 ComputeScreenPos 函数来计算 _ShadowCoord。如果不支持，会把顶点坐标从模型空间变换到光源空间后存储到 _ShadowCoord 中；  
+③**SHADOW_ATTENUATION**：使用 _ShadowCoord 对相关纹理进行采样，得到阴影信息。
+
+内置代码也定义了关闭阴影的处理代码，当关闭阴影时，SHADOW_COORDS 和 TRANSFER_SHADOW 实际没有任何作用，而 SHADOW_ATTENUATION 会直接等于数值 1。
+
+需要注意的是，由于这这宏中会使用上下文变量进行相关计算，例如 TRANSFER_SHADOW 会使用 v.vertex 或 a.pos 来计算坐标，因此为了这些宏能够正常工作，我们需要保证 a2f 结构体中顶点坐标变量名必须是 vertex，顶点着色器的输出结构体必须命名为 v， 且 v2f 中的顶点位置变量必须命名为 pos。
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/04/zjDXnOVRS9MwZiY.jpg" width = "70%" height = "70%" alt="图40- 正方体可以接收来自右侧平面的阴影。"/>
+</div>
+
+### 使用帧调试器查看阴影绘制过程
+在 Window -> Analysis -> Frame Debugger 中打开帧调试器。可以看到主要分为 4 个渲染事件：  
+①UpdateDepthTexture：更新摄像机的深度纹理；  
+②Shadows.RenderShadowMap：渲染得到平行光的阴影映射纹理；  
+③RenderForwardOpaque.CollectShadows：根据深度纹理和阴影映射纹理得到屏幕空间的阴影图；  
+④RenderForward.RenderLoopJob：绘制渲染结果。
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/04/JPxETG6s1kKIYzL.jpg" width = "80%" height = "80%" alt="图41- 使用帧调试器查看阴影绘制过程。"/>
+</div>
+
+上述四个渲染事件的具体图片不在这里放出了。帧调试器右侧面板可以看到具体调用了哪个 Shader 的哪个 Pass 绘制了当前纹理或图片。
+
+### 统一管理光照衰减和阴影
+前面的例子实现中，我们把光照衰减因子、阴影值和光照结果相乘得到最终的渲染结果。其实，Unity 提供了 **UNITY_LIGHT_ATTENUATION** 这个内置宏来同时计算这两个信息。
+
+我们新建一个材质，命名为 AttenuationAndShadowUseBuildInFunctionsMat；同时新建名为 Chapter9-AttenuationAndShadowUseBuildInFunctions 的 Shader。将上一节的 Chapter9-Shadow 的代码复制进去，将下面代码删除：
+
+    fixed atten = 1.0;
+    fixed shadow = SHADOW_ATTENUATION(i);
+
+修改为
+
+    UNITY_LIGHT_ATTENUATION(atten, i, i.worldPos);
+
+**UNITY_LIGHT_ATTENUATION** 接收 3 个参数，它会将光照衰减和阴影值相乘后的结果存储到第一个参数中。无需在代码中声明 atten 参数，该宏会帮我们声明这个变量。第二个参数是结构体 v2f ，这个参数会传递给 **SHADOW_ATTENUATION** ，用来计算阴影值。第三个参数是世界空间下的坐标，这个参数会用于计算光源空间下的坐标，再对光照衰减纹理采样来得到光照衰减。
+
+由于使用了 **UNITY_LIGHT_ATTENUATION**，Base Pass 和 Additional Pass 的代码可以统一，我们不需要在 Base Pass 里单独处理阴影，也不需要在 Additional Pass 中判断光源类型来处理关照衰减，一切都可以通过 **UNITY_LIGHT_ATTENUATION** 来完成。将 Additional Pass 中的两个结构体、顶点着色器和片元着色器中的代码改为和 Bass Pass 一模一样即可。如果希望在 Additional Pass 中也添加阴影效果，需要使用 `#pragma multi_compile_fwdadd_fullshadows` 来代替  Additional Pass 中的 `#pragma multi_compile_fwdadd` 指令。这样，Unity 也会为这些额外的逐像素光源计算阴影，并传递给 Shader。
+
+### 透明度物体的阴影
