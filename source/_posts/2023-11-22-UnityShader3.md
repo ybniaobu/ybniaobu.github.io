@@ -534,6 +534,8 @@ Unity 使用了不同于上述传统的阴影采样技术，即**屏幕空间的
 
 可以看到，尽管没有对正方体使用的 ForwardRendering 进行任何更改，正方体还是可以向下面的平面投射阴影。这是因为我们将内置的 Specular 作为 Fallback，虽然 Specular 本身也没有包含 LightMode 为 ShadowCaster 的 Pass，但是 Specular 的 Fallback 调用了 VertexLit。我们可以在 Unity 内置的着色器中找到它（内置着色器可以在官网上下载 <a href="http://unity3d.com/cn/get-unity/download/archive">http://unity3d.com/cn/get-unity/download/archive </a>，选择下载的下拉菜单里的 Built in shaders，下载得到的压缩包里面打开 DefaultResourcesExtra -> Normal-VertexLit.shader）。该 shader 里面就有 LightMode 为 ShadowCaster 的 Pass。
 
+这个 LightMode 为 ShadowCaster 的 Pass 在这里就不摘抄了，里面使用了一些宏，主要是为了把深度信息输出到一张深度图或者阴影映射纹理中。总之，想要在 Unity 让物体能够向其他物体投射阴影，一定要在它使用的 Unity Shader 中提供一个 LightMode 为 ShadowCaster 的 Pass。
+
 上图还有个特殊现象，就是右侧的平面没有向下面的平面投射阴影，尽管它的 Cast Shadow 已经被开启了。在默认情况下，计算光源的阴影映射纹理会剔除掉物体的背面。我们可以将 Cast Shadow 设置为 **Two Sided** 来允许对物体的所有面都计算阴影信息。
 
 <div  align="center">  
@@ -672,3 +674,40 @@ Shader "Unity Shaders Book/Chapter 9/Shadow"
 由于使用了 **UNITY_LIGHT_ATTENUATION**，Base Pass 和 Additional Pass 的代码可以统一，我们不需要在 Base Pass 里单独处理阴影，也不需要在 Additional Pass 中判断光源类型来处理关照衰减，一切都可以通过 **UNITY_LIGHT_ATTENUATION** 来完成。将 Additional Pass 中的两个结构体、顶点着色器和片元着色器中的代码改为和 Bass Pass 一模一样即可。如果希望在 Additional Pass 中也添加阴影效果，需要使用 `#pragma multi_compile_fwdadd_fullshadows` 来代替  Additional Pass 中的 `#pragma multi_compile_fwdadd` 指令。这样，Unity 也会为这些额外的逐像素光源计算阴影，并传递给 Shader。
 
 ### 透明度物体的阴影
+对于大多数不透明的物体，把 Fallback 设为 VertexLit 就可以得到正确的阴影；但是对于透明物体来说，透明物体的实现通常会使用**透明度测试**或**透明度混合**，我们需要小心设置这些物体的 Fallback。
+
+#### 透明度测试
+透明度测试的处理比较简单，但是如果我们仍然直接使用 VertexLit、Diffuse、Specular 等作为回调，往往无法得到正确的阴影，因为透明度测试需要在片元着色器中舍弃某些片元，而 VertexLit 中的阴影映射纹理并没有进行这样的操作，所以会导致被舍弃的片元依然投射了阴影。
+
+我们新建一个 Scene_9_4_5_a 的场景，新建 AlphaTestWithShadowMat 的材质和 Chapter9-AlphaTestWithShadow 的 Unity Shader，将 Chapter8-AlphaTestBothSided 复制进去，然后添加阴影的计算：  
+①增加 `#include "AutoLight.cginc"` 头文件  
+②在 v2f 使用内置宏：`SHADOW_COORDS(3)`  
+③在顶点着色器中使用内置宏：`TRANSFER_SHADOW(o);`  
+④在片元着色器中使用内置宏：`UNITY_LIGHT_ATTENUATION(atten, i, i.worldPos);`  
+⑤把 Fallback 改为 VertexLit
+
+效果如下：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/05/ENogdGBhvMmIlZn.jpg" width = "70%" height = "70%" alt="图42- 错误设置了 Fallback 的使用透明度测试的物体投射阴影。"/>
+</div>
+
+可以看出镂空的区域出现了不正常的阴影，这就是因为内置的 VertexLit 提供的 ShadowCaster 的 Pass 没有进行任何透明度测试的计算，因此，它会把整个物体的深度信息写入深度图和者阴影映射纹理中。
+
+而当我们把 Fallback 改为 Transparent/Cutout/VertexLit（之前透明度测试时候使用过的），它的 ShadowCaster Pass 计算了透明度测试，会把裁剪后的物体的深度信息写入深度图和者阴影映射纹理中。需要注意，Transparent/Cutout/VertexLit 计算透明度测试使用了名为 _Cutoff 的属性来进行透明度测试，即我们的 Shader 里必须提供名为 _Cutoff 的属性。更改了 Fallback 后的效果如下：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/05/CEeXPQwrJG8I9Lc.jpg" width = "70%" height = "70%" alt="图43- 正确设置了 Fallback 的使用透明度测试的物体投射阴影。"/>
+</div>
+
+但是这样还是不对，出现了一些不应该透过光的部分。出现这种情况的原因是，默认情况下把物体渲染到深度图和阴影映射纹理中仅考虑物体的正面。所以需要把正方体的 Mesh Renderer 组件中的 Cast Shadows 属性设置为 Two Sided。效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/05/JjhxkbsoByz5tdZ.jpg" width = "70%" height = "70%" alt="图44- 正确设置了 Cast Shadow 属性的使用透明度测试的物体投射阴影。"/>
+</div>
+
+#### 透明度混合
+透明度混合添加阴影相比透明度测试更复杂。所有 Unity 内置的透明度混合，比如：Transparent/VertexLit 等，都没有阴影投射的 Pass，这意味着半透明物体不参与深度图和阴影映射纹理的计算，即不会向其他物体投射阴影，同时也不会接受其他物体的阴影。
+
+我们新建一个 Scene_9_4_5_b 的场景，新建 AlphaBlendWithShadowMat 的材质和 Chapter9-AlphaBlendWithShadow 的 Unity Shader，将 Chapter8-AlphaTestBothSided 复制进去，然后添加阴影的计算，并且它的 Fallback 是内置的 Transparent/VertexLit。效果如下：  
+
