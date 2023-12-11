@@ -709,5 +709,130 @@ Shader "Unity Shaders Book/Chapter 9/Shadow"
 #### 透明度混合
 透明度混合添加阴影相比透明度测试更复杂。所有 Unity 内置的透明度混合，比如：Transparent/VertexLit 等，都没有阴影投射的 Pass，这意味着半透明物体不参与深度图和阴影映射纹理的计算，即不会向其他物体投射阴影，同时也不会接受其他物体的阴影。
 
-我们新建一个 Scene_9_4_5_b 的场景，新建 AlphaBlendWithShadowMat 的材质和 Chapter9-AlphaBlendWithShadow 的 Unity Shader，将 Chapter8-AlphaTestBothSided 复制进去，然后添加阴影的计算，并且它的 Fallback 是内置的 Transparent/VertexLit。效果如下：  
+我们新建一个 Scene_9_4_5_b 的场景，新建 AlphaBlendWithShadowMat 的材质和 Chapter9-AlphaBlendWithShadow 的 Unity Shader，将 Chapter8-AlphaBlend 复制进去，然后添加阴影的计算，并且它的 Fallback 是内置的 Transparent/VertexLit。效果如下：  
 
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/11/gRJxAd3GZVUrvFH.jpg" width = "70%" height = "70%" alt="图45- 把使用了透明度混合的 Unity Shader 的 Fallback 设置为内置的
+ Transparent/VertexLit。半透明物体不会向下方的平面投射阴影，也不会接收来自右侧平面
+的阴影，它看起来就像是完全透明一样"/>
+</div>
+
+Unity 不处理半透明物体的阴影，是由于透明度混合需要关闭深度写入，会影响阴影的生成。若想为半透明物体产生正确的阴影，需要在每个光源空间下仍然严格按照从后往前的顺序进行渲染，这会让阴影处理变得复杂，从而影响性能。因此，在 Unity 中，所有内置的半透明 Shader 是不会产生任何阴影效果的。
+
+但是可以通过把它们的 Fallback 设置为 VertexLit、Diffuse 这些不透明物体使用的 Unity Shader，这样 Unity 就会在它的 Fallback 找到一个阴影投射的 Pass。
+
+
+## 本书使用的标准 Unity Shader
+将截止到本节所学的所有基础光照计算整合在一起实现的标准光照着色器如下，都包含了对法线纹理、多光源、光照衰减和阴影的相关处理：  
+①BumpedDiffuse，使用 Phong 光照模式，链接如下：  
+https://github.com/candycat1992/Unity_Shaders_Book/blob/master/Assets/Shaders/Common/BumpedDiffuse.shader  
+②BumpedSpecular，使用 Blinn-Phong 光照模型，链接如下：
+https://github.com/candycat1992/Unity_Shaders_Book/blob/master/Assets/Shaders/Common/BumpedSpecular.shader
+
+
+# 第九章 高级纹理
+## 立方体纹理
+在图形学中，**立方体纹理 Cubemap** 是**环境映射 Environment Mapping** 的一种实现方法。环境映射可以模拟物体周围的环境，而使用了环境映射的物体可以看起来像镀了层金属一样反射出周围的环境。
+
+和之前的纹理不同，立方体纹理一共包含了 6 张图像，这些图像对应了一个立方体的 6 个面。立方体的每个面表示沿着世界空间下的轴向（上下左右前后）观察所得的图像。而对立方体纹理采样，需要提供一个三维的纹理坐标。这个方向矢量从立方体的中心出发，当它向外部延伸时就会和立方体的 6 个纹理之一发生相交，而采样得到的结果就是由该交点计算而来的。
+
+使用立方体纹理的好处在于，它的实现简单快速，而且得到的效果也比较好。而它的缺点为，例如当场景中引入了新的物体、光源或者物体发生移动时，就需要重新生成立方体纹理。除此之外，立方体纹理也仅可以反射环境，但不能反射使用了该立方体纹理的物体本身。因为立方体纹理不能模拟多次反射的结果，例如两个金属球互相反射的情况（Unity 5 引入的全局光照系统允许实现这样的自反射效果，见第 17 章）。因此应该尽量对于凸面体而不是凹面体使用立方体纹理（因为凹面体回反射自身）。
+
+立方体纹理在实时渲染中有很多应用，最常见的是用于天空盒子 Skybox 以及环境映射。
+
+### 天空盒子
+**天空盒子 sky box** 是游戏中用于模拟背景的一种方法。它用来模拟天空（尽管仍可以用它模拟室内等背景）。当我们在背景中使用了天空盒子时，整个场景被包围在一个立方体内。这个立方体每个面使用的技术就是立方体纹理映射技术。
+
+在 Unity 中，使用天空盒子，只需要创建一个 Skybox 材质，再把它赋给该场景的相关设置即可：  
+①新建名为 SkyboxMat 的材质；  
+②将新建的材质选择 Unity 自带的 Shader - Skybox/6Sided，该材质需要 6 张纹理；  
+③使用原书的 6 张纹理资源，在 \Assets\Textures\Chapter10\Cubemaps 目录下，并在纹理的 Inspector 面板上将 Wrap Mode 设置为 Clamp，防止衔接处出现不匹配的现象；  
+④将 6 张纹理拖到材质面板对应的纹理属性上（注意位置，posz 纹理对应 Front\[+Z\] 属性）
+
+上面的材质中，除了 6 张纹理属性外还有 3 个属性：  
+①**Tint Color**，用于控制该材质的整体颜色；  
+②**Exposure**，用于控制天空盒子的亮度；  
+③**Rotation**，用于调整天空盒子沿 +y 轴方向的旋转角度。
+
+下面为场景添加 Skybox：  
+①新建名为 Scene_10_1_1 的场景；  
+②在 Unity 菜单 Window -> Rendering -> Environment 中，将 SkyboxMat 材质赋给 SkyBox 选项；  
+③确保场景主相机的 Camera 组件中的 Clear Flags 被设置为 Skybox。
+
+效果如下：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/11/qVs5DNiCmgXUMTJ.jpg" width = "70%" height = "70%" alt="图46- 使用了天空盒子的场景"/>
+</div>
+
+
+需要说明的是，在 Window -> Rendering -> Environment 中设置的天空盒子会应用于该场景中的所有摄像机，如果希望某个摄像机使用不同的 Skybox，需要为该摄像机添加 Skybox 的组件来单独为该摄像机设置 Skybox。
+
+在 Unity 中，天空盒子是在所有不透明物体之后渲染的，而其背后使用的网格式一个立方体或一个细分后的球体。
+
+### 创建用于环境映射的立方体纹理
+除了天空盒子，立方体纹理最常见的用处是用于环境映射。通过这种办法，可以模拟出金属质感的材质。
+
+在 Unity 5 中，创建用于环境映射的立方体纹理的办法有三种：  
+①第一种方法是直接由一些特殊布局的纹理创建，提供一张具有特殊布局的纹理，例如类似立方体展开图的交叉布局、全景布局等。然后把该纹理的 Texture Type 设置为 Cubemap 即可。在基于物理的渲染中，通常使用一张 HDR 图像来生成高质量的 Cubemap；  
+②第二种方法是手动创建一个 Cubemap 资源，再把 6 张图赋给它。在 Unity 5 中，官方推荐使用第一种方法创建立方体纹理，因为第一种方法可以对纹理数据进行压缩，而且支持边缘修正、光滑反射（glossy reflection）和 HDR 等功能；  
+③由脚本生成。
+
+前两种方法都需要提前准备好立方体纹理的图像，它们得到的立方体纹理常常是背场景中的物体所共用。而理想情况下，我们希望根据物体在场景中位置的不同，生成它们各自不同的立方体纹理。这时，可以通过利用 Unity 提供的 **Camera.RenderToCubemap** 来实现。该函数可以把从任意位置观察到的场景图像存储到 6 张图像中，从而创建出该位置上对应的立方体纹理。代码如下：  
+
+``` C#
+using UnityEngine;
+using UnityEditor;
+using System.Collections;
+
+public class RenderCubemapWizard : ScriptableWizard {
+    
+    public Transform renderFromPosition;
+    public Cubemap cubemap;
+    
+    void OnWizardUpdate () {
+        helpString = "Select transform to render from and cubemap to render into";
+        isValid = (renderFromPosition != null) && (cubemap != null);
+    }
+    
+    void OnWizardCreate () {
+        // create temporary camera for rendering
+        GameObject go = new GameObject( "CubemapCamera");
+        go.AddComponent<Camera>(); 
+        // place it on the object
+        go.transform.position = renderFromPosition.position;
+        // render into cubemap        
+        go.GetComponent<Camera>().RenderToCubemap(cubemap);
+        
+        // destroy temporary camera
+        DestroyImmediate( go );
+    }
+    
+    [MenuItem("GameObject/Render into Cubemap")]
+    static void RenderCubemap () {
+        ScriptableWizard.DisplayWizard<RenderCubemapWizard>(
+            "Render cubemap", "Render!");
+    }
+}
+```
+
+在上面的代码中，我们在 renderFromPosition（由用户指定）位置处动态创建一个摄像机，并调用 Camera.RenderToCubemap 函数把从当前位置观察到的图像渲染到用户指定的立方体纹理 cubemap 中，完成后再销毁临时摄像机。由于该代码需要添加菜单栏条目，因此需要把它放在 Editor 文件夹中才能正确执行。
+
+准备完上述代码后，创建一个立方体纹理的其他步骤如下：  
+①使用上面相同的场景，并创建一个空的 GameObject 对象，我们会使用该 GameObject 的位置信息来渲染立方体纹理；  
+②新建一个存储的立方体纹理，在 Project 下右键 Creat -> Legacy -> Cubemap 来创建，同时还需要在其面板上勾选 Readable 选项，让脚本顺利将图像渲染到该立方体纹理中；  
+③在 Unity 菜单栏选择 GameObject -> Render into Cubemap，打开在脚本中实现的用于渲染立方体纹理的窗口，并把第一步的 GameObject 和第二步的 Cubemap_0 拖拽给 Render From Position 和 Cubemap 选项；  
+④点击窗口中的 Render! 按钮可观察到现象。而 Face size 选项越大，渲染出来的立方体纹理分辨率越大，效果越好，占用的内存更大。如下图所示：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/11/HzXGrBQZp6cFRYf.jpg" width = "40%" height = "40%" alt="图47- 使用脚本渲染立方体纹理"/>
+</div>
+
+准备好了需要的立方体纹理后，就可以对物体使用环境映射技术。而环境映射最常见的应用就是反射和折射。
+
+### 反射
+
+
+
+
+ 
