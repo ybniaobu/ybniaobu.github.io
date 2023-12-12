@@ -831,8 +831,229 @@ public class RenderCubemapWizard : ScriptableWizard {
 准备好了需要的立方体纹理后，就可以对物体使用环境映射技术。而环境映射最常见的应用就是反射和折射。
 
 ### 反射
+使用了反射的物体可以看起来像镀了层金属。模拟反射效果，只需要通过入射光线的方向和表面法线方向来计算反射方向，再利用反射方向对立方体纹理采样即可。
 
+准备工作如下：  
+①新建名为 Scene_10_1_3 的场景，并将天空盒替换成第一小节定义的天空盒；  
+②向场景中拖拽一个 Teapot 模型，将其位置调整为前面小节创建的 Cubemap_0 时使用的空 GameObject 的位置；  
+③新建名为 ReflectionMat 的材质，并赋给 Teapot 模型；  
+④新建名为 Chapter10-Reflection 的 Unity Shader，并赋给上一步创建的材质；
 
+```  C C for Graphics
+Shader "Unity Shaders Book/Chapter 10/Reflection"
+{
+    Properties
+    {
+        _Color ("Color Tint", Color) = (1, 1, 1, 1)
+        _ReflectColor ("Reflect Color", Color) = (1, 1, 1, 1) // 反射颜色
+        _ReflectAmount ("Refect Amount", Range(0, 1)) = 1 // 反射程度
+        _Cubemap ("Reflection Cubemap", Cube) = "_Skybox" {} // 反射的环境映射纹理
+    }
 
+    SubShader {
+        Tags { "RenderType"="Opaque" "Queue"="Geometry"}
+        
+        Pass { 
+            Tags { "LightMode"="ForwardBase" }
+            
+            CGPROGRAM
+            
+            #pragma multi_compile_fwdbase
+            
+            #pragma vertex vert
+            #pragma fragment frag
+            
+            #include "Lighting.cginc"
+            #include "AutoLight.cginc"
+            
+            fixed4 _Color;
+            fixed4 _ReflectColor;
+            fixed _ReflectAmount;
+            samplerCUBE _Cubemap;
+            
+            struct a2v {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+            };
+            
+            struct v2f {
+                float4 pos : SV_POSITION;
+                float3 worldPos : TEXCOORD0;
+                fixed3 worldNormal : TEXCOORD1;
+                fixed3 worldViewDir : TEXCOORD2;
+                fixed3 worldRefl : TEXCOORD3;
+                SHADOW_COORDS(4)
+            };
+            
+            v2f vert(a2v v) {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.worldNormal = UnityObjectToWorldNormal(v.normal);
+                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+                o.worldViewDir = UnityWorldSpaceViewDir(o.worldPos);
+                o.worldRefl = reflect(-o.worldViewDir, o.worldNormal); //计算该顶点的反射方向，通过 reflect 函数实现。同时物体反射到摄像机中的光线方向，可以通过光路可逆的原则来反向求得。即，计算视角方向关于顶点法线的反射方向来求得入射光线的方向。
+                
+                TRANSFER_SHADOW(o);
+                return o;
+            }
+            
+            fixed4 frag(v2f i) : SV_Target {
+                fixed3 worldNormal = normalize(i.worldNormal);
+                fixed3 worldLightDir = normalize(UnityWorldSpaceLightDir(i.worldPos));        
+                fixed3 worldViewDir = normalize(i.worldViewDir);        
+                
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz;
+                fixed3 diffuse = _LightColor0.rgb * _Color.rgb * max(0, dot(worldNormal, worldLightDir));
+                
+                fixed3 reflection = texCUBE(_Cubemap, i.worldRefl).rgb * _ReflectColor.rgb; //对立方体纹理采样使用的是 Cg 的 texCUBE 函数。利用反射方向来对立方体纹理采样，而没有对 worldRefl 归一化是因为采样的参数仅仅是作为方向变量传递给 texCUBE，因此没有必要归一化。
+                
+                UNITY_LIGHT_ATTENUATION(atten, i, i.worldPos);
+                
+                fixed3 color = ambient + lerp(diffuse, reflection, _ReflectAmount) * atten; //用 ReflectAmount 进行混合漫反射颜色和反射颜色，并和环境光照相加后返回
+                
+                return fixed4(color, 1.0);
+            }
+            ENDCG
+        }
+    }
+    FallBack "Reflective/VertexLit"
+}
+```
 
- 
+在上面计算中，选择的是在顶点着色器中计算反射方向，若在片元着色器中计算，效果会跟细腻。但是这种差别很小，出于性能的考虑，选择了顶点着色器中计算反射方向。
+
+在材质面板中把 Cubemap_0 拖拽到 Reflection Cubemap 属性中，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/12/rThjxqKUcZPRJiN.jpg" width = "70%" height = "70%" alt="图48- 使用了反射效果的 Teapot 模型"/>
+</div>
+
+### 折射
+折射，即当光线从一种介质（比如：空气）斜射入另一种介质（比如：玻璃）时，传播方向会发生改变。当给定入射角时，可以使用**斯涅尔定律 Snell's Law** 来计算反射角。
+
+当光从介质 1 沿着和表面法线夹角为 $\,{\theta}_1\,$ 的方向斜射入介质 2 时，可以使用如下公式计算折射光线与法线的夹角 $\,{\theta}_2\,$ ：
+
+$$ {\eta}_1 \sin {\theta}_1 = {\eta}_2 \sin {\theta}_2 $$
+
+其中，$\,{\eta}_1\,$ 和 $\,{\eta}_2\,$ 分别是两个介质的**折射率 index of refraction**。如下图：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/12/LoNTm43c9qPzeDj.jpg" width = "40%" height = "40%" alt="图49- 斯涅尔定律"/>
+</div>
+
+通常来讲，当得到折射方向后，我们会直接使用它来对立方体纹理进行采样，这不符合物理规律。对一个透明物体来说，更准确的模拟方法需要计算两次折射，即进入物体一次，出去一次。但是，想要在实时渲染中模拟出第二次折射方向是比较复杂的，而且由于仅仅模拟一次的效果从视觉上也还过得去，所有通常只模拟一次折射。
+
+准备工作如下：  
+①新建名为 Scene_10_1_4 的场景，并将天空盒替换成第一小节定义的天空盒；  
+②向场景中拖拽一个 Teapot 模型，并调整其位置；  
+③新建名为 RefractionMat 的材质，赋给上一步创建的模型；  
+④新建名为 Chapter10-Refraction 的 Unity Shader，赋给上一步创建的材质。
+
+```  C C for Graphics
+Shader "Unity Shaders Book/Chapter 10/Refraction" {
+    Properties {
+        _Color ("Color Tint", Color) = (1, 1, 1, 1)
+        _RefractColor ("Refraction Color", Color) = (1, 1, 1, 1)
+        _RefractAmount ("Refraction Amount", Range(0, 1)) = 1 
+        _RefractRatio ("Refraction Ratio", Range(0.1, 1)) = 0.5 //不同介质的折射率透射比
+        _Cubemap ("Refraction Cubemap", Cube) = "_Skybox" {}
+    }
+    SubShader {
+        Tags { "RenderType"="Opaque" "Queue"="Geometry"}
+        
+        Pass { 
+            Tags { "LightMode"="ForwardBase" }
+            
+            CGPROGRAM
+            
+            #pragma multi_compile_fwdbase	
+            
+            #pragma vertex vert
+            #pragma fragment frag
+            
+            #include "Lighting.cginc"
+            #include "AutoLight.cginc"
+            
+            fixed4 _Color;
+            fixed4 _RefractColor;
+            float _RefractAmount;
+            fixed _RefractRatio;
+            samplerCUBE _Cubemap;
+            
+            struct a2v {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+            };
+            
+            struct v2f {
+                float4 pos : SV_POSITION;
+                float3 worldPos : TEXCOORD0;
+                fixed3 worldNormal : TEXCOORD1;
+                fixed3 worldViewDir : TEXCOORD2;
+                fixed3 worldRefr : TEXCOORD3;
+                SHADOW_COORDS(4)
+            };
+                
+            v2f vert(a2v v) {
+                v2f o;
+                o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
+                o.worldNormal = UnityObjectToWorldNormal(v.normal);
+                o.worldPos = mul(_Object2World, v.vertex).xyz;
+                o.worldViewDir = UnityWorldSpaceViewDir(o.worldPos);
+                
+                //使用 Cg 的 refract 函数来计算折射方向。第一个参数为入射光线的方向，必须是归一化后的矢量；第二个参数是归一化后的表面法线；第三个参数是入射光线所在介质的折射率和折射光线所在介质的折射率的比值。它返回折射方向，它的模等于入射光线的模
+                o.worldRefr = refract(-normalize(o.worldViewDir), normalize(o.worldNormal), _RefractRatio);
+                
+                TRANSFER_SHADOW(o);
+                return o;
+            }
+                
+            fixed4 frag(v2f i) : SV_Target {
+                fixed3 worldNormal = normalize(i.worldNormal);
+                fixed3 worldLightDir = normalize(UnityWorldSpaceLightDir(i.worldPos));
+                fixed3 worldViewDir = normalize(i.worldViewDir);
+                				
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz;
+                fixed3 diffuse = _LightColor0.rgb * _Color.rgb * max(0, dot(worldNormal, worldLightDir));
+                
+                //也不需要对 i.worldRefr 进行归一化处理
+                fixed3 refraction = texCUBE(_Cubemap, i.worldRefr).rgb * _RefractColor.rgb;
+                
+                UNITY_LIGHT_ATTENUATION(atten, i, i.worldPos);
+                
+                //混合颜色
+                fixed3 color = ambient + lerp(diffuse, refraction, _RefractAmount) * atten;
+                
+                return fixed4(color, 1.0);
+            }
+            ENDCG
+        }
+    } 
+    FallBack "Reflective/VertexLit"
+}
+```
+
+在材质面板中把 Cubemap_0 拖拽到 Reflection Cubemap 属性中，效果如下：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/12/tW4vblJYuIzegXN.jpg" width = "70%" height = "70%" alt="图50- 使用了折射效果的 Teapot 模型"/>
+</div>
+
+### 菲涅耳反射
+实时渲染中，我们经常会使用**菲涅耳反射 Fresnel reflection** 来根据视角方向控制反射程度。
+
+简单的讲，就是视线垂直于表面时，反射较弱；而当视线非垂直表面时，夹角越小，反射越明显。菲涅尔反射描述了这种光学现象，当光线照射到物体表面时，一部分发生反射，一部分进入物体内部，发生折射或散射。被反射的光和入射光之间存在一定的比率关系，这个比率关系可以通过菲涅尔等式进行计算。
+
+一个常见的例子是，站在湖边，低头看湖面，会发现水是透明的，但是抬头看远处的水面时，只能看到水面反射的效果，几乎看不到水下的情景。事实上，几乎所有物体都包含了菲涅耳效果，这是基于物理的渲染中非常重要的一项高光反射计算因子（详见第 17 章）。
+
+> 可以在 John Hable 的一篇非常有名的文章 Everything Has Fresnel 中看到现实生活中各种物体的菲涅耳反射效果：http://filmicworlds.com/blog/everything-has-fresnel/
+
+真实世界的菲涅耳等式非常复杂，在实时渲染中，会使用一些近似公式来计算。其中一个著名的近似公式就是 **Schlick 菲涅耳近似等式**：
+
+$$ F_{Schlick}(v, n) = F_0 + (1 - F_0)(1 - v \cdot n)^5 $$
+
+$\,F_0\,$ 是一个反射系数，根据材质的不同数值会有所不同。折射率可以用来计算 $\,F_0\,$，假设折射率 $\,{\eta}_1$ 和 $\,{\eta}_2\,$ ，可以得到以下公式：
+
+$$ F_0 = (\cfrac {\eta_1 - \eta_2}{\eta_1 + \eta_2})^2 $$
+
+另一个
