@@ -1240,3 +1240,274 @@ Shader "Unity Shaders Book/Chapter 10/Mirror" {
 下面会使用 GrabPass 来模拟一个玻璃效果。首先使用了一张法线纹理来修改模型的法线信息，然后通过一个 Cubemap 来模拟玻璃的反射。模拟折射的时候，使用 GrabPass 获取玻璃后面的屏幕图像，并使用切线空间下的法线对屏幕纹理坐标偏移后，再对屏幕图像进行采样来模拟近似的折射效果。
 
 准备工作：  
+①新建名为 Scene_10_2_2 的场景，并去掉天空盒子；  
+②新建名为 GlassRefractionMat 的材质；  
+③新建名为 Chapter10-GlassRefraction 的 Unity Shader，并赋给上一步的材质；  
+④在场景中创建 6 个平面，调整其位置和大小，以其作为墙，构成封闭的房间。在房间内放置 1 个立方体和一个球体，其中球体位于立方体内部，为了模拟玻璃对内部物体的折射效果，将第 2 步创建的材质赋给立方体；  
+⑤使用之前小节实现的创建 Cubemap 的脚本来创建使用本场景的环境映射纹理：Project 视图目下右键 Create -> Legacy -> Cubemap，创建立方体纹理，命名为 Glass_Cubemap，并在创建后的 Cubemap 的 Inspector 窗口中勾选 Readable；然后通过在菜单栏 GameObject -> Render into Cubemap，在出现的窗口中将场景里的立方体拖拽到 Render From Position 项，将上一步创建的 Cubemap 拖拽到 Cubemap 项。
+
+```  C C for Graphics
+Shader "Unity Shaders Book/Chapter 10/Glass Refraction" {
+    Properties {
+        _MainTex ("Main Tex", 2D) = "white" {} //材质纹理
+        _BumpMap ("Normal Map", 2D) = "bump" {} //法线纹理
+        _Cubemap ("Environment Cubemap", Cube) = "_Skybox" {} //模拟反射的环境纹理
+        _Distortion ("Distortion", Range(0, 100)) = 10 //控制模拟折射时图像的扭曲程度
+        _RefractAmount ("Refract Amount", Range(0.0, 1.0)) = 1.0 //控制折射程度，若为 0 则该玻璃只包含反射效果，若为 1 则只包含折射效果
+    }
+    SubShader {
+        Tags { "Queue"="Transparent" "RenderType"="Opaque" }
+        //一个 Transparent，一个 Opaque 看似矛盾。是因为把 Queue 设置为 Transparent 是为了确保该物体渲染时，其他不透明物体已经渲染在屏幕上了。设置 RenderType 是为了使用着色器替换时，该物体在需要时被正确渲染，详见第 12 章
+        
+        GrabPass { "_RefractionTex" }
+        //通过关键词 GrabPass 定义了一个抓取屏幕图像的 Pass，在该 Pass 中定义了一个字符串，该字符串内部的名称决定了抓取得到的屏幕图像会被存入到哪个纹理中。实际上可以省略该字符串，但是声明性能更好，原因见后面
+        
+        Pass {        
+            CGPROGRAM
+            
+            #pragma vertex vert
+            #pragma fragment frag
+            
+            #include "UnityCG.cginc"
+            
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            sampler2D _BumpMap;
+            float4 _BumpMap_ST;
+            samplerCUBE _Cubemap;
+            float _Distortion;
+            fixed _RefractAmount;
+            sampler2D _RefractionTex; //对应 GrabPass 指定的纹理名称
+            float4 _RefractionTex_TexelSize; //得到该纹理的纹素大小，例如一个大小为 256×512 的纹理，它的纹素大小为(1/256, 1/512)。在对屏幕图像采样坐标进行偏移时使用该变量 
+            
+            struct a2v {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float4 tangent : TANGENT; 
+                float2 texcoord: TEXCOORD0;
+            };
+            
+            struct v2f {
+                float4 pos : SV_POSITION;
+                float4 scrPos : TEXCOORD0;
+                float4 uv : TEXCOORD1;
+                float4 TtoW0 : TEXCOORD2;  
+                float4 TtoW1 : TEXCOORD3;  
+                float4 TtoW2 : TEXCOORD4; 
+            };
+            
+            v2f vert (a2v v) {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.scrPos = ComputeGrabScreenPos(o.pos); //得到对应被抓取的屏幕图像的采样坐标
+                
+                o.uv.xy = TRANSFORM_TEX(v.texcoord, _MainTex); //_MainTex 的采样坐标
+                o.uv.zw = TRANSFORM_TEX(v.texcoord, _BumpMap); //_BumpMap 的采样坐标
+                
+                float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;  
+                fixed3 worldNormal = UnityObjectToWorldNormal(v.normal);  
+                fixed3 worldTangent = UnityObjectToWorldDir(v.tangent.xyz);  
+                fixed3 worldBinormal = cross(worldNormal, worldTangent) * v.tangent.w; 
+                
+                o.TtoW0 = float4(worldTangent.x, worldBinormal.x, worldNormal.x, worldPos.x);  
+                o.TtoW1 = float4(worldTangent.y, worldBinormal.y, worldNormal.y, worldPos.y);  
+                o.TtoW2 = float4(worldTangent.z, worldBinormal.z, worldNormal.z, worldPos.z);  
+                
+                return o;
+            }
+            
+            fixed4 frag (v2f i) : SV_Target {        
+                float3 worldPos = float3(i.TtoW0.w, i.TtoW1.w, i.TtoW2.w);
+                fixed3 worldViewDir = normalize(UnityWorldSpaceViewDir(worldPos));
+                
+                fixed3 bump = UnpackNormal(tex2D(_BumpMap, i.uv.zw)); //获取切线空间法线方向
+                
+                //对屏幕图像的采样坐标进行偏移， _Distortion 越大偏移越大，则变形程度越大。选择使用切线空间下的法线方向来偏移，是因为该空间下法线反映顶点局部坐标下的方向。
+                float2 offset = bump.xy * _Distortion * _RefractionTex_TexelSize.xy;
+                i.scrPos.xy = offset * i.scrPos.z + i.scrPos.xy;
+                //对 scrPos 透视除法得到真正的屏幕坐标（原理见数学基础），再使用该坐标对抓取的屏幕图像进行采样，得到模拟的折射颜色
+                fixed3 refrCol = tex2D(_RefractionTex, i.scrPos.xy/i.scrPos.w).rgb;
+                
+                //将法线从切线空间转换到世界空间
+                bump = normalize(half3(dot(i.TtoW0.xyz, bump), dot(i.TtoW1.xyz, bump), dot(i.TtoW2.xyz, bump)));
+                fixed3 reflDir = reflect(-worldViewDir, bump); //得到反射方向
+                fixed4 texColor = tex2D(_MainTex, i.uv.xy);
+                fixed3 reflCol = texCUBE(_Cubemap, reflDir).rgb * texColor.rgb; //用反射方向对 Cubemap 进行采样
+                
+                fixed3 finalColor = reflCol * (1 - _RefractAmount) + refrCol * _RefractAmount; //混合反射折射颜色
+                
+                return fixed4(finalColor, 1);
+            }
+            ENDCG
+        }
+    }
+    FallBack "Diffuse"
+}
+```
+
+将书中资源中的 Glass_Diffuse.jpg 、Glass_Normal.jpg 文件和创建的 Glass_Cubemap 赋给材质的 Main Tex 、Normal Map 和 Cubemap 属性后，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/15/YGCFPOfcRNzMyo7.jpg" width = "70%" height = "70%" alt="图53- 玻璃效果"/>
+</div>
+
+在前面的实现中，我们在 GrabPass 中使用了一个字符串指明了被抓取的屏幕图像会存储在哪个名称的纹理中，实际上，GrabPass 支持两种形式：  
+①直接使用 GrabPass {}，然后在后续的 Pass 中直接使用 _GrabTexture 来访问屏幕图像。当场景中有多个物体都使用了这样的形式来抓取屏幕时，这种方法的性能消耗比较大，因为对于每一个使用了它的物体，Unity 都会为它单独进行一次昂贵的屏幕抓取操作。但这种方法可以让每个物体得到不同的屏幕图像，这取决于它们的渲染队列以及渲染它们时当前屏幕缓冲中的颜色；  
+②使用 GrabPass {"TextureName"}，我们可以在后续 Pass 中利用 TextureName 来访问屏幕图像。使用这种方法同样可以抓取屏幕，但 Unity 只会在每一帧时为第一个使用名为 TextureName 的纹理的物体执行一次抓取屏幕操作，而这个纹理同样可以在其他 Pass 中被访问。
+
+### 渲染纹理 vs GrabPass
+GrabPass 实现简单，只需几行代码。但在效率上，使用渲染纹理允许我们自定义渲染纹理的大小。而使用 GrabPass 获取到的图像分辨率和显示屏幕是一致的，意味着高分辨率屏幕的设备会造成严重的带宽影响。在移动设备上，GrabPass 不会重新渲染场景，但往往需要 CPU 直接读取后备缓冲（back buffer）中的数据，破坏 CPU 和 GPU 之间的并行性，比较耗时，且在一些移动设备上不支持。  
+
+在 Unity 5 中，Unity 引入了**命令缓冲 Command Buffers** 来允许我们扩展 Unity 的渲染流水线。使用命令缓冲我们也可以得到类似于抓屏的效果，它可以在不透明物体渲染后把当前图像复制到一个临时的渲染目标纹理中，然后在那里进行一些额外的操作，例如模糊等。最后把图像传递给需要使用它的物体进行处理和显示。除此之外，命令缓冲允许我们实现很多特殊的效果，详见 Unity 官方手册的图像命令缓冲：https://docs.unity3d.com/Manual/GraphicsCommandBuffers.html
+
+## 程序纹理
+**程序纹理 Procedural Texture** 指的是那些由计算机生成图像，通常由特定的算法来创建个性化图案或非常真实的自然元素，例如木头、石子等。使用程序纹理的好处在于我们可以使用各种参数来控制纹理的外观，而这些参数不仅仅是那些颜色属性，甚至可以是完全不同类型的图案属性，使得我们可以得到更加丰富自然的动画和视角效果。
+
+### 在 Unity 中实现简单的程序纹理
+下面使用算法来生成波点纹理，准备工作如下：  
+①新建名为 Scene_10_3_1 的场景，并去掉天空盒；  
+②新建名为 ProceduralTextureMat 的材质；  
+③使用第 7 章创建的名为 Chapter7-SingleTexture 的 Unity Shader，并赋给上一步创建的材质；
+④在场景中新建一个立方体，并将第 2 步创建的材质赋给它；
+⑤无需为 ProceduralTextureMat 赋予任何纹理，因为要创建程序纹理。新建名为 ProceduralTextureGeneration 的 C# 脚本，赋给上一步创建的立方体；
+
+``` C#
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+
+[ExecuteInEditMode]
+public class ProceduralTextureGeneration : MonoBehaviour {
+    public Material material = null;
+
+    //下面 region 声明程序纹理的各个参数，SetProperty 是一个开源插件，为了在面板中修改属性时，执行 set 函数，见 http://github.com/LMNRY/SetProperty，在 Assets 下任意名字文件夹下解压即可使用
+    #region Material properties
+    [SerializeField, SetProperty("textureWidth")] //纹理的大小，数值通常是 2 的整数幂
+    private int m_textureWidth = 512;
+    public int textureWidth {
+        get {
+            return m_textureWidth;
+        }
+        set {
+            m_textureWidth = value;
+            _UpdateMaterial();
+        }
+    }
+
+    [SerializeField, SetProperty("backgroundColor")] 
+    private Color m_backgroundColor = Color.white;
+    public Color backgroundColor {
+        get {
+            return m_backgroundColor;
+        }
+        set {
+            m_backgroundColor = value;
+            _UpdateMaterial();
+        }
+    }
+
+    [SerializeField, SetProperty("circleColor")] //圆点的颜色
+    private Color m_circleColor = Color.yellow;
+    public Color circleColor {
+        get {
+            return m_circleColor;
+        }
+        set {
+            m_circleColor = value;
+            _UpdateMaterial();
+        }
+    }
+
+    [SerializeField, SetProperty("blurFactor")] //模糊因子，用于模糊圆形边界
+    private float m_blurFactor = 2.0f;
+    public float blurFactor {
+        get {
+            return m_blurFactor;
+        }
+        set {
+            m_blurFactor = value;
+            _UpdateMaterial();
+        }
+    }
+    #endregion
+
+    private Texture2D m_generatedTexture = null; //声明 Texture2D 纹理变量
+
+    void Start () { //进行一些检测
+        if (material == null) {
+            Renderer renderer = gameObject.GetComponent<Renderer>();
+            if (renderer == null) {
+                Debug.LogWarning("Cannot find a renderer.");
+                return;
+            }
+            material = renderer.sharedMaterial; //得到物体上的材质
+        }
+        _UpdateMaterial(); //调用 _UpdateMaterial() 来生成程序纹理
+    }
+
+    private void _UpdateMaterial() {
+        if (material != null) {
+            m_generatedTexture = _GenerateProceduralTexture(); //调用 _GenerateProceduralTexture() 生成一张程序纹理
+            material.SetTexture("_MainTex", m_generatedTexture); //利用该函数把生成的纹理赋给材质
+        }
+    }
+
+    private Color _MixColor(Color color0, Color color1, float mixFactor) {
+        Color mixColor = Color.white;
+        mixColor.r = Mathf.Lerp(color0.r, color1.r, mixFactor);
+        mixColor.g = Mathf.Lerp(color0.g, color1.g, mixFactor);
+        mixColor.b = Mathf.Lerp(color0.b, color1.b, mixFactor);
+        mixColor.a = Mathf.Lerp(color0.a, color1.a, mixFactor);
+        return mixColor;
+    }
+
+    private Texture2D _GenerateProceduralTexture() {
+        Texture2D proceduralTexture = new Texture2D(textureWidth, textureWidth);
+
+        float circleInterval = textureWidth / 4.0f; //定义圆与圆之间的距离
+        float radius = textureWidth / 10.0f; //定义圆半径
+        float edgeBlur = 1.0f / blurFactor; //定义模糊系数
+
+        for (int w = 0; w < textureWidth; w++) {
+            for (int h = 0; h < textureWidth; h++) {
+                Color pixel = backgroundColor; //使用背景颜色初始化
+
+                //依次画九个圆
+                for (int i = 0; i < 3; i++) {
+                    for (int j = 0; j < 3; j++) {
+                        //计算当前绘制的圆的圆心位置
+                        Vector2 circleCenter = new Vector2(circleInterval * (i + 1), circleInterval * (j + 1));
+
+                        //计算像素与圆的距离
+                        float dist = Vector2.Distance(new Vector2(w, h), circleCenter) - radius;
+
+                        //通过距离模糊圆的边界
+                        Color color = _MixColor(circleColor, new Color(pixel.r, pixel.g, pixel.b, 0.0f), Mathf.SmoothStep(0f, 1.0f, dist * edgeBlur));
+
+                        //与之前得到的颜色进行混合
+                        pixel = _MixColor(pixel, color, color.a);
+                    }
+                }
+                proceduralTexture.SetPixel(w, h, pixel);
+            }
+        }
+        proceduralTexture.Apply(); //调用 Texture2D.Apply 函数来强制把像素值写入纹理中
+
+        return proceduralTexture;
+    }
+}
+```
+
+效果如下图：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/15/YzuqtnJWpxZhgaV.jpg" width = "70%" height = "70%" alt="图54- 脚本生成的程序纹理"/>
+</div>
+
+
+### Unity 的程序材质
+在 Unity 中，有一种专门使用程序纹理的材质，叫做**程序材质 Procedural Materials**。这类材质和我们之前使用的那些材质在本质上是一样的，只是使用的是程序纹理，程序材质使用的程序纹理不是在 Unity 中创建的，而是使用一个名为 **Substance Designer** 的软件在 Unity 外部生成的。这些材质都是以 .sbsar 为后缀的，把这些材质导入 Unity 中后（现在的版本需要在 asset store 中安装 Substance 3D for Unity 插件），Unity 就会生成一个**程序纹理资源 Procedural Material Asset**。程序纹理资源可以包含一个或多个程序材质，通过单击它，我们可以在程序纹理面板中看到材质的使用的 Unity Shader 及其属性、生成程序纹理使用的纹理属性、材质预览等信息。
+
+
+# 第十章 让画面动起来
+## Unity Shader 中的内置时间变量
