@@ -1367,8 +1367,8 @@ GrabPass 实现简单，只需几行代码。但在效率上，使用渲染纹�
 下面使用算法来生成波点纹理，准备工作如下：  
 ①新建名为 Scene_10_3_1 的场景，并去掉天空盒；  
 ②新建名为 ProceduralTextureMat 的材质；  
-③使用第 7 章创建的名为 Chapter7-SingleTexture 的 Unity Shader，并赋给上一步创建的材质；
-④在场景中新建一个立方体，并将第 2 步创建的材质赋给它；
+③使用第 7 章创建的名为 Chapter7-SingleTexture 的 Unity Shader，并赋给上一步创建的材质；  
+④在场景中新建一个立方体，并将第 2 步创建的材质赋给它；  
 ⑤无需为 ProceduralTextureMat 赋予任何纹理，因为要创建程序纹理。新建名为 ProceduralTextureGeneration 的 C# 脚本，赋给上一步创建的立方体；
 
 ``` C#
@@ -1511,3 +1511,195 @@ public class ProceduralTextureGeneration : MonoBehaviour {
 
 # 第十章 让画面动起来
 ## Unity Shader 中的内置时间变量
+动画效果往往都是把时间添加到一些变量的计算中，而 Unity Shader 提供了一系列关于时间的内置变量：
+
+| 名称 | 类型 | 描述 |
+| :---- | :---- | :---- |
+| \_Time | float4 | t是自该场景加载开始所经过的时间，4个分量的值分别是（t/20, t, 2t, 3t） |
+| \_SinTime | float4 | t 是时间的正弦值，4 个分量分别是 (t/8, t/4, t/2, t) |
+| \_CosTime | float4 | t 是时间的余弦值，4 个分量的值分别是 (t/8, t/4, t/2, t) |
+| unity_DeltaTime | float4 | dt 是时间增量，4 个分量的值分别是 (dt, 1/dt, smoothDt, 1/smoothDt) |
+
+## 纹理动画
+在资源比较局限的移动平台上，往往会使用纹理动画代替复杂的粒子效果等模拟各种动画效果。
+
+### 序列帧动画
+最常见的纹理动画之一就是序列帧动画，其原理很简单，依次播放一系列关键帧图像，当播放速度达到一定数值时，其看起来就是一个连续的动画。其优点在于灵活性很强，不需要任何物理计算就可以得到细腻的动画效果。其缺点在于每张关键帧图像都不一样，从而制造一张出色的序列帧纹理所需要的美术工程量很大。
+
+本书资源提供了一张包含关键帧图像的图像（Assets/Textures/Chapter11/boom.png），接下来通过案例来了解序列帧动画的实现：
+
+完成如下准备工作：  
+①新建名为 Scene_11_2_1 的场景，并去掉天空盒；  
+②新建名为 ImageSequenceAnimationMat 的材质；  
+③新建名为 Chapter11-ImageSequenceAnimation 的 Unity Shader，并赋给上一步创建的材质；  
+④在场景中新建一个四边形 Quad，调整它的位置，使其正对相机，并将第2步创建的材质赋给它。
+
+序列帧动画的精髓在于需要在每个时刻计算该时刻下应该播放的关键帧的位置，并对该关键帧进行纹理采样，代码如下：  
+
+```  C C for Graphics
+Shader "Unity Shaders Book/Chapter 11/Image Sequence Animation" {
+    Properties {
+        _Color ("Color Tint", Color) = (1, 1, 1, 1)    
+        _MainTex ("Image Sequence", 2D) = "white" {} //包含了所有关键帧图像的纹理
+        _HorizontalAmount ("Horizontal Amount", Float) = 4 //该图像在水平方向包含的关键帧图像的个数
+        _VerticalAmount ("Vertical Amount", Float) = 4 //该图像在竖直方向包含的关键帧图像的个数
+        _Speed ("Speed", Range(1, 100)) = 30 //控制序列帧动画的播放速度
+    }
+    SubShader {
+        Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"} //序列帧通常是透明纹理，从而需要设置 Pass 相关状态，以渲染透明效果
+        
+        Pass {
+            Tags { "LightMode"="ForwardBase" }
+            
+            ZWrite Off //关闭深度写入
+            Blend SrcAlpha OneMinusSrcAlpha //开启并设置混合模式
+            
+            CGPROGRAM
+            
+            #pragma vertex vert  
+            #pragma fragment frag
+            
+            #include "UnityCG.cginc"
+            
+            fixed4 _Color;
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            float _HorizontalAmount;
+            float _VerticalAmount;
+            float _Speed;
+              
+            struct a2v {  
+                float4 vertex : POSITION; 
+                float2 texcoord : TEXCOORD0;
+            };  
+            
+            struct v2f {  
+                float4 pos : SV_POSITION;
+                float2 uv : TEXCOORD0;
+            };  
+            
+            v2f vert (a2v v) {  
+                v2f o;  
+                o.pos = UnityObjectToClipPos(v.vertex);  
+                o.uv = TRANSFORM_TEX(v.texcoord, _MainTex); 
+                return o;
+            }  
+            
+            fixed4 frag (v2f i) : SV_Target {
+                //前三列代码计算行列数，以获取关键帧所在的行列索引值
+                float time = floor(_Time.y * _Speed); //_Time.y 是该场景加载后经过的时间，把其与速度属性相乘得到模拟的时间，并用 Cg 的 floor 函数对结果值取整来得到整数时间 time
+                float row = floor(time / _HorizontalAmount); //time 除以行的个数的商作为当前对应的行索引
+                float column = time - row * _HorizontalAmount; //余数为列索引
+
+                //接下来将采样坐标映射到每个关键帧图像的坐标范围内
+                //half2 uv = float2(i.uv.x /_HorizontalAmount, i.uv.y / _VerticalAmount); 这行是将 uv 等分，得到每个子图像的纹理坐标范围
+                //uv.x += column / _HorizontalAmount;
+                //uv.y -= row / _VerticalAmount; 使用减法是因为序列帧播放顺序是自上而下，而 uv 坐标是自下而上的
+                half2 uv = i.uv + half2(column, -row);
+                uv.x /=  _HorizontalAmount;
+                uv.y /= _VerticalAmount;
+                
+                fixed4 c = tex2D(_MainTex, uv);
+                c.rgb *= _Color;
+                
+                return c;
+            }
+            ENDCG
+        }  
+    }
+    FallBack "Transparent/VertexLit"
+}
+```
+
+> 上面原书中片元着色器代码有点小问题，直接从图片的最下面一行的第一张开始播放，但因为图片的 Wrap Mode 是 Repeat 模式，所以不影响整体表现。加一行 `row -= _VerticalAmount - 1` 就可以从第一行开始播放了。
+
+将 Boom.png 勾选 Alpha Is Transparency 属性，任何赋给材质，并将 Horizontal Amount 和 Vertical Amount 设为 8。效果如下：  
+
+<table><tr>
+<td><img src='https://s2.loli.net/2023/12/18/DxIHLk9ZGjSA8Mr.png' width="400" alt="图55- 本节使用的序列帧图像"></td>
+<td><img src='https://s2.loli.net/2023/12/18/fpnN4ew8GxQo51Z.gif' width="400" alt="图56- 使用序列帧动画来实现爆炸效果"></td>
+</tr></table>
+
+### 滚动的背景
+很多 2D 游戏都使用了不断滚动的背景来模拟游戏角色在场景中的穿梭，这些背景往往包含了多个层来模拟一种视差效果。而这些背景的实现往往是利用了纹理动画。
+
+完成如下准备工作：  
+①新建名为 Scene_11_2_2 的场景，去掉天空盒，同时将相机的投影模式设置为正交投影；  
+②新建名为 ScrollingBackgroundMat 的材质；  
+③新建名为 Chapter11-ScrollingBackground 的 Unity Shader，并赋给上一步创建的材质；  
+④在场景中创建一个四边形 Quad，调整其位置、大小，使它充满相机的视野范围，并将第2步创建的材质赋给它。
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 11/Scrolling Background" {
+    Properties {
+        _MainTex ("Base Layer (RGB)", 2D) = "white" {} //第一层（较远）的纹理
+        _DetailTex ("2nd Layer (RGB)", 2D) = "white" {} //第二层（较近）的纹理
+        _ScrollX ("Base layer Scroll Speed", Float) = 1.0 //第一层的水平滚动速度
+        _Scroll2X ("2nd layer Scroll Speed", Float) = 1.0 //第二层的滚动速度
+        _Multiplier ("Layer Multiplier", Float) = 1 //控制纹理的整体亮度
+    }
+    SubShader {
+        Tags { "RenderType"="Opaque" "Queue"="Geometry"}
+        
+        Pass { 
+            Tags { "LightMode"="ForwardBase" }
+            
+            CGPROGRAM
+            
+            #pragma vertex vert
+            #pragma fragment frag
+            
+            #include "UnityCG.cginc"
+            
+            sampler2D _MainTex;
+            sampler2D _DetailTex;
+            float4 _MainTex_ST;
+            float4 _DetailTex_ST;
+            float _ScrollX;
+            float _Scroll2X;
+            float _Multiplier;
+            
+            struct a2v {
+                float4 vertex : POSITION;        
+                float4 texcoord : TEXCOORD0;
+            };
+            
+            struct v2f {
+                float4 pos : SV_POSITION;
+                float4 uv : TEXCOORD0;
+            };
+            
+            v2f vert (a2v v) {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex); 
+
+                //通过利用 TRANSFORM_TEX 来得到初始纹理坐标，再通过 _Time.y 变量在水平空间上对纹理坐标进行偏移，从而达到滚动的效果。Cg 的 frac 函数返回标量或者矢量的小数部分
+                o.uv.xy = TRANSFORM_TEX(v.texcoord, _MainTex) + frac(float2(_ScrollX, 0.0) * _Time.y);
+                o.uv.zw = TRANSFORM_TEX(v.texcoord, _DetailTex) + frac(float2(_Scroll2X, 0.0) * _Time.y);
+
+                //最后将两张纹理的纹理坐标存储到同一个变量 o.uv 中，以减少占用的插值寄存器空间
+                return o;
+            }
+            
+            fixed4 frag (v2f i) : SV_Target {
+                fixed4 firstLayer = tex2D(_MainTex, i.uv.xy);
+                fixed4 secondLayer = tex2D(_DetailTex, i.uv.zw);
+                
+                fixed4 c = lerp(firstLayer, secondLayer, secondLayer.a); //使用第二层纹理的透明通道来混合两张纹理，利用 lerp 函数
+                c.rgb *= _Multiplier;        //使用 _Multiplier 与输出颜色进行相乘从而调整背景亮度
+                return c;
+            }
+            ENDCG
+        }
+    }
+    FallBack "VertexLit"
+}
+```
+
+导入两张背景纹理，资源在 Assets/Textures/Chapter11/far_background.png 和 near_background.png，调整滚动速度，效果如下（只截取了 2 秒时间）：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/18/a6g3Sm9wN1z2fpL.gif" width = "70%" height = "70%" alt="图57- 无限滚动的背景"/>
+</div>
+
+## 顶点动画
