@@ -12,7 +12,7 @@ cover: https://s2.loli.net/2023/11/23/L3ts4WnThMlDN9d.gif
 mathjax: true
 ---
 
-> 本读书笔记为中级篇，主要内容为XXXXXXXXXXXXXXX。  
+> 本读书笔记为中级篇，主要内容为更复杂的光照的前向渲染、延迟渲染、光照衰减和阴影；高级纹理的立方体纹理、渲染纹理和程序纹理；动画的纹理动画和顶点动画。  
 > 读书笔记是对知识的记录与总结，但是对比较熟悉的内容不会再行描述。
 
 # 第八章 更复杂的光照
@@ -1703,3 +1703,267 @@ Shader "Unity Shaders Book/Chapter 11/Scrolling Background" {
 </div>
 
 ## 顶点动画
+### 流动的河流
+使用正弦函数等来模拟水流的波动效果，准备工作如下：  
+①新建名为 Scene_11_3_1 的场景，并去掉天空盒子；  
+②将场景相机投影类型调整为正交投影；  
+③新建 3 个材质，分别命名为 WaterMat、WaterMat1、WaterMat2（需要模拟多层水流效果）；  
+④新建名为 Chapter11-Water 的 Unity Shader，并分别赋给上一步创建的 3 个材质；  
+⑤在场景中创建 3 个 Water 模型，调整其位置、大小和方向，将第二步创建的材质分别赋给它们（模型详见Assets/Models/Chap11/water_fall.fbx）
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 11/Water" {
+    Properties {
+        _MainTex ("Main Tex", 2D) = "white" {} //河流纹理
+        _Color ("Color Tint", Color) = (1, 1, 1, 1) //用于控制整体颜色
+        _Magnitude ("Distortion Magnitude", Float) = 1 //控制水流波动的幅度
+        _Frequency ("Distortion Frequency", Float) = 1 //用于控制波动频率
+        _InvWaveLength ("Distortion Inverse Wave Length", Float) = 10 //用于控制波长的倒数，其越大，波长越小
+        _Speed ("Speed", Float) = 0.5 //河流纹理的移动速度
+    }
+    
+    SubShader {
+        Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent" "DisableBatching"="True"} //通过 DisableBatching 标签可以直接指明是否对该 subshader 采用批处理，一些 SubShader 在使用 Unity 的批处理功能时会出现问题，因为批处理会合并所有相关的模型，而这些模型各自的模型空间就会丢失。而在河流模拟中需要在物体的模型空间下对顶点位置进行偏移，从而需要取消对该 shader 进行批处理
+        
+        Pass {
+            Tags { "LightMode"="ForwardBase" }
+            
+            ZWrite Off
+            Blend SrcAlpha OneMinusSrcAlpha
+            Cull Off //关闭剔除功能，从而让水流的每个面都能显示
+            
+            CGPROGRAM  
+            #pragma vertex vert 
+            #pragma fragment frag
+            
+            #include "UnityCG.cginc" 
+            
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            fixed4 _Color;
+            float _Magnitude;
+            float _Frequency;
+            float _InvWaveLength;
+            float _Speed;
+            
+            struct a2v {
+                float4 vertex : POSITION;
+                float4 texcoord : TEXCOORD0;
+            };
+            
+            struct v2f {
+                float4 pos : SV_POSITION;
+                float2 uv : TEXCOORD0;
+            };
+            
+            v2f vert(a2v v) { //在顶点着色器中进行相关的顶点动画
+                v2f o;
+                
+                float4 offset;
+                //首先计算顶点位移量，因为只希望对顶点的 x 方向进行位移，因此 yzw 的位移量被设置为 0。这里对 x 方向偏移是因为资源里给的模型的 x 轴是上下方向，可以查看模型的 local 坐标确认。
+                offset.yzw = float3(0.0, 0.0, 0.0); 
+                //利用 _Frequency 属性和内置的 _Time.y 来控制正弦函数的频率。同时为了让不同的位置具有不同的位移，从而需要加上模型空间下的位置分量，并乘以 _InvWaveLength 来控制波长，最后通过乘以_Magnitude属性来控制波动幅度从而得到最终的位移
+                offset.x = sin(_Frequency * _Time.y + v.vertex.x * _InvWaveLength + v.vertex.y * _InvWaveLength + v.vertex.z * _InvWaveLength) * _Magnitude;
+
+                //将位移量添加到顶点位置上，并进行正常的顶点变换即可
+                o.pos = UnityObjectToClipPos(v.vertex + offset); 
+                
+                o.uv = TRANSFORM_TEX(v.texcoord, _MainTex);
+                o.uv +=  float2(0.0, _Time.y * _Speed); //这个速度是纹理的流动速度
+                return o;
+            }
+            
+            fixed4 frag(v2f i) : SV_Target {
+                fixed4 c = tex2D(_MainTex, i.uv);
+                c.rgb *= _Color.rgb;
+                return c;
+            } 
+            ENDCG
+        }
+    }
+    FallBack "Transparent/VertexLit"
+}
+```
+
+> 补充：注意看模型的 object space coordinate，和世界坐标是不一样的。若 \_InvWaveLength 为 0，水流是个长方形并且整体上下晃动没有波形。\_Magnitude 控制整体上下晃动的幅度，\_Frequency 控制上下晃动频率。\_InvWaveLength 控制的就是波形，水流的方向和模型空间的 z 轴是一致的，所以对波形影响最大的是 v.vertex.z ，顶点 z 轴的差异产生了波形，而 x 轴也有影响，这个水带的上下波形是有相位差的，这个是由 x 分量产生的影响。
+
+将水体纹理分别赋到3个材质面板的 Main Tex 属性上（纹理详见 Assets/Textures/Chap11/water.psd），并分别配置其他参数，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/19/2pBWSz49kwyIDZE.gif" width = "70%" height = "70%" alt="图58- 使用顶点动画来模拟2D的河流"/>
+</div>
+
+### 广告牌
+另一种常见的顶点动画就是**广告牌技术 Billboarding**。广告牌技术会根据视角方向来旋转一个被纹理着色的多边形，使得多边形看起来好像总是面对着摄像机。广告牌技术被用于很多应用，比如渲染烟雾、云朵、闪光效果等。
+
+广告牌技术的本质就是构建一个**旋转矩阵**，我们知道一个变换矩阵需要 3 个基向量。广告牌技术使用的基向量通常就是**表面法线 normal**、**指向上方向 up** 以及**指向右方向 right** 。除此之外，还需要指定一个**锚点 anchor location**，这个锚点在旋转过程中是不变的，以此来确定多边形在空间中的位置。
+
+广告牌技术的难点在于如何根据需求来构建 3 个相互正交的基向量。计算过程：  
+①通过初始计算得到目标的表面法线（就是视角方向）、指向上的方向（两者一般不垂直）；  
+②根据需求确定这两个方向哪一个是固定的：如果模拟草丛，我们希望指向上的方向是固定的，永远是（0, 1,  0）。如果模拟粒子效果，我们希望表面法线是固定的，永远指向视角方向；  
+③假设法线方向是固定的，首先根据表面法线、指向上的方向的叉积，得到指向右的方向（通过叉积操作）：  
+
+$$ right = up \times normal $$
+
+④对其归一化后，由法线方向、指向右的方向，计算出正交的指向上的方向：  
+
+$$ up' = normal \times right $$
+
+这样就可以得到用于旋转的 3 个正交基了，如下图所示：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/19/W36kirHYV9SPwg8.jpg" width = "70%" height = "70%" alt="图59- 法线固定（总是指向视角方向）时，计算广告牌技术中的三个正交基的过程"/>
+</div>
+
+准备工作如下：  
+①新建名为 Scene_11_3_2 的场景，并去掉天空盒子；  
+②新建名为 BillboardMat 的材质；  
+③新建名为 Chapter11-Billboard 的 Unity Shader，并赋给上一步创建的材质；  
+④在场景中创建多个四边形 Quad，调整其位置和大小，并将第二步创建的材质赋给它们，这些四边形就是用于广告牌技术的广告牌。
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 11/Billboard" {
+    Properties {
+        _MainTex ("Main Tex", 2D) = "white" {} //广告牌显示的透明纹理
+        _Color ("Color Tint", Color) = (1, 1, 1, 1) //用于控制显示整体颜
+        _VerticalBillboarding ("Vertical Restraints", Range(0, 1)) = 1 //调整固定法线还是固定指向上的方向，即约束垂直方向的程度 
+    }
+    SubShader {
+        Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent" "DisableBatching"="True"} //关闭批处理，因为本例子中需要处理模型的各顶点
+        
+        Pass { 
+            Tags { "LightMode"="ForwardBase" }
+            
+            ZWrite Off
+            Blend SrcAlpha OneMinusSrcAlpha
+            Cull Off //关闭剔除功能，从而让广告牌的每个面都能显示出来
+        
+            CGPROGRAM
+            
+            #pragma vertex vert
+            #pragma fragment frag
+            
+            #include "Lighting.cginc"
+            
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            fixed4 _Color;
+            fixed _VerticalBillboarding;
+            
+            struct a2v {
+                float4 vertex : POSITION;
+                float4 texcoord : TEXCOORD0;
+            };
+            
+            struct v2f {
+                float4 pos : SV_POSITION;
+                float2 uv : TEXCOORD0;
+            };
+            
+            v2f vert (a2v v) {
+                v2f o;
+                
+                float3 center = float3(0, 0, 0); //选择模型空间的原点作为广告牌的锚点
+                float3 viewer = mul(unity_WorldToObject,float4(_WorldSpaceCameraPos, 1)); //通过内置变量获取模型空间下的视角位置
+                
+                float3 normalDir = viewer - center; //根据观察位置和锚点计算原法线方向（视角方向）
+                
+                //根据 _VerticalBillboarding 控制垂直方向上的约束度。若 _VerticalBillboarding 为 1，意味着法线方向固定为视角方向；当 _VerticalBillboarding 为 0，法线的 y 轴为 0，则意味着向上方向固定为（0，1，0），因为这样法线和向上方向垂直，而 x、z 根据原法线视角方向变化，得到未归一化的新法线方向
+                normalDir.y = normalDir.y * _VerticalBillboarding;
+                normalDir = normalize(normalDir); //归一化来得到单位矢量
+                
+                //为防止法线方向和向上方向平行（如果平行，那么叉积结果为 0），即如果法线已经向上，那么向上方向为朝前方向。
+                float3 upDir = abs(normalDir.y) > 0.999 ? float3(0, 0, 1) : float3(0, 1, 0);
+                //根据法线方向和原向上方向得到向右方向，并进行归一化
+                float3 rightDir = normalize(cross(upDir, normalDir));
+                //根据法线方向和向右方向得到最后的新向上方向
+                upDir = normalize(cross(normalDir, rightDir));
+
+                //根据顶点位置对于锚点的偏移量以及 3 个基向量得到新的顶点位置
+                float3 centerOffs = v.vertex.xyz - center;
+                float3 localPos = center + rightDir * centerOffs.x + upDir * centerOffs.y + normalDir * centerOffs.z; 
+              
+                o.pos = UnityObjectToClipPos(float4(localPos, 1));
+                o.uv = TRANSFORM_TEX(v.texcoord,_MainTex);        
+                return o;
+            }
+            
+            fixed4 frag (v2f i) : SV_Target {
+                fixed4 c = tex2D (_MainTex, i.uv);
+                c.rgb *= _Color.rgb;
+                return c;
+            }
+            ENDCG
+        }
+    } 
+    FallBack "Transparent/VertexLit"
+```
+
+> 上述 rightDir 和 upDir 是叉乘顺序可能有问题，因为在左手坐标系叉乘结果是左手法则，上述叉乘的顺序会导致基向量从左手坐标系变为右手坐标系，这会导致整个模型镜像变换。若把 Cull Off 改为 Cull back 可以看到模型看不到了。
+
+需要说明的是，上面的例子使用的是 Unity 自带的四边形 Quad 作为广告牌，不能使用平面 Plane。这是因为上述代码的计算是建立在竖直摆放的多边形的基础上的。将星星纹理赋给材质面板的 Main Tex 属性，详见 Assets/Textures/Chap11/star.png，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/19/QxHBOsTvqCmaeNg.gif" width = "70%" height = "70%" alt="图60- 该图显示了当 Vertical Restraints 属性为1，即固定法线方向为观察视角时所得到的效果"/>
+</div>
+
+### 注意事项
+顶点动画虽然灵活有效，但是有一些注意事项：  
+①若在模型空间下进行顶点动画计算，那么批处理往往会破坏这种动画效果。然而，强制取消批处理，会带来一定的性能下降，增加 Draw Call。所以尽量避免使用模型空间下的一些绝对位置和方向来进行计算；  
+②给包含顶点动画的物体添加阴影，无法通过调用内置 ShadowCaster Pass 实现，因为这个 Pass 里没有进行相关的顶点动画，得到的阴影是顶点变化前的。此时需要自定义 ShadowCaster Pass，在顶点着色器中重新计算一遍顶点的位置。在前面的实现中，因为 Fallback 设置为 Transparent/VertexLit，而 Transparent/VertexLit 没有定义  ShadowCaster Pass，因此不会产生阴影。
+
+ShadowCaster Pass 的相关代码如下：  
+
+``` C C for Graphics
+Pass {
+    Tags { "LightMode" = "ShadowCaster" }
+
+    CGPROGRAM
+
+    #pragma vertex vert
+    #pragma fragment frag
+
+    #pragma multi_compile_shadowcaster
+
+    #include "UnityCG.cginc"
+
+    float _Magnitude;
+    float _Frequency;
+    float _InvWaveLength;
+    float _Speed;
+
+    struct v2f { 
+        V2F_SHADOW_CASTER;
+    };
+
+    v2f vert(appdata_base v) {
+        v2f o;
+
+        float4 offset;
+        offset.yzw = float3(0.0, 0.0, 0.0);
+        offset.x = sin(_Frequency * _Time.y + v.vertex.x * _InvWaveLength + v.vertex.y * _InvWaveLength + v.vertex.z * _InvWaveLength) * _Magnitude;
+        v.vertex = v.vertex + offset;
+
+        TRANSFER_SHADOW_CASTER_NORMALOFFSET(o)
+
+        return o;
+    }
+
+    fixed4 frag(v2f i) : SV_Target {
+        SHADOW_CASTER_FRAGMENT(i)
+    }
+    ENDCG
+}
+```
+
+效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/19/PFGwerLgQTdDJn7.jpg" width = "70%" height = "70%" alt="图61- 使用自定义的 ShadowCaster Pass 为变形物体绘制正确的阴影"/>
+</div>
+
+在自定义的阴影投射的 Pass 中，我们通常会使用 Unity 提供的内置宏 V2F_SHADOW_CASTER、TRANSFER_SHADOW_CASTER_NORMALOFFSET（旧版本中为 TRANSFER_SHADOW_CASTER）和 SHADOW_CASTER_FRAGMENT 来计算阴影投射时需要的各自变量。  
+
+在上面代码中，首先在 v2f 结构体中使用了 V2F_SHADOW_CASTER 来定义阴影投射所需要定义的变量。在顶点着色器中计算偏移量，加到顶点位置变量中，剩下的交给 TRANSFER_SHADOW_CASTER_NORMALOFFSET。在片元着色器中，直接使用 SHADOW_CASTER_FRAGMENT 让 Unity 自动完成阴影投射的部分，把结果输出到深度图和阴影映射纹理中。
+
+TRANSFER_SHADOW_CASTER_NORMALOFFSET 会使用名称 v 作为输入结构体，v 中需要包含顶点位置 v.vertex 和顶点法线 v.normal 的信息，我们也可以直接使用内置的 appdata_base 结构体，它包含了这些必需的顶点变量。
