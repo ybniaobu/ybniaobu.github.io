@@ -404,5 +404,421 @@ Shader "Unity Shaders Book/Chapter 12/Edge Detection" {
 需要注意的是，本节实现的边缘检测仅仅利用了屏幕颜色信息，而在实际的应用中，物体的纹理、阴影等信息都会影响到边缘检测的结果。为了得到更加准确的边缘信息，往往会在屏幕的深度纹理和法线纹理上进行边缘检测，在 第 12 章实现这种方法。
 
 ## 高斯模糊
+常见的使用卷积的模糊有均值模糊和中值模糊。均值模糊使用的卷积核各个元素都相等，且相加等于1，即卷积后得到的像素值是其邻域内各个像素值的平均值。中值模糊，则是选择邻域内所有像素排序后的中值替换掉原颜色。而**高斯模糊**是一个更高级的模糊方式。
+
+### 高斯滤波
+高斯模糊同样利用了卷积计算，它使用的卷积核名为**高斯核**。高斯核是一个正方形大小的滤波核，其中每个元素都是基于下面的高斯方程：  
+
+$$ G(x,y) = \cfrac {1}{2 \pi \sigma ^ 2} e ^ {- \cfrac {x^2 + y^2} {2 \sigma ^2} } $$
+
+其中，$\,\sigma\,$ 是标准方差，一般取值为 1；$\,x\,$  和 $\,y\,$ 分别对应了当前位置到卷积核中心的整数距离。要构建高斯核，只需要计算高斯核中各个位置对应的高斯值。为了保证滤波后的图像不会变暗，需要对高斯核中的权重进行归一化，即让每一个权重除以所有权重的和，以保证所有权重的和为 1，因此高斯函数中的 $\,e\,$  前面的系数实际不会对结果有任何影响。
+
+高斯方程很好地模拟了邻域每个像素对当前处理像素的影响程度 —— 距离越近，影响越大。高斯核的维数越高，模糊程度越大。使用 N x N 的高斯核对图像进行卷积滤波，需要进行 N x N x W x H（W 和 H分别是图像的宽和高）次纹理采样。N 不断增大，采样次数会变得非常巨大。
+
+为了节省性能，可以把二维高斯函数可以拆分成两个一维函数。使用两个一维的高斯核先后对图像进行滤波，得到的结果和直接使用二位高斯核是一样的，但采样次数只需要 2 x N x W x H。对于一个大小为 5 的一维高斯核，只需要记录 3 个权重值即可，因为左右权重有重复的值。如下图：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/21/XCzRgKkvqG6Q7a5.png" width = "70%" height = "70%" alt="图66-  一个 5×5 大小的高斯核。左图显示了标准方差为 1 的高斯核的权重分布。我们可以把这个二维高斯核拆分成两个一维的高斯核（右图）。"/>
+</div>
+
+### 实现
+接下来使用上述的 5 x 5 的高斯核对原图像进行高斯模糊。先后调用两个 Pass，第一个 Pass 将会使用竖直方向的一维高斯核对图像进行滤波，第二个 Pass 再使用水平方向的一维高斯核对图像进行滤波，得到最终的目标图像。在现实中还会利用图像缩放来进一步提高性能，通过调整高斯滤波的应用次数来控制模糊程度（次数越多，图像越模糊）。
+
+准备工作如下：  
+①新建名为 Scene_12_4 的场景，并去掉天空盒子；  
+②导入一张图片（资源路径：Assets/Textures/Chapter12/Sakura1.jpg），调整图片纹理类型为 Sprite (2D and UI)，并拖拽到场景中，使其生成一个 Sprite；  
+③新建名为 GaussianBlur 的 C# 脚本，将脚本拖拽到相机；  
+④新建名为 Chapter12-GaussianBlur 的 Unity Shader。
+
+GaussianBlur 的 C# 脚本的代码如下：
+
+``` C#
+using UnityEngine;
+using System.Collections;
+
+public class GaussianBlur : PostEffectsBase {
+
+    public Shader gaussianBlurShader;
+    private Material gaussianBlurMaterial = null;
+
+    public Material material {  
+        get {
+            gaussianBlurMaterial = CheckShaderAndCreateMaterial(gaussianBlurShader, gaussianBlurMaterial);
+            return gaussianBlurMaterial;
+        }  
+    }
+
+    [Range(0, 4)]
+    public int iterations = 3; //高斯模糊迭代次数
+    
+    [Range(0.2f, 3.0f)]
+    public float blurSpread = 0.6f; //模糊范围，计算得到 shader 中的 _BlurSize。_BlurSize 越大，模糊程度越大，但采样数不会受到影响，过大的 _BlueSize 值会造成虚影
+    
+    [Range(1, 8)]
+    public int downSample = 2; //缩放图像降采样的系数，downSample 越大，需要处理的像素数越少，同时也可以进一步提高模糊程度，但过大的 downSample 会造成图像像素化
+    
+// 第一个版本：简单的 OnRenderImage 实现，不使用上面 3 个字段。首先利用 RenderTexture.GetTemporary 函数分配一块与屏幕图像大小相同的缓冲区。因为模糊需要调用两个Pass，从而需要使用一块中间缓存来存储第一个 Pass 执行完毕后得到的模糊结果。
+//    void OnRenderImage(RenderTexture src, RenderTexture dest) {
+//        if (material != null) {
+//            int rtW = src.width;
+//            int rtH = src.height;
+//            RenderTexture buffer = RenderTexture.GetTemporary(rtW, rtH, 0);        
+//
+//            Graphics.Blit(src, buffer, material, 0); //参数为 0，即使用 Shader 中的第一个 Pass（即使用竖直方向的一维高斯核进行滤波）对 src 进行处理，并将结果存储在 buffer中
+//
+//            Graphics.Blit(buffer, dest, material, 1); //然后利用第二个 pass 对 buffer 进行处理，返回最终的屏幕图像
+//
+//            RenderTexture.ReleaseTemporary(buffer); //调用这个释放之前分配的缓存
+//        } else {
+//            Graphics.Blit(src, dest);
+//        }
+//    } 
+
+// 第二个版本：利用缩放系数对图像进行降采样，从而减少需要处理的像素个数，提高性能
+//    void OnRenderImage (RenderTexture src, RenderTexture dest) {
+//        if (material != null) {
+//            int rtW = src.width/downSample;
+//            int rtH = src.height/downSample;
+//            RenderTexture buffer = RenderTexture.GetTemporary(rtW, rtH, 0);
+//            buffer.filterMode = FilterMode.Bilinear; //声明缓冲区的大小时，使用了小于原屏幕分辨率的尺寸，并将该临时渲染纹理的滤波模式设置为双线性，从而不仅减少需要处理的像素个数，同时更提高了性能，适当的降采样还可以得到更好的模糊效果，但过大的 downSample 会造成图像像素化
+//
+//            Graphics.Blit(src, buffer, material, 0);
+//            Graphics.Blit(buffer, dest, material, 1);
+//            RenderTexture.ReleaseTemporary(buffer);
+//        } else {
+//            Graphics.Blit(src, dest);
+//        }
+//    }
+//
+// 第三个版本相比第二个版本增加了迭代次数和模糊范围，下面代码显示了如何利用两个临时缓存在迭代之间进行交替的过程
+    void OnRenderImage (RenderTexture src, RenderTexture dest) {
+        if (material != null) {
+            int rtW = src.width/downSample;
+            int rtH = src.height/downSample;
+
+            //首先定义第一个缓存 buffer0，并直接把 scr 的图像缩放后存储到 buffer0 中
+            RenderTexture buffer0 = RenderTexture.GetTemporary(rtW, rtH, 0);
+            buffer0.filterMode = FilterMode.Bilinear;
+            Graphics.Blit(src, buffer0);
+
+            //在迭代过程中，定义第二个缓存 buffer1。在执行第一个 Pass 时，输入的是 buffer0，输出的是 buffer1，完毕之后，释放 buffer0，将 buffer1 存储到 buffer0 中，重新分配 buffer1，再调用第二个 Pass，不断重复
+            for (int i = 0; i < iterations; i++) {
+                material.SetFloat("_BlurSize", 1.0f + i * blurSpread);
+            
+                RenderTexture buffer1 = RenderTexture.GetTemporary(rtW, rtH, 0);
+                Graphics.Blit(buffer0, buffer1, material, 0); //第一个 Pass
+                RenderTexture.ReleaseTemporary(buffer0);
+                buffer0 = buffer1;
+                buffer1 = RenderTexture.GetTemporary(rtW, rtH, 0);
+                Graphics.Blit(buffer0, buffer1, material, 1); //第二个 Pass
+                RenderTexture.ReleaseTemporary(buffer0);
+                buffer0 = buffer1;
+            }
+
+            Graphics.Blit(buffer0, dest);        //把结果显示在屏幕上
+            RenderTexture.ReleaseTemporary(buffer0);    
+        } else {
+            Graphics.Blit(src, dest);
+        }
+    }
+}
+```
+
+Chapter12-GaussianBlur 的 Unity Shader 代码如下：  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 12/Gaussian Blur" {
+    Properties {
+        _MainTex ("Base (RGB)", 2D) = "white" {}
+        _BlurSize ("Blur Size", Float) = 1.0
+    }
+    SubShader {
+        //第一次使用 CGINCLUDE，该代码不需要包含任何 Pass 语义块，在使用时只需要在 Pass 中直接指定需要使用的顶点着色器和片元着色器函数名即可，类似于 C++ 中的头文件，这样可以避免编写相同的片元着色器
+        CGINCLUDE
+        
+        #include "UnityCG.cginc"
+        
+        sampler2D _MainTex;  
+        half4 _MainTex_TexelSize;
+        float _BlurSize;
+          
+        struct v2f {
+            float4 pos : SV_POSITION;
+            half2 uv[5]: TEXCOORD0; //因为可以拆分成 2 个大小为 5 的一维高斯核，从而只需要计算 5 个纹理坐标即可
+        };
+
+        //竖直方向的顶点着色器代码
+        v2f vertBlurVertical(appdata_img v) {
+            v2f o;
+            o.pos = UnityObjectToClipPos(v.vertex);
+            half2 uv = v.texcoord;
+
+            //利用与属性 _BlurSize 相乘来控制采样距离。在高斯核维数不变的情况下，_BlurSize 越大，模糊程度越高，但采样数不受到影响
+            o.uv[0] = uv;
+            o.uv[1] = uv + float2(0.0, _MainTex_TexelSize.y * 1.0) * _BlurSize;
+            o.uv[2] = uv - float2(0.0, _MainTex_TexelSize.y * 1.0) * _BlurSize;
+            o.uv[3] = uv + float2(0.0, _MainTex_TexelSize.y * 2.0) * _BlurSize;
+            o.uv[4] = uv - float2(0.0, _MainTex_TexelSize.y * 2.0) * _BlurSize;
+            return o;
+        }
+
+        //水平方向的顶点着色器代码
+        v2f vertBlurHorizontal(appdata_img v) {
+            v2f o;
+            o.pos = UnityObjectToClipPos(v.vertex);
+            half2 uv = v.texcoord;
+            
+            o.uv[0] = uv;
+            o.uv[1] = uv + float2(_MainTex_TexelSize.x * 1.0, 0.0) * _BlurSize;
+            o.uv[2] = uv - float2(_MainTex_TexelSize.x * 1.0, 0.0) * _BlurSize;
+            o.uv[3] = uv + float2(_MainTex_TexelSize.x * 2.0, 0.0) * _BlurSize;
+            o.uv[4] = uv - float2(_MainTex_TexelSize.x * 2.0, 0.0) * _BlurSize;   
+            return o;
+        }
+
+        //两个 Pass 共用的片元着色器
+        fixed4 fragBlur(v2f i) : SV_Target {
+            float weight[3] = {0.4026, 0.2442, 0.0545}; //高斯核的三个不重复的权重
+            
+            fixed3 sum = tex2D(_MainTex, i.uv[0]).rgb * weight[0]; //权重和 sum 初始化为当前的像素值乘以它的权重值
+
+            //根据对称性，进行两次迭代，每次迭代包含了两次纹理采样
+            for (int it = 1; it < 3; it++) {
+                sum += tex2D(_MainTex, i.uv[it*2-1]).rgb * weight[it];
+                sum += tex2D(_MainTex, i.uv[it*2]).rgb * weight[it];
+            }
+            
+            return fixed4(sum, 1.0); //返回滤波结果sum
+        }
+            
+        ENDCG
+        
+        ZTest Always Cull Off ZWrite Off
+
+        //定义第一个竖直的 Pass
+        Pass {
+            //使用 NAME 语义定义了它们的名字，为 Pass 定义名字可以在其他 shader 中直接通过它们的名字来使用该 Pass，而不需要重新写代码
+            NAME "GAUSSIAN_BLUR_VERTICAL"
+            
+            CGPROGRAM
+              
+            #pragma vertex vertBlurVertical //告诉 Unity，顶点着色器的代码在 vertBlurVertical 函数中
+            #pragma fragment fragBlur //告诉 Unity，片元着色器的代码在 fragBlur 函数中
+              
+            ENDCG  
+        }
+        
+        Pass {  
+            NAME "GAUSSIAN_BLUR_HORIZONTAL"
+            
+            CGPROGRAM  
+            
+            #pragma vertex vertBlurHorizontal  
+            #pragma fragment fragBlur
+            
+            ENDCG
+        }
+    } 
+    FallBack "Diffuse"
+}
+```
+
+将编写好的 Shader 文件拖拽到 C# 脚本组件的 Gaussian Blur Shader 属性中，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/21/6IuoeZQXA2YzkGt.png" width = "70%" height = "70%" alt="图67-  左图：原效果。右图：高斯模糊后的效果（Iterations 为 3，Blur Spread 为 0.6，Down Sample 为 2）。"/>
+</div>
+
+## Bloom 效果
+Bloom 特效是游戏中常见的一种屏幕效果，可以模拟真实相机的一种图像效果，它让画面中较亮的区域“扩散”到周围的区域中，产生一种朦胧的效果。
+
+Bloom 的实现原理非常简单：  
+①根据一个阈值提取出图像中的较亮区域，把它们存储在一张渲染纹理中；  
+②再利用高斯模糊对这张纹理进行模糊处理，模拟光线扩散的效果；  
+③最后与原图像进行混合，得到最终效果。
+
+准备工作如下：  
+①新建名为 Scene_12_5 的场景，并去掉天空盒子；  
+②导入一张图片（资源图路径：Assets/Textures/Chapter12/Sakura1.jpg），调整图片纹理类型为 Sprite (2D and UI)，并拖拽到场景中，使其生成一个 Sprite；  
+③新建名为 Bloom 的 C# 脚本；  
+④新建名为 Chapter12-Bloom 的 Unity Shader。
+
+Bloom.cs 的脚本代码如下：  
+
+``` C#
+using UnityEngine;
+using System.Collections;
+
+public class Bloom : PostEffectsBase {
+
+    public Shader bloomShader;
+    private Material bloomMaterial = null;
+    public Material material {  
+        get {
+            bloomMaterial = CheckShaderAndCreateMaterial(bloomShader, bloomMaterial);
+            return bloomMaterial;
+        }  
+    }
+
+    [Range(0, 4)]
+    public int iterations = 3;
+    
+    [Range(0.2f, 3.0f)]
+    public float blurSpread = 0.6f;
+
+    [Range(1, 8)]
+    public int downSample = 2;
+
+    //增加 luminanceThreshold 来控制提取较亮的区域时使用的阈值大小。尽管在绝大多数的情况下，图像的亮度值不会超过 1，但如果开启了 HDR，硬件会允许把颜色值存储在一个更高精度范围的缓冲中，此时像素的亮度值可能会超过 1，这里把 luminanceThreshold 的值规定在 [0,4] 中
+    [Range(0.0f, 4.0f)]
+    public float luminanceThreshold = 0.6f;
+
+    //Bloom 建立在高斯模糊之上实现，从而与高斯模糊的代码有大量重复的地方
+    void OnRenderImage (RenderTexture src, RenderTexture dest) {
+        if (material != null) {
+            material.SetFloat("_LuminanceThreshold", luminanceThreshold); 
+
+            int rtW = src.width/downSample;
+            int rtH = src.height/downSample;
+
+            //先使用 Shader 中的第一个 Pass 提取图像中的较亮区域，存储到 buffer0 中
+            RenderTexture buffer0 = RenderTexture.GetTemporary(rtW, rtH, 0);
+            buffer0.filterMode = FilterMode.Bilinear;
+            Graphics.Blit(src, buffer0, material, 0);
+
+            //和之前相同的高斯模糊迭代处理，只不过 Pass 对应的是 Shader 的第二个和第三个 Pass
+            for (int i = 0; i < iterations; i++) {
+                material.SetFloat("_BlurSize", 1.0f + i * blurSpread);
+                
+                RenderTexture buffer1 = RenderTexture.GetTemporary(rtW, rtH, 0);
+                Graphics.Blit(buffer0, buffer1, material, 1);
+                RenderTexture.ReleaseTemporary(buffer0); 
+                buffer0 = buffer1;
+                buffer1 = RenderTexture.GetTemporary(rtW, rtH, 0); 
+                Graphics.Blit(buffer0, buffer1, material, 2);
+                RenderTexture.ReleaseTemporary(buffer0);
+                buffer0 = buffer1; 
+            }
+
+            //将 buffer0 传递给材质中的 _Bloom 纹理属性，使用第四个 pass 进行最后的混合，并存储到目标渲染纹理 dest 中
+            material.SetTexture ("_Bloom", buffer0);
+            Graphics.Blit (src, dest, material, 3);
+            RenderTexture.ReleaseTemporary(buffer0);
+        } else {
+            Graphics.Blit(src, dest);
+        }
+    }
+}
+```
+
+Chapter12-Bloom 的 Shader 代码如下：  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 12/Bloom" {
+    Properties {
+        _MainTex ("Base (RGB)", 2D) = "white" {}
+        _Bloom ("Bloom (RGB)", 2D) = "black" {} //高斯模糊后较亮的区域的输出纹理
+        _LuminanceThreshold ("Luminance Threshold", Float) = 0.5 //提取较亮区域的阈值
+        _BlurSize ("Blur Size", Float) = 1.0 //控制不同迭代之间高斯模糊的模糊区域范围
+    }
+
+    SubShader {
+        CGINCLUDE
+        
+        #include "UnityCG.cginc"
+
+        sampler2D _MainTex;
+        half4 _MainTex_TexelSize;        
+        sampler2D _Bloom;
+        float _LuminanceThreshold;
+        float _BlurSize;
+
+        //下面先定义提取较亮区域需要使用的结构体、顶点着色器和片元着色器
+        struct v2f {
+            float4 pos : SV_POSITION; 
+            half2 uv : TEXCOORD0;
+        };    
+
+        v2f vertExtractBright(appdata_img v) {
+            v2f o;
+            o.pos = UnityObjectToClipPos(v.vertex);
+            o.uv = v.texcoord;
+            return o;
+        }
+        
+        fixed luminance(fixed4 color) {
+            return  0.2125 * color.r + 0.7154 * color.g + 0.0721 * color.b; 
+        }
+        
+        fixed4 fragExtractBright(v2f i) : SV_Target {
+            fixed4 c = tex2D(_MainTex, i.uv);
+            fixed val = clamp(luminance(c) - _LuminanceThreshold, 0.0, 1.0); //采样得到的亮度值减去阈值 _LuminanceThreshold，并把结果截取在 0～1 之间
+            return c * val; //把该值和愿像素相乘，得到提取后的亮度区域
+        }
+
+        //定义混合亮部图像和原图像时使用的结构体、顶点着色器和片元着色器
+        struct v2fBloom {
+            float4 pos : SV_POSITION; 
+            half4 uv : TEXCOORD0;
+        };
+
+        v2fBloom vertBloom(appdata_img v) {
+            v2fBloom o;
+            o.pos = UnityObjectToClipPos (v.vertex);
+            //定义两个纹理坐标，并存储在同一个类型为 half4 的变量 uv 中，xy 对应 _MainTex，即原图像的纹理坐标；zw 对应 _Bloom，即对应模糊后的较亮区域的纹理坐标
+            o.uv.xy = v.texcoord;
+            o.uv.zw = v.texcoord;
+
+            //平台差异化处理的代码
+            #if UNITY_UV_STARTS_AT_TOP            
+            if (_MainTex_TexelSize.y < 0.0)
+                o.uv.w = 1.0 - o.uv.w;
+            #endif
+                            
+            return o; 
+        }
+        
+        fixed4 fragBloom(v2fBloom i) : SV_Target {
+            return tex2D(_MainTex, i.uv.xy) + tex2D(_Bloom, i.uv.zw);
+        } 
+        
+        ENDCG
+        
+        ZTest Always Cull Off ZWrite Off
+
+        //定义 Bloom 效果需要的 4 个 pass
+        Pass {  
+            CGPROGRAM  
+            #pragma vertex vertExtractBright  
+            #pragma fragment fragExtractBright  
+            ENDCG  
+        }
+
+        //第二、第三个 pass 使用上一节的高斯模糊定义的两个 pass，该是通过 UsePass 语义来指明所使用的 pass，注意：Unity 内部会把 shader 名字全部转换为大写字母，从而使用时需要大写字母
+        
+        UsePass "Unity Shaders Book/Chapter 12/Gaussian Blur/GAUSSIAN_BLUR_VERTICAL"
+        
+        UsePass "Unity Shaders Book/Chapter 12/Gaussian Blur/GAUSSIAN_BLUR_HORIZONTAL"
+        
+        Pass {  
+            CGPROGRAM  
+            #pragma vertex vertBloom  
+            #pragma fragment fragBloom  
+            ENDCG  
+        }
+    }
+    FallBack Off
+}
+```
+
+将编写好的 Shader 文件拖拽到 C# 脚本组件的 Bloom Shader 属性中，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/21/GnsWkg5EzRAZoX4.png" width = "70%" height = "70%" alt="图68-  左图：原效果。右图：Bloom 处理后的效果（Iterations 为 4，Blur Spread 为 1.5，Down Sample 为 4，Luminance Threshold 为 0.1）。"/>
+</div>
+
+
+## 运动模糊
+
 
 
