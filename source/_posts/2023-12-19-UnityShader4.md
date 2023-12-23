@@ -819,6 +819,214 @@ Shader "Unity Shaders Book/Chapter 12/Bloom" {
 
 
 ## 运动模糊
+运动模糊是真实世界中的摄像机的一种效果。摄像机曝光时如果拍摄场景发生了变化，就会产生模糊的画面。由于在计算机生成的图像中，不存在在曝光这一物理现象，渲染出来的图像往往都是棱角分明，缺少运动模糊。  
+
+运动模糊的实现有多种方法：  
+①**累积缓存 accumulation buffer**：混合多张连续图像。当物体快速移动产生多张图像后，我们取它们之间的平均值作为最后的运动模糊图像。这种暴力的方法对性能消耗很大，想要获取多张帧图像意味着我们需要在同一帧里渲染多次场景。  
+②**速度缓存 velocity buffer**：这个缓存中存储了各个像素当前的运动速度，然后利用该值来觉得模糊的方向和大小。
+
+本节中，我们将使用类似于累积缓存的方法来实现运动模糊。我们不需要在一帧中把场景渲染多次，但需要保存之前的渲染结果，不断把当前的渲染图像叠加到之前的渲染图像中，从而产生一种运动轨迹的视觉效果。这种方法与原始的利用累计缓存的方法相比性能更好，但模糊效果可能略有影响。
+
+准备工作如下：  
+①新建名为 Scene_12_6 的场景，并去掉天空盒子；  
+②往场景里放置几个立方体和平面；  
+③新建名为 Translating 的 C# 脚本，并拖拽到相机，用于控制相机围绕目标物体旋转；  
+④新建名为 MotionBlur 的 C# 脚本，并把脚本拖拽到相机；  
+⑤新建名为 Chapter12-MotionBlur 的 Unity Shader。
+
+Translating.cs 的代码如下：  
+
+``` C#
+using UnityEngine;
+
+public class Translating : MonoBehaviour
+{
+    public float speed = 10.0f;
+    public Vector3 startPoint = Vector3.zero;
+    public Vector3 endPoint = Vector3.zero;
+    public Vector3 lookAt = Vector3.zero;
+    public bool pingpong = true;
+
+    private Vector3 curEndPoint = Vector3.zero;
+
+    private void Start()
+    {
+        transform.position = startPoint;
+        curEndPoint = endPoint;
+    }
+
+    private void Update()
+    {
+        transform.position = Vector3.Slerp(transform.position, curEndPoint, Time.deltaTime * speed);
+        transform.LookAt(lookAt);
+
+        if (pingpong)
+        {
+            if (Vector3.Distance(transform.position, curEndPoint) < 0.001f)
+            {
+                curEndPoint = Vector3.Distance(curEndPoint, endPoint) < Vector3.Distance(curEndPoint, startPoint) ? startPoint : endPoint;
+            }
+        }
+    }
+}
+```
+
+MotionBlur.cs 的代码如下：  
+
+``` C#
+using UnityEngine;
+using System.Collections;
+
+public class MotionBlur : PostEffectsBase {
+    public Shader motionBlurShader;
+    private Material motionBlurMaterial = null;
+
+    public Material material {  
+        get {
+            motionBlurMaterial = CheckShaderAndCreateMaterial(motionBlurShader, motionBlurMaterial);
+            return motionBlurMaterial;
+        }  
+    }
+
+    //定义运动模糊在混合图像时使用的模糊参数，并限定范围值，blurAmount 越大，运动拖尾越明显
+    [Range(0.0f, 0.9f)]
+    public float blurAmount = 0.5f;
+
+    //定义一个RenderTexture类型的变量，并且保存之前图像叠加的结果
+    private RenderTexture accumulationTexture;
+
+    //在该脚本不运行时，即调用 OnDisable 函数时，立即销毁 accumulationTexture。保证下一次开始应用运动模糊时重新叠加图像
+    void OnDisable() {
+        DestroyImmediate(accumulationTexture);
+    }
+
+    void OnRenderImage (RenderTexture src, RenderTexture dest) {
+        if (material != null) {
+            //判断用于混合图像的 accumulationTexture 是否满足条件：不为空且与当前的屏幕分辨率相等
+            if (accumulationTexture == null || accumulationTexture.width != src.width || accumulationTexture.height != src.height) {
+                DestroyImmediate(accumulationTexture);
+                accumulationTexture = new RenderTexture(src.width, src.height, 0);
+                // HideAndDontSave 表示该变量不会显示在Hierarchy，也不会保存到场景中
+                accumulationTexture.hideFlags = HideFlags.HideAndDontSave;
+                Graphics.Blit(src, accumulationTexture);
+            }
+
+            //调用 accumulationTexture.MarkRestoreExpected() 来表示需要进行一个渲染纹理的恢复操作，恢复操作指发生在纹理到渲染而该纹理又没有被提前清空或销毁的情况下。在本例中每次调用 OnRenderImage 都需要把当前帧图像和 accumulationTexture 中的图像混合，accumulationTexture 不需要提前清空，因为保存了之前的混合结果
+            accumulationTexture.MarkRestoreExpected();
+
+            material.SetFloat("_BlurAmount", 1.0f - blurAmount);
+
+            Graphics.Blit (src, accumulationTexture, material);
+            Graphics.Blit (accumulationTexture, dest);
+        } else {
+            Graphics.Blit(src, dest);
+        }
+    }
+}
+```
+
+Chapter12-MotionBlur.shader 的代码如下：  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 12/Motion Blur" {
+    Properties {
+        _MainTex ("Base (RGB)", 2D) = "white" {}
+        _BlurAmount ("Blur Amount", Float) = 1.0
+    }
+
+    SubShader {
+        CGINCLUDE
+        
+        #include "UnityCG.cginc"
+        
+        sampler2D _MainTex; 
+        fixed _BlurAmount;
+        
+        struct v2f {
+            float4 pos : SV_POSITION;
+            half2 uv : TEXCOORD0;
+        };
+
+        v2f vert(appdata_img v) {
+            v2f o;
+            o.pos = UnityObjectToClipPos(v.vertex);
+            o.uv = v.texcoord;   
+            return o;
+        }
+
+        //定义两个片元着色器，一个用于更新渲染纹理的 RGB 通道部分，一个用于更新渲染纹理的 A 通道部分。RGB 通道的 shader 对当前图像进行采样，并将其 A 通道设置为 _BlurAmount，以便可以在后面使用它的透明通道进行混合。A 通道直接返回采样结果，该只是为了维护渲染纹理的透明通道，不让其收到混合时使用的透明度值的影响
+        fixed4 fragRGB (v2f i) : SV_Target {
+            return fixed4(tex2D(_MainTex, i.uv).rgb, _BlurAmount);
+        }
+        
+        half4 fragA (v2f i) : SV_Target {
+            return tex2D(_MainTex, i.uv);
+        }
+        
+        ENDCG
+        
+        ZTest Always Cull Off ZWrite Off
+
+        //更新渲染纹理的 RGB 通道的 Pass，利用 A 通道来混合图像，但不希望该 A 通道写入渲染纹理
+        Pass {
+            Blend SrcAlpha OneMinusSrcAlpha
+            ColorMask RGB
+            
+            CGPROGRAM
+            
+            #pragma vertex vert  
+            #pragma fragment fragRGB  
+            
+            ENDCG
+        }
+
+        //更新 A 通道的 Pass
+        Pass {   
+            Blend One Zero
+            ColorMask A
+                   
+            CGPROGRAM  
+            
+            #pragma vertex vert  
+            #pragma fragment fragA
+              
+            ENDCG
+        }
+    }
+     FallBack Off
+}
+```
+
+将 Chapter12-MotionBlurShader 文件拖拽到脚本的 Motion Blur Shader 属性上，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/23/nQmI5FfOdJ9g3k7.gif" width = "70%" height = "70%" alt="图69-  运动模糊后的效果。"/>
+</div>
 
 
+# 第十二章 使用深度和法线纹理
+在前一章节，学习的屏幕后处理效果都只是在屏幕颜色图像上进行各种操作来实现的。然而，很多时候我们不仅需要当前屏幕的颜色信息，还希望得到深度和法线信息。比如，在进行边缘检测时，直接利用颜色信息会使检测到的边缘信息受物体纹理和光照等外部因素的影响，得到很多不需要的边缘点。一种更好的方法是，我们可以在深度纹理和法线纹理上进行边缘检测，这些图像不会受纹理和光照的影响，而仅仅保存了当前渲染物体的模型信息，通过这样的方式检测出来的边缘更加可靠。
 
+## 获取深度和法线纹理
+### 背后的原理
+深度纹理实际就是一张渲染纹理，里面存储的像素值不是颜色值，而是一个高精度的深度值。由于被存储在一张纹理中，深度纹理的深度值范围是 \[0, 1\]，而且通常是非线性分布的。
+
+深度值来自于顶点变换后得到的归一化的设备坐标 Normalized Device Coordinates, NDC。一个模型要想最终被绘制在屏幕上，需要把它的顶点从模型空间变换到齐次裁剪坐标系下，通过在顶点着色器中乘以 MVP 矩阵变换得到的。在变换到最后一步，需要使用一个投影矩阵来变换顶点，而透视投影的投影矩阵就是非线性的（正交投影的投影矩阵是线性的）。
+
+> 回忆一下：顶点着色器阶段要把模型空间一步步转换到应用透视裁剪矩阵（或者正交）后的变换结果，合起来即 MVP 矩阵变换。而齐次除法则是底层硬件进行的，得到归一化的设备坐标。OpenGL 中 NDC 的 z 分量范围在 \[-1, 1\] 之间，而在 DirectX 中，z 分量在 \[0, 1\] 之间。
+
+在得到 NDC 之后，深度纹理中的像素值就可以得到了。NDC 的 z 分量范围在 \[-1, 1\] 之间，为了让这些值能够存储到一张图上，需要对其进行映射（d 对应了深度纹理中的像素值）：  
+
+$$ d = 0.5 \cdot z_{NDC} + 0.5$$
+
+--- 
+
+在 Unity 中，深度纹理可以直接来自于真正的深度缓存，也可以是由一个单独的 Pass 渲染而得，这取决于使用的渲染路径和硬件。  
+①当使用延迟渲染路径时，因为延迟渲染会把深度信息渲染到 G-buffer 中。  
+②当无法直接获取深度缓存时，深度和法线纹理是通过一个渲染。具体实现是：Unity 会使用着色器替换 Shader Replacement 技术选择那些渲染类型（即 SubShader 的 RenderType 标签）为 Opaque 的物体，判断它们使用的渲染队列是否小于等于 2500（内置的 Background、Geometry 和 AlphaTest 渲染队列均在此范围内），如果满足条件，就把它渲染到深度和法线纹理中。因此，要想让物体能够出现在深度和法线纹理中，就**必须在 Shader 中设置正确的 RenderType 标签**。
+
+在 Unity 中，我们可以选择让一个摄像机生成一张深度纹理或是一张深度 + 法线纹理。  
+①当只需要一张单独的深度纹理时，Unity 会直接获取深度缓存或是按之前讲到的着色器替换技术，选取需要的不透明物体，并使用它投射阴影时使用的 Pass （即 LightMode 设置为 ShaowCaster 的 Pass）来得到深度纹理。如果 Shader 中不包含这样一个 Pass，那么这个物体就不会出现在深度纹理中（当然，它也不能向其他物体投射阴影）。深度纹理的精度通常是 24 位或 16 位，这取决于使用的深度缓存的精度。  
+②如果选择生成一张深度 + 法线纹理，Unity 会创建一张和屏幕分辨率相同、 精度为 32 位（每个通道为 8 位）的纹理，其中观察空间下的法线信息会被编码进纹理的 R 和 G 通道，而深度信息会被编码进 B 和 A 通道。法线信息的获取在延迟渲染中是非常容易得到的，Unity 只需要合并深度和法线缓存即可。而在前向渲染中，默认情况下是不会去创建法线缓存的，因此 Unity 底层使用了一个单独的 Pass 把整个场景再次渲染一遍来完成。这个 Pass 被包含在 Unity 的内置的一个 Unity Shader 中，我们可以在内置的 build_shaders-xxx/DefaultResources/Camera-DepthNormalTexture.shader 文件中找到这个用于渲染深度和法线信息的的 Pass。
+
+### 如何获取
