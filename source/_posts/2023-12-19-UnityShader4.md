@@ -1312,4 +1312,291 @@ Shader "Unity Shaders Book/Chapter 13/Motion Blur With Depth Texture" {
 
     float4 worldPos = _WorldSpaceCamearaPos + linearDepth * interpolatedRay;
 
-其中，
+其中，**\_WorldSpaceCamearaPos** 是摄像机在世界空间下的位置，这可以由 Unity 的内置变量直接访问得到。而 linearDepth * interpolatedRay 则可以计算得到该像素相对于摄像机的偏移量，**linearDepth** 是由深度纹理得到的线性深度值，**interpolatedRay** 是由顶点着色器输出并插值后得到的射线，它不仅包含了该像素到摄像机的方向，也包含了距离信息。
+
+**interpolatedRay 来源于对近裁剪平面的 4 个角的某个特定向量的插值**，这 4 个向量包含了它们到摄像机的方向和距离信息，我们可以利用摄像机的近裁剪平面距离、FOV、横纵比计算而得。下图显示了计算时使用的一些辅助向量：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/26/gOjhfcrTqSiNUPw.jpg" width = "50%" height = "50%" alt="图71-  计算 interpolatedRay"/>
+</div>
+
+为了方便计算，我们可以先计算两个向量 —— toTop 和 toRight，它们是起点位于近裁剪平面中心、分别指向摄像机正上方和正右方的向量，它们的计算公式如下：  
+
+$$ halfHeight = Near \times tan( \cfrac {FOV} {2} ) $$
+$$ toTop = camera.up \times halfHeight $$
+$$ toRight = camera.right \times halfHeight \cdot aspect $$
+
+有了这两个辅助向量后，就可以计算 4 个角相对于摄像机的方向：  
+
+$$ TL = camera.forward \cdot Near + toTop - toRight $$
+$$ TR = camera.forward \cdot Near + toTop + toRight $$
+$$ BL = camera.forward \cdot Near - toTop - toRight $$
+$$ BR = camera.forward \cdot Near - toTop + toRight $$
+
+上面求得的 4 个向量不仅包含了方向信息，它们的模对应了 4 个点到摄像机的空间距离。由于我们得到的线性深度值并非是点到摄像机的欧式距离，而是在 z 方向上的距离，不能直接使用深度值和 4 个角的单位方向的乘积来计算它们到相机的偏移量。要把深度值转换成到摄像机的欧式距离，我们以 TL 点为例，如下图：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/26/t9m42ryzPfjTOIB.jpg" width = "40%" height = "40%" alt="图72-  采样得到的深度值并非是点到摄像机的欧式距离"/>
+</div>
+
+根据相似三角形原理，TL 所在的射线上，像素的深度值和它到摄像机的实际距离的比等于近裁剪平面的距离和 TL 向量的模的比，即：  
+
+$$ \cfrac {depth}{dist} = \cfrac {Near}{|TL|} $$
+
+即 TL 所在的射线上的像素距离摄像机的欧式距离 dist：  
+
+$$ dist = \cfrac {|TL|}{Near} \times depth $$
+
+为了得到 linearDepth * interpolatedRay 中的 interpolatedRay，需要求得近裁切平面的四个角的向量的类似于  interpolatedRay 的值作插值，以 TL 为例子，即：
+
+$$ linearDepth \times Ray_{TL} = depth \times Ray_{TL} = dist \times \cfrac {TL}{|TL|}  $$
+$$ Ray_{TL} = \cfrac {|TL|}{Near} \times depth \times \cfrac {TL}{|TL|} \div depth = \cfrac {TL}{Near}$$
+
+因为近裁切平面的四个角相互对称，令 $\,scale = |TL| / Near\,$，则：  
+
+$$ Ray_{TL} = \cfrac {TL}{|TL|} \times scale , Ray_{TR} = \cfrac {TR}{|TR|} \times scale $$ 
+$$ Ray_{BL} = \cfrac {BL}{|BL|} \times scale , Ray_{BR} = \cfrac {BR}{|BR|} \times scale $$ 
+
+屏幕后处理的原理就是使用特定的材质去渲染一个刚好填充整个屏幕的四边形面片，**屏幕后处理所用的模型是一个四边形网格，只包含 4 个顶点**。这个四边形面片的 4 个顶点就对应了近裁剪平面的 4 个角。因此，我们可以把上面的计算结果传递给顶点着色器，顶点着色器根据当前的位置选择它所对应的向量，然后将其输出，经插值后传递给片元着色器得到基于像素的 interpolatedRay，我们就可以直接利用本节一开始提到的公式重建该像素在世界空间下的位置了。
+
+### 雾的计算
+在简单的雾效实现中，我们需要计算一个雾效系数 f，作为混合原始颜色和雾的颜色的混合系数：  
+
+    float3 afterFog = f * fogColor + (1 - f) * origColor
+
+这个雾效系数 f 有很多计算方法。在 Unity 内置的雾效实现中，支持三种雾的计算方式 —— 线性 Linear、指数 Exponential 以及指数的平方 Exponential Squared。当给定距离 z 后，f 的计算公式分别如下：  
+①Linear：  
+
+$$ f= \cfrac {d_{max} - |z|}{d_{max} - d_{min}},d_{max}和d_{min}分别表示受雾影响的最大最小距离 $$
+
+②Exponential：
+
+$$ f= e^{-d \cdot |z|},d是控制雾的浓度的参数 $$
+
+③Exponential Squared：
+
+$$ f= e^{-(d \cdot |z|)^2},d是控制雾的浓度的参数 $$
+
+在本节中，我们将使用类似线性雾的计算方式，计算基于高度的雾效。具体方法是，当给定一点在世界空间下的高度 y 后，f 的计算公式为：  
+
+$$ f = \cfrac {H_{end} - y}{H_{end} - H_{start}},H_{start}和H_{end} 分别表示受雾影响的起始高度和终止高度 $$
+
+### 实现
+准备工作如下：  
+①新建名为 Scene_13_3 的场景，并去掉天空盒子；  
+②搭建一个雾效场景，构建包含 3 面墙的房间，并放置几个立方体；  
+③拖拽一个控制相机不断围绕一个中心运动的脚本 Translating.cs 到相机组件；  
+④新建一个名为 FogWithDepthTexture 的 C# 脚本，并拖拽给相机；
+⑤新建一个名为 Chapter13-FogWithDepthTexture 的 Unity Shader。
+
+FogWithDepthTexture.cs 的 C# 脚本代码如下：  
+
+``` C#
+using UnityEngine;
+using System.Collections;
+
+public class FogWithDepthTexture : PostEffectsBase {
+    public Shader fogShader;
+    private Material fogMaterial = null;
+
+    public Material material {  
+        get {
+            fogMaterial = CheckShaderAndCreateMaterial(fogShader, fogMaterial);
+            return fogMaterial;
+        }  
+    }
+
+    private Camera myCamera;
+    public Camera camera {
+        get {
+            if (myCamera == null) {
+                myCamera = GetComponent<Camera>();
+            }
+            return myCamera;
+        }
+    }
+    
+    private Transform myCameraTransform;
+    public Transform cameraTransform {
+        get {
+            if (myCameraTransform == null) {
+                myCameraTransform = camera.transform;
+            }
+            return myCameraTransform;
+        }
+    }
+
+    [Range(0.0f, 3.0f)]
+    public float fogDensity = 1.0f;
+    public Color fogColor = Color.white;
+
+    //雾效的起始高度和终止高度
+    public float fogStart = 0.0f; 
+    public float fogEnd = 2.0f;
+
+    void OnEnable() {
+        camera.depthTextureMode |= DepthTextureMode.Depth; //设置模式以在 shader 里获取深度纹理
+    }
+    
+    void OnRenderImage (RenderTexture src, RenderTexture dest) {
+        if (material != null) {
+            Matrix4x4 frustumCorners = Matrix4x4.identity; //frustum：视锥体，初始化为单位矩阵，把计算近裁剪平面的四个角对应的向量，存储到这个矩阵类型的变量
+
+            float fov = camera.fieldOfView;
+            float near = camera.nearClipPlane;
+            float aspect = camera.aspect;
+
+            //本节最开始的公式的计算过程如下
+            float halfHeight = near * Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad);
+            Vector3 toRight = cameraTransform.right * halfHeight * aspect;
+            Vector3 toTop = cameraTransform.up * halfHeight;
+            Vector3 topLeft = cameraTransform.forward * near + toTop - toRight;
+            float scale = topLeft.magnitude / near;
+            topLeft.Normalize();
+            topLeft *= scale;
+
+            //计算各点的欧式距离
+            Vector3 topRight = cameraTransform.forward * near + toRight + toTop;
+            topRight.Normalize();
+            topRight *= scale;
+
+            Vector3 bottomLeft = cameraTransform.forward * near - toTop - toRight;
+            bottomLeft.Normalize();
+            bottomLeft *= scale;
+
+            Vector3 bottomRight = cameraTransform.forward * near + toRight - toTop;
+            bottomRight.Normalize();
+            bottomRight *= scale;
+
+            //按一定顺序把四个方向存储到 frustumCorners 的不同的行中
+            frustumCorners.SetRow(0, bottomLeft);
+            frustumCorners.SetRow(1, bottomRight);
+            frustumCorners.SetRow(2, topRight);
+            frustumCorners.SetRow(3, topLeft);
+
+            material.SetMatrix("_FrustumCornersRay", frustumCorners);
+            material.SetFloat("_FogDensity", fogDensity);
+            material.SetColor("_FogColor", fogColor);
+            material.SetFloat("_FogStart", fogStart);
+            material.SetFloat("_FogEnd", fogEnd);
+
+            Graphics.Blit (src, dest, material);
+        } else {
+            Graphics.Blit(src, dest);
+        }
+    }
+}
+```
+
+Chapter13-FogWithDepthTexture 的 Shader 代码如下：  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 13/Fog With Depth Texture" {
+    Properties {
+        _MainTex ("Base (RGB)", 2D) = "white" {}
+        _FogDensity ("Fog Density", Float) = 1.0
+        _FogColor ("Fog Color", Color) = (1, 1, 1, 1)
+        _FogStart ("Fog Start", Float) = 0.0
+        _FogEnd ("Fog End", Float) = 1.0
+    }
+
+    SubShader {
+        CGINCLUDE
+        
+        #include "UnityCG.cginc"
+        
+        float4x4 _FrustumCornersRay;
+        
+        sampler2D _MainTex;
+        half4 _MainTex_TexelSize;
+        sampler2D _CameraDepthTexture;
+        half _FogDensity;
+        fixed4 _FogColor;
+        float _FogStart;
+        float _FogEnd;
+        
+        struct v2f {
+            float4 pos : SV_POSITION;
+            half2 uv : TEXCOORD0;
+            half2 uv_depth : TEXCOORD1;
+            float4 interpolatedRay : TEXCOORD2;
+        };
+        
+        v2f vert(appdata_img v) {
+            v2f o;
+            o.pos = UnityObjectToClipPos(v.vertex);
+            o.uv = v.texcoord;
+            o.uv_depth = v.texcoord;
+            
+            #if UNITY_UV_STARTS_AT_TOP
+            if (_MainTex_TexelSize.y < 0)
+                o.uv_depth.y = 1 - o.uv_depth.y;
+            #endif
+
+            //决定该顶点对应了 4 个角中的哪个角，这里使用判断语句是因为屏幕后处理所用的模型是一个四边形网格，只包含 4 个顶点，因此对性能影响不大
+            int index = 0;
+            if (v.texcoord.x < 0.5 && v.texcoord.y < 0.5) {
+                index = 0;
+            } else if (v.texcoord.x > 0.5 && v.texcoord.y < 0.5) {
+                index = 1;
+            } else if (v.texcoord.x > 0.5 && v.texcoord.y > 0.5) {
+                index = 2;
+            } else {
+                index = 3;
+            }
+
+            #if UNITY_UV_STARTS_AT_TOP
+            if (_MainTex_TexelSize.y < 0)
+                index = 3 - index;
+            #endif
+            
+            o.interpolatedRay = _FrustumCornersRay[index]; //利用索引值来获取 _FrustumCornersRay 中对应的行
+              
+            return o;
+        }
+        
+        fixed4 frag(v2f i) : SV_Target {
+            float linearDepth = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv_depth)); //对深度纹理采样后，使用 LinearEyeDepth 得到观察空间下的线性深度值
+            float3 worldPos = _WorldSpaceCameraPos + linearDepth * i.interpolatedRay.xyz;
+                        
+            float fogDensity = (_FogEnd - worldPos.y) / (_FogEnd - _FogStart); 
+            fogDensity = saturate(fogDensity * _FogDensity); //控制雾效系数
+            fixed4 finalColor = tex2D(_MainTex, i.uv);
+            finalColor.rgb = lerp(finalColor.rgb, _FogColor.rgb, fogDensity);
+            return finalColor;
+        }
+        
+        ENDCG
+        
+        Pass {
+            ZTest Always Cull Off ZWrite Off
+                     
+            CGPROGRAM  
+            
+            #pragma vertex vert  
+            #pragma fragment frag  
+              
+            ENDCG  
+        }
+    } 
+    FallBack Off
+}
+```
+
+把 Chapter13-FogWithDepthTexture 拖拽到摄像机的脚本的 Fog Shader 组件中，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/26/VpA56mbuRcKTIMg.jpg" width = "70%" height = "70%" alt="图73-  添加全局雾效后的效果"/>
+</div>
+
+**本节介绍的使用深度纹理重构像素的世界坐标的方法是非常有用的**。但是需要注意的是，这里的实现是基于摄影机的投影类型是透视投影的前提下。若需要在正交投影的情况下重建世界坐标，需要使用不同的公式，有兴趣可以自己推导。
+
+## 再谈边缘检测
+在上一章节，使用的是 **Sobel 算子** 对屏幕图像进行边缘检测，这种直接利用颜色信息进行边缘检测的方法会受纹理、阴影等因素的影响，导致最终的描边并不精确。
+
+在本节中，将利用深度和法线纹理，通过 **Roberts 算子**进行边缘检测，不受纹理和光照影响。Roberts 算子使用的卷积核如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/26/V6PIaFLX7sToSvt.jpg" width = "20%" height = "20%" alt="图74-   Roberts 算子"/>
+</div>
+
