@@ -33,7 +33,7 @@ Unity 会把当前渲染得到的图像存储在第一个参数对应的源渲�
 
 ---
 
-在默认情况下，OnRenderImage 函数会在所有不透明和透明的 Pass 执行完毕后被调用，以便对场景中所有游戏对象都产生影响。但有时，会希望在不透明的 Pass（RenderQueue <= 2500，内置的 Background、Geometry 和 AlphaTest 渲染队列均在此范围内）执行完毕后立即调用 OnRenderImage 函数，从而不对透明物体产生任何影响。可在 OnRenderImage 函数前添加 ImageEffectOpaque 属性实现这样的目的（见第 12 章，利用深度和法线纹理进行边缘检测从而实现描边效果，但是不希望透明物体也被描边）。
+在默认情况下，OnRenderImage 函数会在所有不透明和透明的 Pass 执行完毕后被调用，以便对场景中所有游戏对象都产生影响。但有时，会希望在不透明的 Pass（RenderQueue <= 2500，内置的 Background、Geometry 和 AlphaTest 渲染队列均在此范围内）执行完毕后立即调用 OnRenderImage 函数，从而不对透明物体产生任何影响。可在 OnRenderImage 函数前添加 `ImageEffectOpaque` 属性实现这样的目的（见第 12 章，利用深度和法线纹理进行边缘检测从而实现描边效果，但是不希望透明物体也被描边）。
 
 ---
 
@@ -1583,7 +1583,7 @@ Shader "Unity Shaders Book/Chapter 13/Fog With Depth Texture" {
 }
 ```
 
-把 Chapter13-FogWithDepthTexture 拖拽到摄像机的脚本的 Fog Shader 组件中，效果如下：  
+把 Chapter13-FogWithDepthTexture 拖拽到摄像机的脚本的 Fog Shader 参数中，效果如下：  
 
 <div  align="center">  
 <img src="https://s2.loli.net/2023/12/26/VpA56mbuRcKTIMg.jpg" width = "70%" height = "70%" alt="图73-  添加全局雾效后的效果"/>
@@ -1600,3 +1600,191 @@ Shader "Unity Shaders Book/Chapter 13/Fog With Depth Texture" {
 <img src="https://s2.loli.net/2023/12/26/V6PIaFLX7sToSvt.jpg" width = "20%" height = "20%" alt="图74-   Roberts 算子"/>
 </div>
 
+Roberts 算子的本质是就是计算左上角和右上角的差值，乘以右上角和左下角的差值，作为评估边缘的依据。在下面的实现中，我们也会按照这样的方式，取对角方向的深度或法线值，比较它们之间的差值，如果超过某个阈值，就认为它们之间存在一条边。
+
+准备工作如下：  
+①新建名为 Scene_13_4 的场景，并去掉天空盒；  
+②搭建类似上一节全局雾效的场景；   
+③将上一节中用到的 Translating.cs 脚本拖拽给相机；  
+④新建名为 EdgeDetectNormalsAndDepth 的 C# 脚本，并拖拽给相机；  
+⑤新建名为 Chapter13-EdgeDetectNormalAndDepth 的 Unity Shader；  
+
+EdgeDetectNormalsAndDepth.cs 的 C# 脚本代码如下：  
+
+``` C#
+using UnityEngine;
+using System.Collections;
+
+public class EdgeDetectNormalsAndDepth : PostEffectsBase {
+    public Shader edgeDetectShader;
+    private Material edgeDetectMaterial = null;
+    public Material material {  
+        get {
+            edgeDetectMaterial = CheckShaderAndCreateMaterial(edgeDetectShader, edgeDetectMaterial);
+            return edgeDetectMaterial;
+        }  
+    }
+
+    [Range(0.0f, 1.0f)]
+    public float edgesOnly = 0.0f;
+    public Color edgeColor = Color.black;
+    public Color backgroundColor = Color.white;
+    public float sampleDistance = 1.0f; //用于控制对深度+法线纹理采样时，使用的采样距离。从视觉上看，为描边粗细程度
+
+    //sensitivityDepth 和 sensitivityNormals 则影响当邻域的深度值或法线值相差多少时被认为存在一条边界，而如果灵敏度调的很大，那么可能是深度或法线上很小的变化也会成为一条边
+    public float sensitivityDepth = 1.0f;
+    public float sensitivityNormals = 1.0f;
+    
+    void OnEnable() {
+        GetComponent<Camera>().depthTextureMode |= DepthTextureMode.DepthNormals;
+    }
+
+    //ImageEffectOpaque 特性，见第 11 章最前面，目的是为了在不透明的 Pass 执行完毕后立即调用该函数，不对透明物体产生影响。在本例中，不希望对透明物体也被描边
+    [ImageEffectOpaque]
+    void OnRenderImage (RenderTexture src, RenderTexture dest) {
+        if (material != null) {
+            material.SetFloat("_EdgeOnly", edgesOnly);
+            material.SetColor("_EdgeColor", edgeColor);
+            material.SetColor("_BackgroundColor", backgroundColor);
+            material.SetFloat("_SampleDistance", sampleDistance);
+            material.SetVector("_Sensitivity", new Vector4(sensitivityNormals, sensitivityDepth, 0.0f, 0.0f));
+
+            Graphics.Blit(src, dest, material);
+        } else {
+            Graphics.Blit(src, dest);
+        }
+    }
+}
+```
+
+Chapter13-EdgeDetectNormalAndDepth 的 Shader 代码如下：
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 13/Edge Detection Normals And Depth" {
+    Properties {
+        _MainTex ("Base (RGB)", 2D) = "white" {}
+        _EdgeOnly ("Edge Only", Float) = 1.0
+        _EdgeColor ("Edge Color", Color) = (0, 0, 0, 1)
+        _BackgroundColor ("Background Color", Color) = (1, 1, 1, 1)
+        _SampleDistance ("Sample Distance", Float) = 1.0
+        _Sensitivity ("Sensitivity", Vector) = (1, 1, 1, 1)
+    }
+
+    SubShader {
+        CGINCLUDE
+        
+        #include "UnityCG.cginc"
+        
+        sampler2D _MainTex;
+        half4 _MainTex_TexelSize;
+        fixed _EdgeOnly;
+        fixed4 _EdgeColor;
+        fixed4 _BackgroundColor;
+        float _SampleDistance;
+        half4 _Sensitivity;
+        
+        sampler2D _CameraDepthNormalsTexture;
+        
+        struct v2f {
+            float4 pos : SV_POSITION;
+            half2 uv[5]: TEXCOORD0; //定义维数为 5 的纹理坐标数组，第一个坐标存储了屏幕颜色图像的采样纹理，剩下四个存储使用 Roberts 算子时需要采样的纹理坐标
+        };
+          
+        v2f vert(appdata_img v) {
+            v2f o;
+            o.pos = UnityObjectToClipPos(v.vertex);
+            half2 uv = v.texcoord;
+            o.uv[0] = uv;
+            
+            #if UNITY_UV_STARTS_AT_TOP //解决平台差异性
+            if (_MainTex_TexelSize.y < 0)
+                uv.y = 1 - uv.y;
+            #endif
+
+            //计算罗伯特算子，使用 _SampleDistance 控制采样距离
+            o.uv[1] = uv + _MainTex_TexelSize.xy * half2(1,1) * _SampleDistance;
+            o.uv[2] = uv + _MainTex_TexelSize.xy * half2(-1,-1) * _SampleDistance;
+            o.uv[3] = uv + _MainTex_TexelSize.xy * half2(-1,1) * _SampleDistance;
+            o.uv[4] = uv + _MainTex_TexelSize.xy * half2(1,-1) * _SampleDistance;
+            return o;
+        }
+        
+        half CheckSame(half4 center, half4 sample) {
+            //对输入的两个点的采样后的深度和法线信息进行处理。注意，这里没有解码得到真正的法线值，而是直接使用了 xy 分量。是因为我们只需要比较两个采样值的差异，不需要知道它们真正的法线
+            half2 centerNormal = center.xy;        
+            float centerDepth = DecodeFloatRG(center.zw);        
+            half2 sampleNormal = sample.xy;
+            float sampleDepth = DecodeFloatRG(sample.zw);
+
+            //两个采样点的对应值相减并取绝对值在乘以灵敏度参数，再把差异值的每个分量相加和一个阈值比较，若小于阈值则返回 1，说明差异不明显，否则则返回 0
+            half2 diffNormal = abs(centerNormal - sampleNormal) * _Sensitivity.x;
+            int isSameNormal = (diffNormal.x + diffNormal.y) < 0.1;
+
+            //用偏差是否达到深度的十分之一来判定深度值是否相近
+            float diffDepth = abs(centerDepth - sampleDepth) * _Sensitivity.y;
+            int isSameDepth = diffDepth < 0.1 * centerDepth;
+            
+            // return:
+            // 1 - if normals and depth are similar enough
+            // 0 - otherwise
+            return isSameNormal * isSameDepth ? 1.0 : 0.0;
+        }
+        
+        fixed4 fragRobertsCrossDepthAndNormal(v2f i) : SV_Target {
+            //使用 4 个纹理坐标对深度+法线纹理进行法线采样
+            half4 sample1 = tex2D(_CameraDepthNormalsTexture, i.uv[1]);
+            half4 sample2 = tex2D(_CameraDepthNormalsTexture, i.uv[2]);
+            half4 sample3 = tex2D(_CameraDepthNormalsTexture, i.uv[3]);
+            half4 sample4 = tex2D(_CameraDepthNormalsTexture, i.uv[4]);
+            
+            half edge = 1.0;
+            edge *= CheckSame(sample1, sample2); //调用 checksame 计算对角线上两个纹理值的差值，若返回 0 则两点间存在一条边界，反之则为 1
+            edge *= CheckSame(sample3, sample4);
+            
+            fixed4 withEdgeColor = lerp(_EdgeColor, tex2D(_MainTex, i.uv[0]), edge);
+            fixed4 onlyEdgeColor = lerp(_EdgeColor, _BackgroundColor, edge);
+            return lerp(withEdgeColor, onlyEdgeColor, _EdgeOnly);
+        }
+        
+        ENDCG
+
+        Pass { 
+            ZTest Always Cull Off ZWrite Off
+            
+            CGPROGRAM      
+            
+            #pragma vertex vert  
+            #pragma fragment fragRobertsCrossDepthAndNormal
+            
+            ENDCG  
+        }
+    } 
+    FallBack Off
+}
+```
+
+将 Chapter13-EdgeDetectNormalAndDepth 拖入摄像机脚本的 Edge Detect Shader 参数中，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/27/5DIAmgKqwtXaZhV.png" width = "60%" height = "60%" alt="图75-   在深度和法线纹理上进行更健壮的边缘检测。上图：在原图上描边的效果（Edges only 为 0）。右图：只显示描边的效果（Edges only 为 1）"/>
+</div>
+
+本节实现的描边效果是基于整个屏幕空间进行的，场景内所有物体都会被添加描边效果。但有时，我们希望只对特定的物体进行描边，这时需要 Unity 提供的 Graphics.DrawMesh 或 Graphics.DrawMeshNow 函数，把需要描边的物体再次渲染一次（在所有不透明物体渲染完毕之后），再使用本节提到的边缘检测算法计算深度或法线纹理中每个像素的梯度值，判断它们是否小于阈值。若是，则在 Shader 中使用 clip() 函数将该像素剔除掉，从而显示出原来的颜色。
+
+## 扩展阅读
+在本章中，我们只使用了深度和法线纹理，但实际上我们可以在 Unity 中创建任何需要的缓存纹理。这可以通过使用 Unity 的着色器替换 shader replacement 功能，即调用 Camera.RenderWithShader(shader, replacementTag) 函数，把整个场景再次渲染一遍来得到，而在很多时候，这实际上也是 Unity 创建深度和法线纹理时使用的方法。
+
+深度和法线纹理在屏幕特效的实现中扮演很重要的角色，很多特殊的屏幕效果都可以基于深度和法线纹理去实现，原作者给出了 Unity 在 2011 年的 SIGGRAPH（计算机图形学的顶级会议）上做的一个关于使用深度纹理实现各种特效的演讲，感兴趣可前往阅读：https://blog.unity.com/community/special-effects-with-depth-talk-at-siggraph
+
+
+# 第十三章 非真实感渲染
+一些游戏渲染是以**照相写实主义 photorealism** 作为主要目标，但也有一些游戏使用了**非真实感渲染 Non-Photorealistic Rendering, NPR** 的方法来渲染游戏画面。非真实感渲染的一个主要目标是，使用一些渲染方法使得画面达到和某些特殊的绘画风格相似的效果，例如卡通、水彩风格等。
+
+## 卡通风格的渲染
+要实现卡通渲染有很多方法，其中之一就是使用**基于色调的着色技术 tone-based shading**。在实现中，我们往往会使用漫反射系数对一张一维纹理进行采样，以控制漫反射的色调，也就是第六章实现的渐变纹理。
+
+卡通的高光效果和之前学习的光照不同，模型的高光往往是一块块分界明显的纯色区域。
+
+除了光照模型不同外，卡通风格通常还需要在物体边缘部分绘制轮廓。在上一章节，使用的是屏幕后处理技术对屏幕图像进行描边。在本节中，将介绍基于模型的描边方法，这种方法的实现更加简单，而且大多数情况下效果不错。
+
+### 渲染轮廓线
