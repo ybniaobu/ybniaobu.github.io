@@ -1788,3 +1788,356 @@ Shader "Unity Shaders Book/Chapter 13/Edge Detection Normals And Depth" {
 除了光照模型不同外，卡通风格通常还需要在物体边缘部分绘制轮廓。在上一章节，使用的是屏幕后处理技术对屏幕图像进行描边。在本节中，将介绍基于模型的描边方法，这种方法的实现更加简单，而且大多数情况下效果不错。
 
 ### 渲染轮廓线
+在实时渲染中，轮廓线的渲染应用广泛。在《Real Time Rendering, third edition》中，作者将绘制模型轮廓的方法分为了 5 种：  
+①基于观察角度和表面法线的轮廓线渲染：使用视角方向和表面法线的点乘结果来得到轮廓线的信息。这种方法简单快捷，可以在一个 Pass 中就得到渲染结果，但局限性很大，很多模型渲染出来的描边效果都不尽人意。  
+②过程式几何轮廓渲染：使用两个 Pass 渲染。第一个 Pass 渲染背面的面片，并使用某些技术让它的轮廓可见；第二个 Pass 再正常渲染正面的面片。这种方法的优点在于快速有效，并且适用于绝大多数表面平滑的模型，但它的缺点是不适用于类似于立方体这样的平整的模型。  
+③基于图像处理的轮廓线渲染：我们在 11、12 章介绍的边缘检测的方法就属于这个类别。这种方法的优点在于，可以适用于任何种类的模型。但它也有自身的局限所在，一些深度和法线变化很小的轮廓无法被检测出来，例如桌子上的纸张。  
+④基于轮廓边检测的轮廓线渲染：上面提到的各种方法，一个最大的问题是，无法控制轮廓线的风格渲染。对于一些情况，我们希望可以渲染出独特风格的轮廓线，例如水墨风格等。为此，我们希望可以检测出精确的轮廓边，然后直接渲染它们。检测一条边是否是轮廓边的公式也很简单，我们只需要检查和这条边相邻的两个三角面片是否满足以下条件：
+
+$$ (n_0 \cdot v > 0) \neq (n_1 \cdot v > 0)$$
+
+其中，$\,n_0\,$ 和 $\,n_1\,$ 分别表示两个相邻三角面片的法向，v 是从视角到该边上任意顶点的方向。上述公式的本质在于检查两个相邻的三角面片是否一个朝正面、一个朝背面。我们可以在几何着色器 Geometry Shader 的帮助下实现上面的检测过程。当然，这种方法也有缺点，除了实现相对复杂外，它还会有动画连贯性的问题。也就是说，由于是逐帧单独提取轮廓，所以在帧与帧之间会出现跳跃性。  
+⑤最后一个种类就是混合了上述几种渲染方法。例如，首先找到精确的轮廓边，把模型和轮廓边渲染到纹理中，再使用图像处理的方法识别出轮廓线，并在图像空间下进行风格化渲染。
+
+--- 
+
+在本节中，我们将会在 Unity 中使用**过程式几何轮廓线渲染**的方法来对模型进行轮廓描边。我们将使用两个 Pass 渲染模型：在第一个 Pass 中，我们会使用轮廓线颜色渲染整个背面的面片，并在视角(观察)空间下把模型顶点沿着法线方向向外扩张一段距离，一次来让背部轮廓线可见。代码如下：  
+
+    viewPos = viewPos + viewNormal * _Outline;
+
+但是，如果直接使用顶点法线进行扩展，对于一些内凹的模型，就可能发生背面面片遮挡正面面片的情况。为了尽可能防止出现这样的情况，在扩张背面顶点之前，我们首先对顶点法线的 z 分量进行处理，使它们等于一个定值，然后把法线归一化再对顶点进行扩张。这样的好处在于，扩展后的背面更加扁平化，从而降低了遮挡正面面片的可能性。代码如下：  
+
+    viewNormal.z = -0.5;
+    viewNormal = normalize(viewNormal);
+    viewPos = viewPos + viewNormal * _Outline;
+
+### 添加高光
+卡通风格中的高光是模型上一块块分界明显的纯色区域。因此不能在使用之前学习的光照模型，回顾一下之前实现的 Blinn-Phong 模型，我们使用法线点乘光照方向以及视角方向和的一半，再和另一个参数进行指数操作得到高光反射系数，代码如下：  
+
+    float spec = pow(max(0, dot(normal, halfDir)), _Gloss);
+
+对于卡通渲染需要的高光反射光照模型，我们同样需要计算 normal 和 halfDir 的点乘结果，但不同的是，我们把该值和一个阈值进行比较，如果小于该阈值，则高光反射系数为 0，否则返回 1：  
+
+    float spec = dot(worldNormal, worldHalfDir);
+    spec = step(threshold, spec);
+
+在上面的代码中，我们使用 Cg 的 `step` 函数来实现和阈值比较的目的。step 函数接受两个参数，第一个参数是参考值，第二个参数是待比较的数值。如果第二个参数大于等于第一个参数，则返回 1，否则返回 0。
+
+但是，这种粗暴的判断方法会在高光区域的边界造成锯齿，因为高光区域的边缘不是平滑渐变的，而是从 0 突破到 1。要想对其进行抗锯齿处理，我们可以在边界很小的一块区域内，进行平滑处理，代码如下：  
+
+    float spec = dot(worldNormal, worldHalfDir);
+    spec = lerp(0, 1, smoothstep(-w, w, spec - threshold))
+
+使用了 Cg 的 `smoothstep` 函数。其中，w 是一个很小的值，当 spec - threshold 小于 -w 时，返回 0，大于 w 时，返回 1，否则在 0 到 1 之间进行插值。这样的效果是，我们可以在 \[-w, w\] 区间内，即高光区域的边界处，得到一个从 0 到 1 平滑变化的 spec 值，从而实现抗锯齿的目的。尽管我们可以把 w 设为一个很小的定值，但在本例中，我们选择使用领域像素之间的近似导数值，这可以通过 CG 的 `fwidth` 函数来得到。
+
+>     ddx(v) = 该像素点右边的值 - 该像素点的值  
+>     ddy(v) = 该像素点下面的值 - 该像素点的值  
+>     fwidth（v） = abs(ddx(v)) + abs(ddy(v))  //邻域像素之间的近似导数值  
+> 当代 GPU 在像素化的时候一般是以 2 x 2 像素为基本单位，那么在这个 2 x 2 像素块当中，右侧的像素对应的 fragment 的 x 坐标减去左侧的像素对应的 fragment 的 x 坐标就是ddx；下侧像素对应的 fragment 的坐标 y 减去上侧像素对应的 fragment 的坐标 y 就是 ddy，ddx 和 ddy 代表了相邻两个像素在设备坐标系当中的距离。
+
+### 实现
+准备工作如下：  
+①新建名为 Scene_14_1 的场景，并去掉天空盒；  
+②往场景中拖入一个 Suzanne 模型；  
+③新建名为 ToonShadingMat 的材质，并赋给上一步的模型；  
+④新建名为 Chapter14-ToonShading 的 Unity Shader，并赋给上一步的材质。
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 14/Toon Shading" {
+    Properties {
+        _Color ("Color Tint", Color) = (1, 1, 1, 1)
+        _MainTex ("Main Tex", 2D) = "white" {}
+        _Ramp ("Ramp Texture", 2D) = "white" {}
+        _Outline ("Outline", Range(0, 1)) = 0.1 //控制轮廓线宽度
+        _OutlineColor ("Outline Color", Color) = (0, 0, 0, 1) 
+        _Specular ("Specular", Color) = (1, 1, 1, 1)
+        _SpecularScale ("Specular Scale", Range(0, 0.1)) = 0.01 //控制高光反射的阈值
+    }
+    SubShader {
+        Tags { "RenderType"="Opaque" "Queue"="Geometry"}
+        Pass {
+            NAME "OUTLINE" //定义名称，方便其他 shader 调用
+            
+            Cull Front //把正面的三角面片剔除掉，只渲染背面
+            
+            CGPROGRAM
+            
+            #pragma vertex vert
+            #pragma fragment frag
+            
+            #include "UnityCG.cginc"
+            
+            float _Outline;
+            fixed4 _OutlineColor;
+            
+            struct a2v {        
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+            }; 
+                
+            struct v2f {        
+                float4 pos : SV_POSITION;
+            };
+            
+            v2f vert (a2v v) {
+                v2f o;
+                //先变换到观察空间
+                float4 pos = mul(UNITY_MATRIX_MV, v.vertex); 
+                float3 normal = mul((float3x3)UNITY_MATRIX_IT_MV, v.normal);
+                //观察空间是右手坐标系，所以是减
+                normal.z = -0.5;
+                pos = pos + float4(normalize(normal), 0) * _Outline;
+                o.pos = mul(UNITY_MATRIX_P, pos); //变换到裁剪空间中
+                return o;
+            }
+            
+            float4 frag(v2f i) : SV_Target {
+                return float4(_OutlineColor.rgb, 1); //渲染着整个背面即可       
+            }
+            
+            ENDCG
+        }
+        
+        Pass {
+            Tags { "LightMode"="ForwardBase" } //前向渲染标签，光照模型需要 Unity 提供光照等信息，从而要对pass进行相应的设置
+            
+            Cull Back
+        
+            CGPROGRAM
+        
+            #pragma vertex vert
+            #pragma fragment frag
+            
+            #pragma multi_compile_fwdbase
+        
+            #include "UnityCG.cginc"
+            #include "Lighting.cginc"
+            #include "AutoLight.cginc"
+            #include "UnityShaderVariables.cginc"
+            
+            fixed4 _Color;
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            sampler2D _Ramp;
+            fixed4 _Specular;
+            fixed _SpecularScale;
+        
+            struct a2v {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float4 texcoord : TEXCOORD0;
+                float4 tangent : TANGENT;
+            }; 
+        
+            struct v2f {
+                float4 pos : POSITION;
+                float2 uv : TEXCOORD0;
+                float3 worldNormal : TEXCOORD1;        
+                float3 worldPos : TEXCOORD2;    
+                SHADOW_COORDS(3) //阴影相关宏
+            };
+            
+            v2f vert (a2v v) {
+                v2f o;
+                o.pos = UnityObjectToClipPos( v.vertex);
+                o.uv = TRANSFORM_TEX (v.texcoord, _MainTex);
+                o.worldNormal  = UnityObjectToWorldNormal(v.normal);
+                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+                TRANSFER_SHADOW(o); //阴影相关宏
+                return o;
+            }
+            
+            float4 frag(v2f i) : SV_Target { 
+                fixed3 worldNormal = normalize(i.worldNormal);
+                fixed3 worldLightDir = normalize(UnityWorldSpaceLightDir(i.worldPos));
+                fixed3 worldViewDir = normalize(UnityWorldSpaceViewDir(i.worldPos));
+                fixed3 worldHalfDir = normalize(worldLightDir + worldViewDir);
+                
+                fixed4 c = tex2D (_MainTex, i.uv);
+                fixed3 albedo = c.rgb * _Color.rgb;
+                
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz * albedo;
+                
+                UNITY_LIGHT_ATTENUATION(atten, i, i.worldPos); //利用内置宏计算当前世界坐标下的阴影值
+
+                //半兰伯特漫反射系数和阴影值相乘得到最终的漫反射系数
+                fixed diff =  dot(worldNormal, worldLightDir);
+                diff = (diff * 0.5 + 0.5) * atten;
+                
+                fixed3 diffuse = _LightColor0.rgb * albedo * tex2D(_Ramp, float2(diff, diff)).rgb;
+                
+                fixed spec = dot(worldNormal, worldHalfDir);
+                fixed w = fwidth(spec) * 2.0; //抗锯齿操作
+                fixed3 specular = _Specular.rgb * lerp(0, 1, smoothstep(-w, w, spec + _SpecularScale - 1)) * step(0.0001, _SpecularScale); //0.0001是为了在 _SpecularScale 为 0 时完全消除高光反射的光照
+                
+                return fixed4(ambient + diffuse + specular, 1.0); //环境光、漫反射和高光反射相加的结果
+            }
+            ENDCG
+        }
+    }
+    FallBack "Diffuse"
+}
+```
+
+效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/28/vxXMywPiJB6pWNK.jpg" width = "70%" height = "70%" alt="图76- 卡通风格的渲染效果"/>
+</div>
+
+本节实现的卡通渲染光照模型是一种非常简单的实现，要获取更出色的卡通效果，需自行查阅更多资料。
+
+
+## 素描风格的渲染
+另一个非常流行的非真实渲染时素描风格的渲染。微软研究院的 Praun 等人在 2001 年的 SIGGRAPH 上发表了一篇非常著名的论文。在这篇文章中，他们使用了提前生成的素描纹理来实现实时的素描风格渲染，这些纹理组成了一个**色调艺术映射 Tonal Art Map，TAM**，如下图所示：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/28/8ChEtLKZicqxYJ2.jpg" width = "70%" height = "70%" alt="图77- 一个 TAM 的例子（来源：Praun E, et al. Real-time hatching）"/>
+</div>
+
+上图中，从左到右纹理中的笔触逐渐增多，用于模拟不同光照下的漫反射效果，从上到下对应了每张纹理的**多级渐远纹理 mipmaps**。这些纹理的生成并不是简单的对上一层纹理进行降采样，而是需要保持笔触之间的间隔，以便真实模拟素描的效果。
+
+本节将会实现简化版的论文中提出的算法，我们不考虑多级渐远纹理的生成，而直接使用 6 张纹理进行渲染。在渲染阶段，我们首先在顶点着色阶段计算逐顶点的光照，根据光照结果来决定 6 张纹理的混合权重，并传递给片元着色器。然后，在片元着色器中根据这些权重来混合 6 张纹理的采样结果。
+
+准备工作如下：  
+①新建名为 Scene_14_2 的场景，并去掉天空盒；  
+②拖拽 TeddyBear 模型到场景。可以往场景中拖入一张纸张图像作为背景；  
+③新建名为 HatchingMat 的材质，并赋给上一步的模型；  
+④新建名为 Chapter14-Hatching 的 Unity Shader，并赋给上一步创建的材质。
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 14/Hatching" {
+    Properties {
+        _Color ("Color Tint", Color) = (1, 1, 1, 1)
+        _TileFactor ("Tile Factor", Float) = 1 //纹理的平铺系数，越大，素描线条越密
+        _Outline ("Outline", Range(0, 1)) = 0.1 //描边的粗细
+        //渲染时的6张素描纹理，其线条密度依次增加
+        _Hatch0 ("Hatch 0", 2D) = "white" {}
+        _Hatch1 ("Hatch 1", 2D) = "white" {}
+        _Hatch2 ("Hatch 2", 2D) = "white" {}
+        _Hatch3 ("Hatch 3", 2D) = "white" {}
+        _Hatch4 ("Hatch 4", 2D) = "white" {}
+        _Hatch5 ("Hatch 5", 2D) = "white" {}
+    }
+    
+    SubShader
+        Tags { "RenderType"="Opaque" "Queue"="Geometry"}
+        
+        UsePass "Unity Shaders Book/Chapter 14/Toon Shading/OUTLINE" //使用卡通渲染的 pass 进行渲染轮廓，别忘了 Pass 名字要全部转为大写
+        
+        Pass {
+            Tags { "LightMode"="ForwardBase" }
+            
+            CGPROGRAM
+            
+            #pragma vertex vert
+            #pragma fragment frag 
+            
+            #pragma multi_compile_fwdbase
+            
+            #include "UnityCG.cginc"
+            #include "Lighting.cginc"
+            #include "AutoLight.cginc"
+            #include "UnityShaderVariables.cginc"
+            
+            fixed4 _Color;
+            float _TileFactor;
+            sampler2D _Hatch0;
+            sampler2D _Hatch1;
+            sampler2D _Hatch2;
+            sampler2D _Hatch3;
+            sampler2D _Hatch4;
+            sampler2D _Hatch5;
+            
+            struct a2v {
+                float4 vertex : POSITION;
+                float4 tangent : TANGENT; 
+                float3 normal : NORMAL; 
+                float2 texcoord : TEXCOORD0; 
+            };
+            
+            struct v2f {
+                float4 pos : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                //因为声明了 6 张纹理，从而需要 6 个混合权重，把其存储在两个 fixed3 类型的变量中
+                fixed3 hatchWeights0 : TEXCOORD1;
+                fixed3 hatchWeights1 : TEXCOORD2;
+                float3 worldPos : TEXCOORD3; //为添加阴影，从而需要声明 worldPos 变量
+                SHADOW_COORDS(4) //使用 SHADOW_COORDS 宏声明阴影纹理的采样坐标
+            };
+            
+            v2f vert(a2v v) {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.uv = v.texcoord.xy * _TileFactor; //使用 _TileFactor 得到纹理采样坐标
+                
+                fixed3 worldLightDir = normalize(WorldSpaceLightDir(v.vertex));
+                fixed3 worldNormal = UnityObjectToWorldNormal(v.normal);
+                fixed diff = max(0, dot(worldLightDir, worldNormal)); //漫反射系数
+
+                o.hatchWeights0 = fixed3(0, 0, 0); //把权重值初始化定位0
+                o.hatchWeights1 = fixed3(0, 0, 0);
+
+                //把 diff 缩放到 [0,7] 得到 hatchFactor，通过 hatchFactor 来计算其所处的自区间来计算对应的纹理混合权重
+                float hatchFactor = diff * 7.0;
+                
+                if (hatchFactor > 6.0) {
+                    // Pure white, do nothing
+                } else if (hatchFactor > 5.0) {
+                    o.hatchWeights0.x = hatchFactor - 5.0;
+                } else if (hatchFactor > 4.0) {
+                    o.hatchWeights0.x = hatchFactor - 4.0;
+                    o.hatchWeights0.y = 1.0 - o.hatchWeights0.x;
+                } else if (hatchFactor > 3.0) {
+                    o.hatchWeights0.y = hatchFactor - 3.0;
+                    o.hatchWeights0.z = 1.0 - o.hatchWeights0.y;
+                } else if (hatchFactor > 2.0) {
+                    o.hatchWeights0.z = hatchFactor - 2.0;
+                    o.hatchWeights1.x = 1.0 - o.hatchWeights0.z;
+                } else if (hatchFactor > 1.0) {
+                    o.hatchWeights1.x = hatchFactor - 1.0;
+                    o.hatchWeights1.y = 1.0 - o.hatchWeights1.x;
+                } else {
+                    o.hatchWeights1.y = hatchFactor;
+                    o.hatchWeights1.z = 1.0 - o.hatchWeights1.y;
+                }
+                
+                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+                TRANSFER_SHADOW(o); //计算阴影纹理的采样坐标
+                return o; 
+            }
+            
+            fixed4 frag(v2f i) : SV_Target {
+                //混合权重，对每张纹理进行采样，并和他们对应的权重值相乘得到每张纹理的采样颜色
+                fixed4 hatchTex0 = tex2D(_Hatch0, i.uv) * i.hatchWeights0.x;
+                fixed4 hatchTex1 = tex2D(_Hatch1, i.uv) * i.hatchWeights0.y;
+                fixed4 hatchTex2 = tex2D(_Hatch2, i.uv) * i.hatchWeights0.z;
+                fixed4 hatchTex3 = tex2D(_Hatch3, i.uv) * i.hatchWeights1.x;
+                fixed4 hatchTex4 = tex2D(_Hatch4, i.uv) * i.hatchWeights1.y;
+                fixed4 hatchTex5 = tex2D(_Hatch5, i.uv) * i.hatchWeights1.z;
+
+                //计算纯白在渲染中的贡献度，主要是为了光照最亮的部分是纯白色，即素描的留白部分
+                fixed4 whiteColor = fixed4(1, 1, 1, 1) * (1 - i.hatchWeights0.x - i.hatchWeights0.y - i.hatchWeights0.z - i.hatchWeights1.x - i.hatchWeights1.y - i.hatchWeights1.z);
+                
+                fixed4 hatchColor = hatchTex0 + hatchTex1 + hatchTex2 + hatchTex3 + hatchTex4 + hatchTex5 + whiteColor;
+                
+                UNITY_LIGHT_ATTENUATION(atten, i, i.worldPos); //得到阴影值
+                                
+                return fixed4(hatchColor.rgb * _Color.rgb * atten, 1.0);
+            }
+            ENDCG
+        }
+    }
+    FallBack "Diffuse"
+}
+```
+
+效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/28/PRnjh2JEz5oZC3A.jpg" width = "70%" height = "70%" alt="图78- 素描风格的渲染效果"/>
+</div>
+
+
+# 第十四章 使用噪声
+## 消融效果
