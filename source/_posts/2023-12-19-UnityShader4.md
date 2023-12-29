@@ -2141,3 +2141,305 @@ Shader "Unity Shaders Book/Chapter 14/Hatching" {
 
 # 第十四章 使用噪声
 ## 消融效果
+**消融 dissolve** 效果常见于游戏中的角色死亡、地图烧毁等效果。在这些效果中，消融往往从不同的区域开始，并向看似随机的方向扩张，最后整个物体都将消失不见。在本节中，我们将在 Unity 中实现这种效果。
+
+消融效果的原理：概括来说就是噪声纹理+透明度测试。我们使用噪声纹理采样的结果和某个控制消融程度的阈值比较，如果小于阈值，就使用 clip 函数把它对应的像素裁剪掉，这些部分就对应了被“烧毁”的区域。而镂空区域边缘的烧焦效果则是将两种颜色混合，再用 pow 函数处理后，与原纹理颜色混合后的的结果。
+
+准备工作如下：  
+①新建名为 Scene_15_1 的场景，并去掉天空盒；  
+②往场景中放置一个立方体；  
+③新建名为 DissolveMat 的材质，并赋给上一步创建的立方体；  
+④新建名为 Chapter15-Dissolve 的 Unity Shader，并赋给上一步创建的材质。
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 15/Dissolve" {
+    Properties {
+        _BurnAmount ("Burn Amount", Range(0.0, 1.0)) = 0.0 //控制燃烧的效果
+        _LineWidth("Burn Line Width", Range(0.0, 0.2)) = 0.1 //控制燃烧烧焦效果时的线宽
+        _MainTex ("Base (RGB)", 2D) = "white" {}
+        _BumpMap ("Normal Map", 2D) = "bump" {}
+        _BurnFirstColor("Burn First Color", Color) = (1, 0, 0, 1) //燃烧边界的第一种颜色
+        _BurnSecondColor("Burn Second Color", Color) = (1, 0, 0, 1) //燃烧边界的渐变的第二种颜色
+        _BurnMap("Burn Map", 2D) = "white"{} //对应的噪声纹理
+    }
+    SubShader {
+        Tags { "RenderType"="Opaque" "Queue"="Geometry"}
+        
+        Pass {
+            Tags { "LightMode"="ForwardBase" }
+
+            Cull Off
+            
+            CGPROGRAM
+            
+            #include "Lighting.cginc"
+            #include "AutoLight.cginc"
+            
+            #pragma multi_compile_fwdbase
+            
+            #pragma vertex vert
+            #pragma fragment frag
+
+            fixed _BurnAmount;
+            fixed _LineWidth;
+            sampler2D _MainTex;
+            sampler2D _BumpMap;
+            fixed4 _BurnFirstColor;
+            fixed4 _BurnSecondColor;
+            sampler2D _BurnMap;
+            float4 _MainTex_ST;
+            float4 _BumpMap_ST;
+            float4 _BurnMap_ST;
+            
+            struct a2v {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float4 tangent : TANGENT;
+                float4 texcoord : TEXCOORD0;
+            };
+            
+            struct v2f {
+                float4 pos : SV_POSITION;
+                float2 uvMainTex : TEXCOORD0;
+                float2 uvBumpMap : TEXCOORD1;
+                float2 uvBurnMap : TEXCOORD2;
+                float3 lightDir : TEXCOORD3;
+                float3 worldPos : TEXCOORD4;
+                SHADOW_COORDS(5) //阴影纹理
+            };
+            
+            v2f vert(a2v v) {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.uvMainTex = TRANSFORM_TEX(v.texcoord, _MainTex);
+                o.uvBumpMap = TRANSFORM_TEX(v.texcoord, _BumpMap);
+                o.uvBurnMap = TRANSFORM_TEX(v.texcoord, _BurnMap);
+
+                //把光源信息从模型空间变换到切线空间
+                TANGENT_SPACE_ROTATION;
+                o.lightDir = mul(rotation, ObjSpaceLightDir(v.vertex)).xyz;
+                  
+                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+                TRANSFER_SHADOW(o); //得到阴影信息
+                return o;
+            }
+            
+            fixed4 frag(v2f i) : SV_Target {
+                fixed3 burn = tex2D(_BurnMap, i.uvBurnMap).rgb;
+
+                //将采样结果和用于控制消融效果的属性 _BurnAmount 相减并传递给 clip 函数，如果结果小于 0 则该像素将会被剔除，从而不会显示到屏幕上，而如果通过了测试，则将进行正常的光照效果
+                clip(burn.r - _BurnAmount);
+
+                //如果通过了测试，则进行正常的光照计算
+                float3 tangentLightDir = normalize(i.lightDir);
+                fixed3 tangentNormal = UnpackNormal(tex2D(_BumpMap, i.uvBumpMap));
+                fixed3 albedo = tex2D(_MainTex, i.uvMainTex).rgb;
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz * albedo;
+                fixed3 diffuse = _LightColor0.rgb * albedo * max(0, dot(tangentNormal, tangentLightDir));
+
+                //计算燃烧颜色 burncolor，在 _LineWidth 范围内模拟烧焦的颜色变化，使用 smoothstep 函数计算混合系数 t，当 t 为 1 时，表明该像素位于消融的边界，当 t 为 0 时，表明该像素为正常的模型颜色
+                fixed t = 1 - smoothstep(0.0, _LineWidth, burn.r - _BurnAmount);
+                fixed3 burnColor = lerp(_BurnFirstColor, _BurnSecondColor, t); //混合两种火焰颜色
+                burnColor = pow(burnColor, 5); //pow 让其更加接近烧焦效果
+                
+                UNITY_LIGHT_ATTENUATION(atten, i, i.worldPos);        
+                fixed3 finalColor = lerp(ambient + diffuse * atten, burnColor, t * step(0.0001, _BurnAmount)); //使用 t 来混合正常的光照颜色（环境光+漫反射）和烧焦颜色，而 step 是保证 _BurnAmount 为 0 时不显示任何消融效果
+                
+                return fixed4(finalColor, 1);
+            }
+            ENDCG
+        }
+
+        //自定义投射阴影的 pass，让阴影能够配合透明度测试产生正确的效果
+        Pass {
+            Tags { "LightMode" = "ShadowCaster" }
+            
+            CGPROGRAM
+            
+            #pragma vertex vert
+            #pragma fragment frag
+            
+            #pragma multi_compile_shadowcaster
+            
+            #include "UnityCG.cginc"
+            
+            fixed _BurnAmount;
+            sampler2D _BurnMap;
+            float4 _BurnMap_ST;
+            
+            struct v2f {
+                V2F_SHADOW_CASTER; //得到定义阴影投射所需要定义的变量
+                float2 uvBurnMap : TEXCOORD1;
+            };
+            
+            v2f vert(appdata_base v) {
+                v2f o;
+                TRANSFER_SHADOW_CASTER_NORMALOFFSET(o) //该宏用于填充 V2F_SHADOW_CASTER 背后声明的一些变量
+                o.uvBurnMap = TRANSFORM_TEX(v.texcoord, _BurnMap);
+                return o;
+            }
+            
+            fixed4 frag(v2f i) : SV_Target {
+                fixed3 burn = tex2D(_BurnMap, i.uvBurnMap).rgb;
+                clip(burn.r - _BurnAmount); //利用噪声纹理的采样结果 uvBurnMap 来剔除片元
+                SHADOW_CASTER_FRAGMENT(i) //完成阴影投射部分，把结果输出到深度图和阴影映射纹理中
+            }
+            ENDCG
+        }
+    }
+    FallBack "Diffuse"
+}
+```
+
+将噪声纹理拖拽到材质的 Burn Map 属性上，再调整材质的 Burn Amount 属性，就可以看到消融的效果了。可以自己实现一个辅助脚本用于控制材质的 Burn Amount 属性，或者使用 Shader 动画来实现动画效果。效果如下：  
+
+<table><tr>
+<td><img src='https://s2.loli.net/2023/12/29/i8PvuV4ZhpKW2EX.jpg' width="330" alt="图79- 消融效果使用的噪声纹理"></td>
+<td><img src='https://s2.loli.net/2023/12/29/DPnZNSjpFLer56R.gif' width="600" alt="图80- 箱子的消融效果"></td>
+</tr></table>
+
+## 水波效果
+在模拟水面的过程中，我们往往也会使用噪声纹理。此时，噪声纹理通常会用作一个高度图，以不断修改水面的法线方向。为了模拟水不断流动的效果，我们会使用和时间相关的变量来对噪声纹理进行采样，当得到法线信息后，再进行正常的反射 + 折射计算，得到最后的水面波动效果。
+
+本节中，我们将使用一个由噪声纹理得到的法线贴图，实现一个包含菲涅尔反射的水面效果。和第 9 章实现的透明玻璃类似。首先使用一张立方体纹理 Cubemap 作为环境纹理，模拟反射。为了模拟折射效果，我们使用 GrabPass 来获取当前屏幕的渲染纹理，并使用切线空间下的法线方向对像素的屏幕坐标进行偏移，再使用该坐标对渲染纹理进行屏幕采样，从而模拟近似的折射效果。
+
+和之前不同，水波的法线纹理是由一张噪声纹理生成而得。除此之外，我们没有使用一个定值来混合反射和折射颜色，而是使用之前菲涅尔系数来动态决定混合系数。我们使用的公式计算菲涅尔系数：  
+
+$$ fresnel = pow(1 - max(0, v \cdot n),4) $$
+
+其中，v 和 n 分别对应了视角方向和法线方向。它们之间的夹角越小，fresnel 值越小，反射越弱，折射越强。菲涅尔系数还经常会用于边缘光照的计算中。
+
+---
+
+准备工作如下：  
+①新建名为 Scene_15_2 的场景，并去掉天空盒；  
+②搭建水波效果的测试场景，构建一个由 6 面墙围成的封闭房间，房间中放置一个平面来模拟水面；  
+③新建名为 WaterWaveMat 的材质，并赋给上一步的平面（水面）；  
+④新建名为 Chapter15-WaterWave 的 Unity Shader，并赋给上一步的材质；  
+⑤使用第 9 章 1.2节中实现的创建立方体纹理的脚本创建一个立方体纹理，用于得到本场景适用的环境纹理。在 Project 创建一张名为 Wave_Cubemap 的立方体纹理（右键 -> Create -> Legacy -> Cubemap）；点击菜单栏 GameObject -> Render into CubeMap。  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 15/Water Wave" {
+    Properties {
+        _Color ("Main Color", Color) = (0, 0.15, 0.115, 1) //控制水面颜色
+        _MainTex ("Base (RGB)", 2D) = "white" {} //水面波纹材质纹理
+        _WaveMap ("Wave Map", 2D) = "bump" {} //由噪声纹理生成的法线纹理
+        _Cubemap ("Environment Cubemap", Cube) = "_Skybox" {}
+        _WaveXSpeed ("Wave Horizontal Speed", Range(-0.1, 0.1)) = 0.01 //法线纹理在 x 方向上的平移速度
+        _WaveYSpeed ("Wave Vertical Speed", Range(-0.1, 0.1)) = 0.01 //法线纹理在 y 方向上的平移速度
+        _Distortion ("Distortion", Range(0, 100)) = 10 //模拟折射时图像的扭曲程度
+    }
+
+    SubShader {
+        Tags { "Queue"="Transparent" "RenderType"="Opaque" } //Queue 设置成 Transparent 可以确保该物体渲染时，其他所有不透明物体都已经被渲染到屏幕上，否则可能无法正确得到“透过水面看到的图像”；而设置为 RenderType 则是为了在使用着色器替换时，该物体可以在需要时被正确渲染，见第 12 章开头
+        
+        GrabPass { "_RefractionTex" } //GrabPass 定义了一个抓去屏幕图像的 Pass，在该 Pass 中定义一个字符串，该字符串内部的名称决定了抓去得到的屏幕图像将会被存入哪个纹理中
+        
+        Pass {
+            Tags { "LightMode"="ForwardBase" } 
+            
+            CGPROGRAM
+            
+            #include "UnityCG.cginc"
+            #include "Lighting.cginc"
+            
+            #pragma multi_compile_fwdbase
+            
+            #pragma vertex vert
+            #pragma fragment frag
+
+            fixed4 _Color;
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            sampler2D _WaveMap;
+            float4 _WaveMap_ST;
+            samplerCUBE _Cubemap;
+            fixed _WaveXSpeed;
+            fixed _WaveYSpeed;
+            float _Distortion;    
+            sampler2D _RefractionTex;
+            float4 _RefractionTex_TexelSize;
+            
+            struct a2v {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float4 tangent : TANGENT; 
+                float4 texcoord : TEXCOORD0;
+            };
+            
+            struct v2f {
+                float4 pos : SV_POSITION;
+                float4 scrPos : TEXCOORD0;
+                float4 uv : TEXCOORD1;
+                float4 TtoW0 : TEXCOORD2;  
+                float4 TtoW1 : TEXCOORD3;  
+                float4 TtoW2 : TEXCOORD4; 
+            };
+            
+            v2f vert(a2v v) {
+                v2f o;
+                o.pos = UnityObjectToClipPos(v.vertex);
+                o.scrPos = ComputeGrabScreenPos(o.pos); //通过调用 ComputeGrabScreenPos 来得到对应被抓取屏幕图像的采样坐标，它的主要代码和 ComputeScreenPos 类似，最大的不同是针对平台差异问题
+                
+                o.uv.xy = TRANSFORM_TEX(v.texcoord, _MainTex); 
+                o.uv.zw = TRANSFORM_TEX(v.texcoord, _WaveMap);
+                
+                float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;  
+                fixed3 worldNormal = UnityObjectToWorldNormal(v.normal);  
+                fixed3 worldTangent = UnityObjectToWorldDir(v.tangent.xyz);  
+                fixed3 worldBinormal = cross(worldNormal, worldTangent) * v.tangent.w; 
+
+                o.TtoW0 = float4(worldTangent.x, worldBinormal.x, worldNormal.x, worldPos.x); 
+                o.TtoW1 = float4(worldTangent.y, worldBinormal.y, worldNormal.y, worldPos.y); 
+                o.TtoW2 = float4(worldTangent.z, worldBinormal.z, worldNormal.z, worldPos.z); 
+                
+                return o;
+            }
+            
+            fixed4 frag(v2f i) : SV_Target {
+                float3 worldPos = float3(i.TtoW0.w, i.TtoW1.w, i.TtoW2.w);
+                fixed3 viewDir = normalize(UnityWorldSpaceViewDir(worldPos));
+
+                //通过 _Time.y 变量和 _WaveXSpeed、_WaveYSpeed 计算法线纹理当前偏移量
+                float2 speed = _Time.y * float2(_WaveXSpeed, _WaveYSpeed);
+
+                //利用偏移量对法线纹理进行两次采样从而模拟两层交叉的水面波动的效果
+                fixed3 bump1 = UnpackNormal(tex2D(_WaveMap, i.uv.zw + speed)).rgb;
+                fixed3 bump2 = UnpackNormal(tex2D(_WaveMap, i.uv.zw - speed)).rgb;
+                fixed3 bump = normalize(bump1 + bump2); //两次结果相加并归一化得到切线空间下的法线方向
+
+                //利用 _Distortion 和 _RefractionTex_TexelSize 来对屏幕图像的采样坐标进行偏移，模拟折射效果，offset 越大，水面扭曲程度越大
+                float2 offset = bump.xy * _Distortion * _RefractionTex_TexelSize.xy;
+
+                //选择切线空间下的法线方向来进行偏移，因为该空间下的法线可以反应顶点局部空间下的法线方向，在计算偏移后的屏幕坐标，需要把偏移量和屏幕坐标的 z 分量相乘，从而模拟深度变大、折射程度越大的效果
+                i.scrPos.xy = offset * i.scrPos.z + i.scrPos.xy;
+
+                //对 scrPos 进行透视除法，再使用该坐标对抓取的屏幕图像 _RefractionTex 进行采样
+                fixed3 refrCol = tex2D( _RefractionTex, i.scrPos.xy/i.scrPos.w).rgb;
+                
+                //把法线方向从切线空间变换到世界空间下
+                bump = normalize(half3(dot(i.TtoW0.xyz, bump), dot(i.TtoW1.xyz, bump), dot(i.TtoW2.xyz, bump)));
+                fixed4 texColor = tex2D(_MainTex, i.uv.xy + speed);
+                fixed3 reflDir = reflect(-viewDir, bump); //根据视角方向和法线方向得到反射方向
+                fixed3 reflCol = texCUBE(_Cubemap, reflDir).rgb * texColor.rgb * _Color.rgb; //使用Cubemap进行采样并把结果和主纹理颜色相乘后得到反射颜色
+                
+                fixed fresnel = pow(1 - saturate(dot(viewDir, bump)), 4); //计算菲涅尔系数
+                fixed3 finalColor = reflCol * fresnel + refrCol * (1 - fresnel); //混合折射和反射颜色，并作为最终的输出颜色
+                return fixed4(finalColor, 1);
+            }
+            ENDCG
+        }
+    }
+    // Do not cast shadow
+    FallBack Off
+}
+```
+
+水面使用的噪声纹理是本书资源的 Water_Noise.png，只不过我们需要的是法线纹理，可以通过在它的纹理面板把纹理类型设置为 Normal Map，同时选中 Create from grayscale 来把灰度图生成法线纹理。将生成的法线纹理拖拽到 Wave Map 上，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/29/SJ8wQrMc2nfT5Zp.gif" width = "70%" height = "70%" alt="图81- 包含菲涅耳反射的水面波动效果。视角方向和水面法线的夹角越大，反射效果越强"/>
+</div>
+
+## 再谈全局雾效
+
