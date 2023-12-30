@@ -12,7 +12,7 @@ cover: https://s2.loli.net/2023/12/20/9Ah5ugiIpONK1cX.gif
 mathjax: true
 ---
 
-> 本读书笔记为高级篇，主要内容为XXXXXXXXXXX。  
+> 本读书笔记为高级篇的前 4 章，主要内容为屏幕后处理的边缘检测、高斯模糊、Bloom 效果和运动模糊；使用深度法线纹理的屏幕后处理的运动模糊、全局雾效和边缘检测；非真实感渲染的卡通渲染、素描风格；使用噪声的消融、水波、全局雾效效果。
 > 读书笔记是对知识的记录与总结，但是对比较熟悉的内容不会再行描述。
 
 # 第十一章 屏幕后处理效果
@@ -2442,4 +2442,233 @@ Shader "Unity Shaders Book/Chapter 15/Water Wave" {
 </div>
 
 ## 再谈全局雾效
+第十二章讲过如何使用深度纹理来实现一种基于屏幕后处理的全局雾效，效果是基于高度的均匀雾效，即在同一个高度上，雾的浓度是相同的。然而一些时候我们希望可以模拟一种不均匀的雾效，同时让雾不断飘动，使雾看起来更飘渺。而这就可以通过一张噪声纹理来实现。
 
+本节的实现大部分和第十二章完全一样，只是增加了噪声相关参数和属性，准备工作如下：  
+①新建名为 Scene_15_3 的场景，并去掉天空盒；  
+②搭建雾效测试场景，3 面墙的房间，放置几个立方体；  
+③新建名为 FogWithNoise 的 C# 脚本，并拖拽给场景中的相机；  
+④新建名为 Chapter15-FogWithNoise 的 Unity Shader。
+
+FogWithNoise.cs 的 C# 脚本代码如下：  
+
+``` C#
+using UnityEngine;
+using System.Collections;
+
+public class FogWithNoise : PostEffectsBase {
+    public Shader fogShader;
+    private Material fogMaterial = null;
+    public Material material {  
+        get {
+            fogMaterial = CheckShaderAndCreateMaterial(fogShader, fogMaterial);
+            return fogMaterial;
+        }  
+    }
+    
+    private Camera myCamera;
+    public Camera camera {
+        get {
+            if (myCamera == null) {
+                myCamera = GetComponent<Camera>();
+            }
+            return myCamera;
+        }
+    }
+
+    private Transform myCameraTransform;
+    public Transform cameraTransform {
+        get {
+            if (myCameraTransform == null) {
+                myCameraTransform = camera.transform;
+            }
+            return myCameraTransform;
+        }
+    }
+
+    [Range(0.1f, 3.0f)]
+    public float fogDensity = 1.0f;
+    public Color fogColor = Color.white;
+    public float fogStart = 0.0f;
+    public float fogEnd = 2.0f;
+
+    public Texture noiseTexture;
+
+    [Range(-0.5f, 0.5f)]
+    public float fogXSpeed = 0.1f;
+    [Range(-0.5f, 0.5f)]
+    public float fogYSpeed = 0.1f;
+    [Range(0.0f, 3.0f)]
+    public float noiseAmount = 1.0f; //控制噪声的程度，当 noiseAmount 为 0 时，得到一个均匀的雾效
+
+    void OnEnable() {
+        GetComponent<Camera>().depthTextureMode |= DepthTextureMode.Depth;
+    }
+        
+    void OnRenderImage (RenderTexture src, RenderTexture dest) {
+        if (material != null) {
+            //下面计算原理详见 12.3 章节
+            Matrix4x4 frustumCorners = Matrix4x4.identity;
+
+            float fov = camera.fieldOfView;
+            float near = camera.nearClipPlane;
+            float aspect = camera.aspect;
+            
+            float halfHeight = near * Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad);
+            Vector3 toRight = cameraTransform.right * halfHeight * aspect;
+            Vector3 toTop = cameraTransform.up * halfHeight;
+            
+            Vector3 topLeft = cameraTransform.forward * near + toTop - toRight;
+            float scale = topLeft.magnitude / near;
+            
+            topLeft.Normalize();
+            topLeft *= scale;
+            
+            Vector3 topRight = cameraTransform.forward * near + toRight + toTop;
+            topRight.Normalize();
+            topRight *= scale;
+            
+            Vector3 bottomLeft = cameraTransform.forward * near - toTop - toRight;
+            bottomLeft.Normalize();
+            bottomLeft *= scale;
+            
+            Vector3 bottomRight = cameraTransform.forward * near + toRight - toTop;
+            bottomRight.Normalize();
+            bottomRight *= scale;
+            
+            frustumCorners.SetRow(0, bottomLeft);
+            frustumCorners.SetRow(1, bottomRight);
+            frustumCorners.SetRow(2, topRight);
+            frustumCorners.SetRow(3, topLeft);
+            
+            material.SetMatrix("_FrustumCornersRay", frustumCorners);
+
+            material.SetFloat("_FogDensity", fogDensity);
+            material.SetColor("_FogColor", fogColor);
+            material.SetFloat("_FogStart", fogStart);
+            material.SetFloat("_FogEnd", fogEnd);
+
+            material.SetTexture("_NoiseTex", noiseTexture);
+            material.SetFloat("_FogXSpeed", fogXSpeed);
+            material.SetFloat("_FogYSpeed", fogYSpeed);
+            material.SetFloat("_NoiseAmount", noiseAmount);
+
+            Graphics.Blit (src, dest, material);
+        } else {
+            Graphics.Blit(src, dest);
+        }
+    }
+}
+```
+
+Chapter15-FogWithNoise 的  Shader 代码如下：  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 15/Fog With Noise" {
+    Properties {
+    //声明属性
+        _MainTex ("Base (RGB)", 2D) = "white" {}
+        _FogDensity ("Fog Density", Float) = 1.0
+        _FogColor ("Fog Color", Color) = (1, 1, 1, 1)
+        _FogStart ("Fog Start", Float) = 0.0
+        _FogEnd ("Fog End", Float) = 1.0
+        _NoiseTex ("Noise Texture", 2D) = "white" {}
+        _FogXSpeed ("Fog Horizontal Speed", Float) = 0.1
+        _FogYSpeed ("Fog Vertical Speed", Float) = 0.1
+        _NoiseAmount ("Noise Amount", Float) = 1
+    }
+    SubShader {
+        CGINCLUDE
+        
+        #include "UnityCG.cginc"
+        
+        float4x4 _FrustumCornersRay; //Unity 没有提供矩阵的属性，所以没在 Properties 中声明
+        
+        sampler2D _MainTex;
+        half4 _MainTex_TexelSize;
+        sampler2D _CameraDepthTexture;
+        half _FogDensity;
+        fixed4 _FogColor;
+        float _FogStart;
+        float _FogEnd;
+        sampler2D _NoiseTex;
+        half _FogXSpeed;
+        half _FogYSpeed;
+        half _NoiseAmount;
+        
+        struct v2f {
+            float4 pos : SV_POSITION;
+            float2 uv : TEXCOORD0;
+            float2 uv_depth : TEXCOORD1;
+            float4 interpolatedRay : TEXCOORD2;        
+        };
+        
+        v2f vert(appdata_img v) {
+            v2f o;
+            o.pos = UnityObjectToClipPos(v.vertex);
+            o.uv = v.texcoord;
+            o.uv_depth = v.texcoord;
+
+            #if UNITY_UV_STARTS_AT_TOP //适配不同平台
+            if (_MainTex_TexelSize.y < 0)
+                o.uv_depth.y = 1 - o.uv_depth.y;
+            #endif
+            
+            int index = 0;
+            if (v.texcoord.x < 0.5 && v.texcoord.y < 0.5) {
+                index = 0;
+            } else if (v.texcoord.x > 0.5 && v.texcoord.y < 0.5) {
+                index = 1;
+            } else if (v.texcoord.x > 0.5 && v.texcoord.y > 0.5) {
+                index = 2;
+            } else {
+                index = 3;
+            }
+
+            #if UNITY_UV_STARTS_AT_TOP
+            if (_MainTex_TexelSize.y < 0)
+                index = 3 - index;
+            #endif
+            
+            o.interpolatedRay = _FrustumCornersRay[index];
+            return o;
+        }
+        
+        fixed4 frag(v2f i) : SV_Target {
+            float linearDepth = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv_depth)); //根据深度纹理构建该像素在世界空间中的位置
+            float3 worldPos = _WorldSpaceCameraPos + linearDepth * i.interpolatedRay.xyz;    
+            
+            float2 speed = _Time.y * float2(_FogXSpeed, _FogYSpeed); //计算雾的偏移量
+            float noise = (tex2D(_NoiseTex, i.uv + speed).r - 0.5) * _NoiseAmount; //对噪声纹理进行采样从而得到噪声值
+                    
+            float fogDensity = (_FogEnd - worldPos.y) / (_FogEnd - _FogStart);         
+            fogDensity = saturate(fogDensity * _FogDensity * (1 + noise)); //计算雾效混合系数
+            
+            fixed4 finalColor = tex2D(_MainTex, i.uv);
+            finalColor.rgb = lerp(finalColor.rgb, _FogColor.rgb, fogDensity);
+            return finalColor;
+        }
+        
+        ENDCG
+        
+        Pass {              
+            CGPROGRAM  
+            
+            #pragma vertex vert  
+            #pragma fragment frag  
+              
+            ENDCG
+        }
+    } 
+    FallBack Off
+}
+```
+
+将 Chapter15-FogWithNoise 拖拽到摄像机的脚本中的 Fog Shader 属性中，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2023/12/30/YK8PdcguWLUmRfQ.gif" width = "70%" height = "70%" alt="图82- ：使用噪声纹理后的非均匀雾效"/>
+</div>
+
+## 扩展阅读
+噪声纹理由计算机利用某些算法生成的，可以被认为是一种程序纹理 Procedure Texture。Perlin 纹理、Worley 纹理是比较常使用的噪声纹理类型。Perlin 噪声可以用于生成更自然的噪声纹理；Worley 噪声则通常用于模拟诸如石头、水、纸张等多孔噪声。有兴趣自行查阅资料。
