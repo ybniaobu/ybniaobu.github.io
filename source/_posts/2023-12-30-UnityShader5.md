@@ -196,5 +196,185 @@ Unity 提供了查看 overdraw 的视图，在 Scene 视图的 2D 按钮前一�
 ### 减少实时光照和阴影
 如果场景中包含了过多的点光源，并且使用了多个 Pass 的 Shader，那么很可能会造成性能下降。对于逐像素的点光源，使用了逐像素的 Shader 不仅会提高 draw call，同时会增加 overdraw。这是因为，对于逐像素的光源来说，被这些光源照亮的物体需要被再渲染一次，而且也会中断批处理。
 
-可以使用烘焙技术，把光照提前烘焙到一张**光照纹理 lightmap** 中，在运行时对纹理进行采样即可。
+模拟光源的方法有：  
+①使用烘焙技术，把光照提前烘焙到一张**光照纹理 lightmap** 中，在运行时对纹理进行采样即可。  
+②使用 **God Ray**，即**丁达尔效应**，不是真的光源，而是通过透明纹理模拟得到的。  
+
+开发者还可以把复杂的光照计算存储到一张**查找纹理 lookup texture**，即**查找表 lookup table, LUT**，中。然后只需要使用光源方向、视角方向、法线方向等参数，对 LUT 采样得到光照结果即可。对于主要角色使用更大分辨率的 LUT，一些 NPC 就使用较小的 LUT，这样可以优化性能。
+
+实时阴影同样是非常消耗性能的效果，不仅是 CPU 需要提交更多的 Draw Call，GPU 也要做贡多的处理。所以尽量减少实时阴影，可以使用烘焙把静态物体的阴影信息存储到光照纹理当中，而只对动态物体使用适当的实时阴影。
+
+
+## 节省带宽
+大量使用未经压缩的纹理以及过大的分辨率都会造成由于带宽而引发的性能瓶颈。  
+
+### 减少纹理大小
+需要注意的是，所有纹理的长宽比最好是正方形，而且长宽值最好是 2 的整数幂。很多优化策略只有在这种时候才可以发挥最大效用。在 Unity 5 中，即使导入的纹理长宽值并不是 2 的整数幂，Unity 也会自动把长宽转换到离他最近的 2 的整数幂。
+
+ 除此之外，还应该尽可能使用**多级渐变纹理技术 mipmapping** 和**纹理压缩**。  
+ ①纹理的属性面板里，勾选 **Generate Mip Maps**，Unity 就会为同一张纹理创建出很多大小不同的小纹理。而在游戏运行时可以根据物体的远近来动态选择使用哪一个纹理。  
+ ②而纹理压缩，不同的 GPU 架构有它自己的纹理压缩格式，例如 PowerVRAM 的 PVRTC 格式、Tegra 的 DXT 格式、Adreno 的 ATC 格式。所幸的是，Unity 会根据不同的设备选择不同的压缩格式，只需设置为自动压缩即可。但是对一些有一定画质要求的纹理，比如 GUI，可以选择不压缩。
+
+ ### 利用分辨率缩放
+ 过高的分辨率也是造成性能下降的原因之一，尤其对于很多低端手机，除了分辨率高其他硬件条件不尽如人意，也就是游戏性能的两大瓶颈：过大的屏幕分辨率、糟糕的 GPU。
+
+对于特定设备，将其屏幕分辨率设低，再放大到屏幕的尺寸，虽然降低游戏效果，但是可以带来性能上的提升。Unity 中设置分辨率可以调用`Screen.SetResolution`。
+
+
+## 减少计算复杂度
+计算复杂度同样会影响游戏的渲染性能，可通过两方面的技术来减少计算复杂度：Shader 的 LOD 技术、代码方面的优化。
+
+ ### Shader 的 LOD 技术
+ 跟之前提到的**模型的 LOD 技术**类似，**Shader 的 LOD 技术**可以控制使用的 Shader 等级。它的原理是，只有 Shader 的 LOD 值小于某个设定的值，这个 Shader 才会被使用，而使用了那些超过设定值的 Shader 的物体将不会被渲染。
+
+ 通常会在 SubShader 中使用类似下面的语句来指明该 Shader 的 LOD 值：  
+
+     SubShader {
+        Tags { "RenderTYpe" = "Opaque"}
+        LOD 200
+
+在 Unity Shader 的导入面板上看到该 Shader 使用的 LOD 值。默认情况下，LOD 等级是无限大的，即任何被当前显卡支持的 Shader 都可以被使用。有时需要去掉一些使用了复杂计算的 Shader 渲染，这时可以使用 `Shader.maximumLOD` 或 `Shader.globalMaximumLOD` 来设置允许的最大 LOD 值。
+
+Unity 内置的 Shader 使用了不同的 LOD 值，例如：Diffuse 的 LOD 值为 200，Bumped Specular 的 LOD 值为 400。
+
+### 代码方面的优化
+游戏需要计算的对象、顶点和像素排序是：对象数 < 顶点数 < 像素数。因此需要尽可能需要把计算放在对象或逐顶点上，例如在实现高斯模糊或边缘检测，把采样坐标的计算放在顶点着色器中，该做法好于原片着色器中。
+
+尽可能使用低精度的浮点值进行运算：  
+①最高精度的 float/highp 适用于存储顶点坐标等变量，但它计算速度最慢，所以应尽量避免在片元着色器中使用这种精度的计算；  
+②half/mediump 适用于一些标量、纹理坐标等变量，其计算速度约为 float 的两倍；  
+③fixed/lowp 适用于大多数颜色变量和归一化后的方向矢量，对于一些精度要求不高的计算，尽量使用这种精度，其计算速度约为 float 的 4 倍。但要避免频繁的 swizzle 操作（如：color.xwxw），同时避免不同精度间的转换。
+
+对于绝大多数 GPU 来说，在使用**插值寄存器**把数据从顶点着色器传递给下一个阶段时，我们应该使用尽量少的插值变量。例如，如果需要对两个纹理坐标进行插值，通常需要会把它们打包在同一个 float4 类型的变量中，两个纹理坐标分别对应了 xy 分量和 zw 分量。然而对于 PowerVR 平台来说，这种插值变量是非常廉价的，直接把不同的纹理坐标存储在不同的插值变量中，性能会更好。尤其是，如果在 PowerVR 上使用类似 `tex2D(_MainTex, uv.zw)` 语句进行采样，GPU 就无法进行一些纹理的预读取，因为它会认为这些纹理坐标是需要依赖其他数据的。
+
+尽可能不使用全屏的屏幕后处理效果。如果必须使用，尽量使用 fixed/lowp 进行低精度运算（纹理坐标除外，可使用 half/mediump）；高精度运算可使用查找表（LUT）或转移到顶点着色器进行处理；尽量把多个特效合并到一个 Shader 中，例如：颜色校正和添加噪声等屏幕特效在 Bloom 特效的最后一个 Pass 中进行合成。  
+
+其他代码优化规则：  
+①尽量不要使用分支语句和循环语句；  
+②避免使用 sin、tan、pow、log 等较为复杂的数学运算，用查找表代替；  
+③尽量不要使用 discard 操作，这会影响硬件的某些优化。
+
+### 根据硬件条件进行缩放
+保证游戏基本的配置可以在所有的平台上运行良好；对于一些具有更高表现能力的设备，可以开启一些更“养眼”的效果，如：使用更高分辨率、开启屏幕后处理特效、开启粒子效果等。
+
+
+## 扩展阅读
+Unity 官方手册给出了很多优化的建议，建议详细阅读。
+
+
+# 第十六章 Unity 的表面着色器
+2009年（Unity 2.x），Unity 的渲染工程师 Aras 连续发表3篇名为《Shaders must die》的博客。博客中，Aras 认为：把渲染流程分为顶点和像素的抽象层面是不易理解的，这种在顶点/几何/片元着色器上的操作是对硬件友好的一种方式，他提出应该划分为：表面着色器、光照模型和光照着色器这样的层面。  
+①表面着色器定义模型表面的反射率、法线和高光等；  
+②光照模型选择使用兰伯特还是 Blinn-Phong 等模型；  
+③光照着色器负责计算光照衰减、阴影等。
+
+这样绝大多数时候开发者只需要和表面着色器打交道，如：混合纹理、颜色等；而光照模型是可以提前定义好的，只需要选择几种预定义的光照模型即可；光照着色器一旦由系统实现后，更不会轻易改动。这样大大减轻 Shader 编写者的工作量。2010年的 Unity 3 中，Surface Shader 被加入到 Unity 中。
+
+## 表面着色器的一个例子
+准备工作如下：  
+①新建名为 Scene_17_1 的场景，并去掉天空盒，在场景中新建一个胶囊体；  
+②新建名为 BumpedSpecularMat 的材质，并赋给场景中的胶囊体；  
+③新建名为 Chapter17-BumpedDiffuse 的 Unity Shader，并赋给上一步创建的材质。
+
+这里使用表面着色器来实现了一个使用了法线纹理的漫反射效果，下面代码参考的是 Unity 内置的 DefaultResourcesExtra/Bumped Diffuse 的代码：  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 17/Bumped Diffuse" {
+    Properties {
+        _Color ("Main Color", Color) = (1.0, 1.0, 1.0, 1.0)
+        _MainTex ("Base (RGB)", 2D) = "white" {}
+        _BumpMap ("Normalmap", 2D) = "bump" {}
+    }
+
+    SubShader {
+        Tags { "RenderType"="Opaque" }
+        LOD 300
+
+        CGPROGRAM
+
+        #pragma surface surf Lambert
+        
+        sampler2D _MainTex;
+        sampler2D _BumpMap;
+        fixed4 _Color;
+
+        struct Input {
+            float2 uv_MainTex;
+            float2 uv_BumpMap;
+        };
+
+        void surf(Input IN, inout SurfaceOutput o) {
+            fixed4 tex = tex2D(_MainTex, IN.uv_MainTex);
+            o.Albedo = tex.rgb * _Color.rgb;
+            o.Alpha = tex.a * _Color.a;
+            o.Normal =  UnpackNormal(tex2D(_BumpMap, IN.uv_BumpMap));
+        }
+
+        ENDCG
+    }
+    Fallback "Legacy Shaders/Diffuse"
+}
+```
+
+在材质面板上拖拽一张漫反射纹理、一张法线纹理，分别在对应路径为：Assets/Textures/Chapter17/Mud_Diffuse.tif 和 Assets/Textures/Chapter17/Mud_Normal.tif。我们还可以向场景中添加一些点光源和聚光灯，我们不需要对代码做任何改动，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/01/03/wWrkYsa3RSv6XDl.jpg" width = "60%" height = "60%" alt="图83- 表面着色器的例子。左图：在一个平行光下的效果。右图：添加了一个点光源（蓝
+色）和一个聚光灯（紫色）后的效果。"/>
+</div>
+
+从上面例子来看，相比顶点/片元着色器，表面着色器的代码很少。而且，可以轻松地实现常见的光照模型，不需要和任何光照变量打交道，Unity 帮我们处理好了每个光源的光照结果。
+
+和顶点/片元着色器需要包含到一个特定的 Pass 块中不同，**表面着色器的 Cg 代码是直接而且必需写在 SubShader 块中，Unity 会在背后生成多个 Pass**。
+
+## 编译指令
+一个表面着色器中最重要的部分是**两个结构体**以及它的**编译指令**，两个结构体是表面着色器中不同函数之间信息传递的桥梁，而编译指令是开发者和 Unity 沟通的重要手段。
+
+编译指令最重要的作用是指明该表面着色器使用的**表面函数**和**光照函数**，并设置一些可选参数。表面着色器的 Cg 块中第一句往往就是编译指令，编译指令的一般格式如下：  
+
+    #pragma surface surfaceFunction lightModel [optionalparams]
+
+其中，**#pragma surface** 用于指明该编译指令是用于定义表面着色器的，在它后面需要指明使用的表面函数 surfaceFunction 和光照模型 lightModel，同时还可以使用一些可选参数来控制表面着色器的一些行为。
+
+### 表面函数
+一个对象的表面属性定义了它的反射率、光滑度、透明度等值，而表面函数用于定义这些表面属性。surfaceFunction 通常就是名为 surf 的函数（函数名可以是任意的），其函数格式是固定的：  
+
+    void surf (Input IN, inout SurfaceOutput o)
+    void surf (Input IN, inout SurfaceOutputStandard o)
+    void surf (Input IN, inout SurfaceOutputStandardSpecular o)
+
+其中，后两个是基于物理的渲染。**SurfaceOutput**、**SurfaceOutputStandard** 和 **SurfaceOutputStandardSpecular** 都是 Unity 内置的结构体，需要配合不同的光照模型使用，后面会介绍。
+
+在表面函数中，会使用输入结构体 **Input IN** 来设置各种表面属性，并把这些属性存储在结构体  SurfaceOutput、SurfaceOutputStandard 和 SurfaceOutputStandardSpecular 中，再传递给光照函数计算光照结果。
+
+可以在 Unity 手册的表面着色器例子中找到更多示例：https://docs.unity3d.com/Manual/SL-SurfaceShaderExamples.html
+
+### 光照函数
+光照函数会使用表面函数中设置的各种表面属性，来应用某些光照模型，进而模拟物体表面的光照效果。Unity 内置了基于物理的光照模型函数：**Standard**、**StandardSpecular**（在 UnityPBSLighting.cginc 文件中被定义），以及简单的非基于物理的光照模型函数：**Lambert**、**BlinnPhong**（在 Lighting.cginc 文件中被定义）。
+
+当然，也可以定义自己的光照函数。例如，可以使用下面的函数来定义用于前向渲染中的光照函数：  
+
+    // 用于不依赖视角的光照模型，例如：漫反射
+    half4 Lighting<Name> (SurfaceOutput s, half3 lightDir, half atten);
+    // 使用依赖视角的光照模型，例如：高光反射
+    half4 Lighting<Name> (SurfaceOutput s, half3 lightDir, half3 viewDir, half atten);
+
+### 其他可选参数
+**可选参数 optionalparams** 包含了很多有用的指令类型，例如：开启/设置透明混合/透明度测试，指明自定义的顶点和颜色修改函数，控制生成的代码等。下面选取了一些比较重要和常用的参数进行更深入地说明，可以在 Unity 官方手册查看更多：  
+①自定义的修改函数：除了表面函数和光照模型外，表面着色器还可以支持其他两种自定义的函数：**顶点修改函数 vertex:VertexFunction**和**最后的颜色修改函数 finalcolor:ColorFunction**。顶点修改函数允许开发者自定义一些顶点属性，例如，把顶点颜色传递给表面函数，或是修改顶点位置，实现某些顶点动画等。最后的颜色修改函数则可以在颜色绘制到屏幕前，最后一次修改颜色值，例如实现自定义的雾效等。  
+②阴影：可以通过一些指令来控制和阴影相关的代码。例如，**addshadow** 参数会为表面着色器生成一个阴影投射的 pass。通常情况下，Unity 可以直接在 FallBack 中找到通用的光照模式为 ShadowCaster 的 pass，从而将物体正确地渲染到深度和阴影纹理中。但是对于一些进行了顶点动画、透明度测试地物体，就需要特殊处理，正如第 10 章最后说的一样；**fullforwardshadows** 参数则可以在前向渲染路径中支持所有光源类型的阴影。默认情况下，Unity 只支持最重要的平行光的阴影效果，如果需要让点光源或聚光灯在前向渲染中也有阴影，就可以添加这个参数；如果不想对这个 Shader 的物体进行任何阴影计算，就可以使用 **noshadow** 参数来禁用阴影。  
+③透明度混合和透明度测试：可以通过 **alpha** 和 **alphatest** 指令来控制透明度混合和透明度测试。例如，**alphatest:VariableName** 指令会使用名为 VariableName 的变量来剔除不满足条件的片元。此时，还需要使用前面提到的 **addshadow** 参数来生成正确的阴影投射的 Pass。  
+④光照：**noambient** 参数会告诉 Unity 不要应用任何环境光照或光照探针 light probe；**novertexlights** 参数告诉 Unity 不要应用任何逐顶点光照；**noforwardadd** 会去掉所有前向渲染中的额外的 Pass，也就是说，这个 Shader 只会支持一个逐像素的平行光，而其他的光源会按照逐顶点或 SH 的方法来计算光照影响；还有一些用于控制光照烘焙、雾效模拟的参数，如 **nolightmap**、**nofog** 等。
+⑤控制代码的生成：默认情况下，Unity 会为一个表面着色器生成相应的前向渲染路径、延迟渲染路径使用的 Pass，这会导致生成的 Shader 文件比较大。如果确定该表面着色器只会在某些渲染路径中使用，可使用 **exclude_path:deferred**、**exclude_path:forward** 和 **exclude_path:prepass** 来告诉 Unity 不需要为某些渲染路径生成代码。
+
+
+## 两个结构体
+表面着色器支持最多自定义 4 个关键的函数：表面函数（设置表面属性，如反射率、法线等）、光照函数（定义光照模型）、顶点修改函数（修改、传递顶点属性）、颜色修改函数（修改最后的颜色）。那么这些函数之间的信息是如何传递的？这就是两个结构体的工作。
+
+一个表面着色器需要使用两个结构体：表面函数的输入结构体 **Input**，以及存储了表面属性的结构体 **SurfaceOutput**、**SurfaceOutputStandard** 或 **SurfaceOutputStandardSpecular** 。
+
+### 数据来源：Input 结构体
+**Input** 结构体包含了许多表面属性的数据来源，
+
+
 
