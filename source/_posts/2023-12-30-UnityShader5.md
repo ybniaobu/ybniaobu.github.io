@@ -541,4 +541,220 @@ Shader "Unity Shaders Book/Chapter 17/Normal Extrusion" {
 
 注意，除了上面四个函数外，我们在 \#pragma surface 的编译指令一行中还指定了一些额外的参数：  
 ①由于修改了顶点位置，为了产生正确的阴影效果，不能直接依赖 FallBack 中找到的阴影投射 Pass，使用 addshadow 参数告诉 Unity 生成一个对应当前表面着色器的阴影投射 Pass。  
-②
+②默认情况下，Unity 会为所有支持的渲染路径生成相应的 Pass，为了缩小自动生成的代码量，我们使用 **exclude_path:deferred** 和 **exclude_path:prepass** 来告诉 Unity 不要为延迟渲染路径生成相应的 Pass。  
+③最后，使用 **nometa** 参数取消对提取元数据的 Pass 的生成。
+
+--- 
+
+点击 “Show generated code” 按钮，可看到 Unity 生成的顶点/片元着色器。在这个将近 600 行的代码里，Unity 一共为该表面着色器生成了 3 个 Pass，它们的 LightMode 分别是 ForwardBase、ForwardAdd 和 ShadowCaster，分别对应了前向渲染路径中的处理逐像素平行光的 Pass、处理其他逐像素光的 Pass、处理阴影投射的 Pass。还可以看到生成的代码中有大量的 \#ifdef 和 \#if 语句，这些语句可以帮我们判断一些渲染条件，如：是否使用动态光照纹理、是否使用逐顶点光照、是否使用屏幕空间的阴影等。
+
+下面分析 Unity 生成的 ForwardBase Pass：  
+①Unity 首先指明了一些编译指令：  
+
+    // ---- forward rendering base pass:
+    Pass {
+	    Name "FORWARD"
+	    Tags { "LightMode" = "ForwardBase" }
+
+        CGPROGRAM
+        // compile directives
+        #pragma vertex vert_surf
+        #pragma fragment frag_surf
+        #pragma target 3.0
+        #pragma multi_compile_instancing
+        #pragma multi_compile_fwdbase
+        #include "HLSLSupport.cginc"
+        #define UNITY_INSTANCED_LOD_FADE
+        #define UNITY_INSTANCED_SH
+        #define UNITY_INSTANCED_LIGHTMAPSTS
+        #define UNITY_INSTANCED_RENDERER_BOUNDS
+        #include "UnityShaderVariables.cginc"
+        #include "UnityShaderUtilities.cginc"
+
+②之后出现的是一些自动生成的注释：  
+
+    // Surface shader code generated based on:
+    // vertex modifier: 'myvert'
+    // writes to per-pixel normal: YES
+    // writes to emission: no
+    // writes to occlusion: no
+    // needs world space reflection vector: no
+    // needs world space normal vector: no
+    // needs screen space position: no
+    // needs world space position: no
+    // needs view direction: no
+    // needs world space view direction: no
+    // needs world space position for lighting: no
+    // needs world space view direction for lighting: no
+    // needs world space view direction for lightmaps: no
+    // needs vertex color: no
+    // needs VFACE: no
+    // needs SV_IsFrontFace: no
+    // passes tangent-to-world matrix to pixel shader: YES
+    // reads from normal: no
+    // 2 texcoords actually used
+    //   float2 _MainTex
+    //   float2 _BumpMap
+
+尽管这些对渲染结果没有影响，但我们可以从这些注释中理解到 Unity 的分析过程和它的分析结果。
+
+③随后，Unity 定义了一些宏来辅助计算：  
+
+    #define INTERNAL_DATA half3 internalSurfaceTtoW0; half3 internalSurfaceTtoW1; half3 internalSurfaceTtoW2;
+    #define WorldReflectionVector(data,normal) reflect (data.worldRefl, half3(dot(data.internalSurfaceTtoW0,normal), dot(data.internalSurfaceTtoW1,normal), dot(data.internalSurfaceTtoW2,normal)))
+    #define WorldNormalVector(data,normal) fixed3(dot(data.internalSurfaceTtoW0,normal), dot(data.internalSurfaceTtoW1,normal), dot(data.internalSurfaceTtoW2,normal))
+
+在本例中这些宏没有被用到。这些宏是为了在修改了表面法线的情况下，辅助计算得到世界空间下的反射方向和法线方向，与之对应的是 Input 结构体中的一些变量。  
+
+④接着，Unity 把我们在表面着色器中编写的 Cg 代码复制过来，作为 Pass 的一部分，以便后续调用。
+
+⑤然后，Unity 定义了顶点着色器到片元着色器的插值结构体 v2f_surf。在定义前，Unity 使用 \#ifdef 语句来判断是否使用了光照纹理，并为不同的情况生成不同的结构体。主要区别是，如果没有使用光照纹理，就需要定义一个存储逐顶点和 SH 光照的变量。
+
+    // vertex-to-fragment interpolation data
+    // no lightmaps:
+    #ifndef LIGHTMAP_ON
+    // half-precision fragment shader registers:
+    #ifdef UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS
+    struct v2f_surf {
+        UNITY_POSITION(pos);
+        float4 pack0 : TEXCOORD0; // _MainTex _BumpMap
+        float4 tSpace0 : TEXCOORD1;
+        float4 tSpace1 : TEXCOORD2;
+        float4 tSpace2 : TEXCOORD3;
+        fixed3 vlight : TEXCOORD4; // ambient/SH/vertexlights
+        UNITY_LIGHTING_COORDS(5,6)
+        #if SHADER_TARGET >= 30
+        float4 lmap : TEXCOORD7;
+        #endif
+        UNITY_VERTEX_INPUT_INSTANCE_ID
+        UNITY_VERTEX_OUTPUT_STEREO
+    };
+    #endif
+    // with lightmaps:
+    #ifdef LIGHTMAP_ON
+    // half-precision fragment shader registers:
+    #ifdef UNITY_HALF_PRECISION_FRAGMENT_SHADER_REGISTERS
+    struct v2f_surf {
+        UNITY_POSITION(pos);
+        float4 pack0 : TEXCOORD0; // _MainTex _BumpMap
+        float4 tSpace0 : TEXCOORD1;
+        float4 tSpace1 : TEXCOORD2;
+        float4 tSpace2 : TEXCOORD3;
+        float4 lmap : TEXCOORD4;
+        UNITY_LIGHTING_COORDS(5,6)
+        UNITY_VERTEX_INPUT_INSTANCE_ID
+        UNITY_VERTEX_OUTPUT_STEREO
+    };
+    #endif
+
+上面很多变量，我们之前都碰到过，只是这里的名称不同。如：pack0 存储的是主纹理和法线纹理的采样坐标；tSpace0、tSpace1 和 tSpace2 存储了从切线空间到世界空间的变换矩阵。一个比较陌生的变量是 vlight，Unity 会把逐顶点和 SH 光照的结果存储到该变量里，并在片元着色器中和原光照结构进行叠加（如果需要的话）。  
+
+⑥随后，Unity 定义了真正的顶点着色器。顶点着色器首先会调用自定义的顶点修改函数来修改一些顶点属性：  
+
+    // vertex shader
+    v2f_surf vert_surf (appdata_full v) {
+        v2f_surf o;
+        ...
+        UNITY_INITIALIZE_OUTPUT(v2f_surf,o);
+        ...
+        myvert (v);
+        ...
+
+在我们的实现中，只对顶点坐标进行了修改，而不需要向 Input 结构体中添加并存储新的变量。也可以使用另一个版本的函数声明来把顶点修改函数中的某些计算结果存储到 Input 结构体当中：  
+
+    void vert(inout appdata_full v, out Input o);
+
+之后的代码是用于计算 v2f_surf 中的各个变量的值。例如，计算经过 MVP 矩阵变换后的顶点坐标；使用 TRANSFORM_TEX 内置宏计算两个纹理的采样坐标，并存储在 o.pack0 的 xy 和 zw 分量中：计算从切线空间到世界空间的变换矩阵，并把矩阵的每一行分别存储在 o.tSpace0、o.tSpace1 和 o.tSpace2 变量中；判断是否使用了光照映射和动态光照映射，并在需要时将两种光照纹理的采样计算结果存储在 o.lmap 的 xy 和 zw 分量中；判断是否使用了光照映射，如果没有则计算该顶点的 SH 光照（一种快速计算光照的方法），把结果存储到 o.vlight 中；判断是否开启了逐顶点光照，如果是则计算最重要的 4 个逐顶点光照的光照结果，把结果叠加到 o.vlight 中。这部分代码不摘抄了。最后，计算阴影坐标并传递给片元着色器。  
+
+⑦在 Pass 的最后，Unity 定义了真正的片元着色器。Unity 首先利用插值后的结构体 v2f_surf 来初始化 Input 结构体中的变量。
+
+    // fragment shader
+    fixed4 frag_surf (v2f_surf IN) : SV_Target {
+        ...
+        // prepare and unpack data
+        Input surfIN;
+        ...
+        UNITY_INITIALIZE_OUTPUT(Input,surfIN);
+        surfIN.uv_MainTex = IN.pack0.xy;
+        surfIN.uv_BumpMap = IN.pack0.zw;
+
+随后，Unity 声明一个 SurfaceOutput 结构体的变量，并对其中的表面属性进行初始化，再调用表面函数：
+
+    #ifdef UNITY_COMPILER_HLSL
+    SurfaceOutput o = (SurfaceOutput)0;
+    #else
+    SurfaceOutput o;
+    #endif
+    o.Albedo = 0.0;
+    o.Emission = 0.0;
+    o.Specular = 0.0;
+    o.Alpha = 0.0;
+    o.Gloss = 0.0;
+    fixed3 normalWorldVertex = fixed3(0,0,1);
+    o.Normal = fixed3(0,0,1);
+
+    // call surface function
+    surf (surfIN, o);
+
+上述代码中，Unity 还使用 #ifdef 语句判断当前编译语言是否是 HLSL，如果是则使用更严格的声明方式来声明 SurfaceOutput 结构体（DirectX 平台有更严格的语义要求）。当对各个表面属性进行初始化后，Unity 调用了表面函数 surf 来填充这些表面属性。  
+
+之后，Unity 进行真正的光照计算，首先计算得到光照衰减和世界空间下的法线方向：  
+
+    // compute lighting & shadowing factor
+    UNITY_LIGHT_ATTENUATION(atten, IN, worldPos)
+    fixed4 c = 0;
+    float3 worldN;
+    worldN.x = dot(_unity_tbn_0, o.Normal);
+    worldN.y = dot(_unity_tbn_1, o.Normal);
+    worldN.z = dot(_unity_tbn_2, o.Normal);
+    worldN = normalize(worldN);
+    o.Normal = worldN;
+
+其中，变量 c 用于存储最终的输出颜色，初始化为 0。随后 Unity 判断是否关闭光照映射，如果关闭了，则把逐顶点的光照结果叠加到输出颜色中：  
+
+    #ifndef LIGHTMAP_ON
+    c.rgb += o.Albedo * IN.vlight;
+    #endif // !LIGHTMAP_ON
+
+而如果需要使用光照映射，Unity 就会使用之前计算的光照纹理采样坐标，对光照纹理进行采样并解码，得到光照纹理中的光照结果。这部分代码不摘抄。
+
+如果没有使用光照映射，则需要使用自定义的光照模型计算光照结果：  
+
+    // realtime lighting: call lighting function
+    #ifndef LIGHTMAP_ON
+    c += LightingCustomLambert (o, lightDir, atten);
+    #else
+    c.a = o.Alpha;
+    #endif
+
+而如果使用了光照映射，Unity 会根据之前由光照纹理得到的结果得到颜色值，并叠加到输出颜色 c 中；如果还开启了动态光照映射，Unity 还会计算对动态光照纹理的采样结果，同样把结果叠加到输出颜色 c 中。这部分代码不摘抄。
+
+最后，Unity 调用自定义的颜色修改函数，对输出颜色 c 进行最后的修改：  
+
+    mycolor (surfIN, o, c);
+    UNITY_OPAQUE_ALPHA(c.a);
+    return c;
+
+在上面的代码中，Unity 还使用了内置宏 UNITY_OPAQUE_ALPHA（在 UnityCG.cginc 中被定义）来重置片元的透明通道。在默认情况下，所有不透明类型的表面着色器和透明通道都会被重置为 1.0，不管我们是否在光照函数中改变了它。如果要保留它的透明通道，可以在表面着色器的编译指令中添加 keepalpha 参数。
+
+--- 
+
+至此，ForwadBase Pass 分析结束，而 ForwardAdd Pass 和前者类似，只是代码更加简单，Unity 去掉了对逐顶点光照和各种判断是否使用了光照映射的代码，因为这些额外的 Pass 不需要考虑这些。
+
+最后一个重要的 Pass 是 ShadowCaster Pass，相比之前的两个 Pass 更加短小简单，它通过调用自定义的顶点修改函数来保证计算阴影时使用的是和之前一致的顶点坐标。自定义的阴影投射 Pass 同样使用了 V2F_SHADOW_CASTER、TRANSFER_SHADOW_CASTER_NORMALOFFSET 和 SHADOW_CASTER_FRAGMENT 来计算阴影投射。
+
+## Surface Shader 的缺点
+表面着色器虽然带来了很大的便利，但是只是 Unity 在顶点/片元着色器上面提供的一种封装，任何在表面着色器中能完成的事情，都可以在顶点/片元着色器中重现，但是这句话反过来不成立。
+
+表面着色器虽然可以快速实现各种光照效果，但是失去了对各种优化和各种特效实现的控制。因此，使用表面着色器往往会对性能产生一定的影响。而内置的 Shader，例如 Diffuse、Bumped Specular 等都是使用表面着色器编写的。尽管 Unity 提供了移动平台的相应版本，例如 Mobile/Diffuse 和 Mobile/Bumped Specular 等，但这些版本的 Shader 只是去掉了额外的逐像素 Pass、不计算全局光照和其他一些光照计算上的优化。但是想要进行更深层的优化，表面着色器就不能满足需求了。
+
+除了性能问题外，表面着色器还无法完成一些自定义的渲染效果。
+
+建议：  
+①如果需要和各种光源打交道，尤其是 Unity 中的全局光照，使用表面着色器会更便利，但需要注意性能；  
+②如果处理光源数目较少，例如只有一个平行光，使用顶点/片元着色器是更好的选择；  
+③如果有很多自定义的渲染效果，建议选择顶点/片元着色器。
+
+
+# 第十七章 基于物理的渲染
+之前学习的 Lambert 光照模型、Phong 光照模式和 Blinn-Phong 光照模型都是经验模型。
