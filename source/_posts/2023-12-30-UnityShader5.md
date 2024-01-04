@@ -319,8 +319,7 @@ Shader "Unity Shaders Book/Chapter 17/Bumped Diffuse" {
 在材质面板上拖拽一张漫反射纹理、一张法线纹理，分别在对应路径为：Assets/Textures/Chapter17/Mud_Diffuse.tif 和 Assets/Textures/Chapter17/Mud_Normal.tif。我们还可以向场景中添加一些点光源和聚光灯，我们不需要对代码做任何改动，效果如下：  
 
 <div  align="center">  
-<img src="https://s2.loli.net/2024/01/03/wWrkYsa3RSv6XDl.jpg" width = "60%" height = "60%" alt="图83- 表面着色器的例子。左图：在一个平行光下的效果。右图：添加了一个点光源（蓝
-色）和一个聚光灯（紫色）后的效果。"/>
+<img src="https://s2.loli.net/2024/01/03/wWrkYsa3RSv6XDl.jpg" width = "60%" height = "60%" alt="图83- 表面着色器的例子。左图：在一个平行光下的效果。右图：添加了一个点光源（蓝色）和一个聚光灯（紫色）后的效果。"/>
 </div>
 
 从上面例子来看，相比顶点/片元着色器，表面着色器的代码很少。而且，可以轻松地实现常见的光照模型，不需要和任何光照变量打交道，Unity 帮我们处理好了每个光源的光照结果。
@@ -374,7 +373,172 @@ Shader "Unity Shaders Book/Chapter 17/Bumped Diffuse" {
 一个表面着色器需要使用两个结构体：表面函数的输入结构体 **Input**，以及存储了表面属性的结构体 **SurfaceOutput**、**SurfaceOutputStandard** 或 **SurfaceOutputStandardSpecular** 。
 
 ### 数据来源：Input 结构体
-**Input** 结构体包含了许多表面属性的数据来源，
+**Input** 结构体包含了许多表面属性的数据来源，因此，它会作为表面函数的输入结构体（如果自定义了顶点修改函数，它还会是顶点修改函数的输出结构体）
+
+Input 支持很多内置的变量名，比如本章开头的表面着色器代码中的 Input 结构体包含了主纹理和法线纹理的采样坐标 **uv_MainTex** 和 **uv_BumpMap**。这些采样坐标必须以 “uv” 为前缀（也可以用 “uv2” 为前缀，表明使用次纹理坐标集合），后面紧跟纹理名称。
+
+Input 结构体中内置的其他变量：  
+
+| 变量 | 描述 |
+| :---- | :---- |
+| float3 viewDir | 包含了视角方向，可用于计算边缘光照等 |
+| 使用 COLOR 语义定义的 float4 变量 | 包含了插值后的逐顶点颜色 |
+| float4 screenPos | 包含了屏幕空间的坐标，可以用于反射或屏幕特效 |
+| float3 worldPos | 包含了世界空间下的位置 |
+| float3 worldRefl | 包含了世界空间下的反射方向，前提是没有修改表面法线 o.normal |
+| float3 worldRefl; <br> INTERNAL_DATA | 如果修改了表面法线 o.normal，需要使用该变量告诉 Unity 要基于修改后的法线计算世界空间下的反射方向。在表面函数中，我们需要使用 WorldReflectionVector(IN, o.normal) 来得到世界空间下的反射方向 |
+| float3 worldNormal | 包含了世界空间的法线方向。前提是没有修改表面法线 o.normal |
+| float3 worldNormal; <br> INTERNAL_DATA | 如果修改了表面法线 o.normal，需要使用该变量告诉 Unity 要基于修改后的法线计算世界空间下的法线方向。在表面函数中，我们需要使用 WorldNormalVector(IN, o.normal) 来得到世界空间下的法线方向 |
+
+这些内置变量 Unity 会自动帮我们计算好，我们只需要在表面函数中直接使用它们即可。但有个例外：自定义了顶点修改函数，并需要向表面函数中传递一些自定义的数据，如：自定义雾效，需要在顶点修改函数中根据顶点在视角空间下的位置信息计算雾效混合系数，这样我们就可以在 Input 结构体中定义一个名为 half fog 的变量，把计算结果存储在该变量后进行输出。
+
+### 表面属性：SurfaceOutput 结构体
+有了 Input 结构体来提供所需要的数据后，就可以据此计算各种表面属性。**SurfaceOutput**、**SurfaceOutputStandard**、**SurfaceOutputStandardSpecular** 就是存储这些表面属性的结构体，它会作为表面函数的输出，随后会作为光照函数的输入来进行各种光照计算。
+
+相比于 Input 结构体的自由性，这个结构体里面的变量是提前就声明好的，不可以增加也不会减少（如果没有对某些变量赋值，就会使用默认值）。
+
+**SurfaceOutput** 的声明可以在 Lighting.cginc 文件中找到：  
+
+    struct SurfaceOutput {
+        fixed3 Albedo; //对光源的反射率，通常由纹理采样和颜色属性的乘积计算得到
+        fixed3 Normal; //表面法线方向
+        fixed3 Emission; //自发光，Unity 通常会在片元着色器最后输出前（并在最后的顶点函数被调用前，如果定义了的话），使用类似 c.rgb += o.Emission 语句进行简单的颜色叠加。
+        half Specular; //高光反射中的指数部分的系数，影响高光反射的计算，比如：BlinnPhong 光照函数。使用如下语句计算高光反射的强度：float spec = pow(nh, s.Specular * 128.0) * s.Gloss;
+        fixed Gloss; //高光反射中的强度系数，与 Specular 类似，计算公式见上面的代码，一般在包含高光反射的光照模型中使用。
+        fixed Alpha; //透明通道。如果开启了透明度，会使用该值进行颜色混合。
+    };
+
+**SurfaceOutputStandard** 和 **SurfaceOutputStandardSpecular** 的声明可以在 UnityPBSLighting.cginc 中找到：  
+
+    struct SurfaceOutputStandard {
+        fixed3 Albedo; // base (diffuse or specular) color
+        fixed3 Normal; // tangent space normal, if written
+        half3 Emission;
+        half Metallic; // 0：non-metal，1：metal
+        half Smoothness; // 0：rough，1：smooth
+        half Occlusion; // occlusion (default 1)
+        fixed Alpha; // alpha for transparencies
+    };
+
+    struct SurfaceOutputStandardSpecular {
+        fixed3 Albedo; // diffuse color
+        fixed3 Specular; // specular color
+        fixed3 Normal; // tangent space normal, if written
+        half3 Emission;
+        half Smoothness; // 0：rough，1：smooth
+        half Occlusion; // occlusion (default 1)
+        fixed Alpha; // alpha for transparencies
+    };
+
+在一个表面着色器内，要根据我们选择使用的光照模型选择上述之一：  
+①如果使用了非基于物理的光照模型，比如 **Lambert** 和 **BlinnPhong**，通常使用 SurfaceOutput 结构体；  
+②如果使用了基于物理的光照模型，比如 **Standard** 或 **StandardSpecular**，分别使用 **SurfaceOutputStandard** 或 **SurfaceOutputStandardSpecular** 结构体。其中，SurfaceOutputStandard 结构体用于默认的金属工作流程（Metallic Workflow），对应了 Standard 光照函数；而 SurfaceOutputStandardSpecular 结构体用于高光工作流程（Specular Workflow），对应了 StandardSpecular 光照函数。
 
 
+## Unity 背后做了什么
+Unity 在背后会根据表面着色器生成一个包含了很多 Pass 的顶点/片元着色器。这些 Pass 有些是为了针对不同的渲染路径。例如：  
+①默认情况下，Unity 会为前向渲染路径生成 LightMode 为 **ForwardBase** 和 **ForwardAdd** 的 Pass；  
+②为 Unity 5 之前的延迟渲染路径生成 LightMode 为 **PrePassBase** 和 **PrePassFinal** 的 Pass；  
+③为 Unity 5 之后的延迟渲染路径生成 LightMode 为 **Deferred** 的 Pass；  
 
+还有一些 Pass 是用于产生额外的信息。例如，为了给光照映射和动态全局光照提取表面信息，Unity 会生成一个 LightMode 为 **Meta** 的 Pass；有些表面着色器由于修改了顶点位置，因此，可以利用 addshadow 编译指令为它生成相应的 LightMode 为 ShadowCaster 的阴影投射 Pass。
+
+这些 Pass 的生成都是基于表面着色器中的编译指令和自定义函数，可在每个编译完成的表面着色器的面板上，点击 “Show generated code” 按钮，查看 Unity 为这个表面着色器生成的所有顶点/片元着色器。
+
+通过查看这些代码，以 Unity 生成的 LightMode 为 ForwardBase 的 Pass 为例，它的渲染计算流水线如下图所示：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/01/04/WXdUP4Obtuhpgzf.jpg" width = "100%" height = "100%" alt="图84- 表面着色器的渲染计算流水线。黄色：可以自定义的函数。灰色：Unity 自动生成的计算步骤"/>
+</div>
+
+Unity 对该 Pass 的自动生成过程大致如下：  
+①复制代码  
+直接将表面着色器中的 CGPROGRAM 和 ENDCG 之间的代码复制过来，这些代码包括 Input 结构体、表面函数、光照函数（如果有自定义）等变量和函数的定义，它们会在之后的处理过程中被当做正常的结构体和函数进行调用。  
+②生成 v2f_surf 结构体  
+Unity 会分析上述代码，据此生成顶点着色器的输出 v2f_surf 结构体，用于顶点着色器和片元着色器之间的数据传递。Unity 会分析我们在自定义函数所使用的变量，例如，纹理坐标、视角方向、反射方向等。如果需要，它就会在 v2f_surf 中生成相应的变量。而且，即便有时我们在 Input 中定义了某些变量（如某些纹理坐标），但是 Unity 在分析后续代码时发现我们并没有使用这些变量，那么这些变量实际上是不会在 v2f_surf 中生成的。也就是说，Unity 做了一些优化。v2f_surf 还包含一些其他需要的变量，如：阴影纹理坐标、光照纹理坐标、逐顶点光照等。  
+③生成顶点着色器  
+&emsp;&emsp; - 如果自定义了**顶点修改函数**，Unity 会首先调用它修改修改顶点数据，或填充自定义的 Input 结构体中的变量；然后，Unity 会分析顶点修改函数中修改的数据，在需要时通过 Input 结构体将修改结果存储到 v2f_surf 相应的变量中。  
+&emsp;&emsp; - 计算 v2f_surf 中其他生成的变量值，包括：顶点位置、纹理坐标、法线方向、逐顶点光照、光照纹理采样坐标等，可通过编译指令来控制某些变量是否需要计算。  
+&emsp;&emsp; - 最后将 v2f_surf 传递给接下来的片元着色器。  
+④生成片元着色器  
+&emsp;&emsp; - 使用 v2f_surf 中对应变量填充 Input 结构体，如：纹理坐标、视角方向等。  
+&emsp;&emsp; - 调用自定义的**表面函数**填充 SurfaceOutput 结构体。  
+&emsp;&emsp; - 调用**光照函数**得到初始颜色值。如果使用内置的 Lambert 或 BlinnPhong 光照函数，还会计算动态全局光照，并添加到光照模型的计算中。  
+&emsp;&emsp; - 进行其他的颜色叠加。如：若没有使用光照烘焙，还会添加逐顶点光照的影响。  
+&emsp;&emsp; - 最后，如果自定义了**最后的颜色修改函数**，Unity 会调用它进行最后的颜色修改。  
+
+
+## 表面着色器实例分析
+下面代码的效果是对模型进行膨胀，在顶点修改函数中沿着顶点法线方向扩张顶点位置。为了分析表面着色器中 4 个可自定义函数的原理，在下面都使用了自定义的实现：  
+
+``` C C for Graphics
+Shader "Unity Shaders Book/Chapter 17/Normal Extrusion" {
+	Properties {
+		_ColorTint ("Color Tint", Color) = (1,1,1,1)
+		_MainTex ("Base (RGB)", 2D) = "white" {}
+		_BumpMap ("Normalmap", 2D) = "bump" {}
+		_Amount ("Extrusion Amount", Range(-0.5, 0.5)) = 0.1
+	}
+	SubShader {
+		Tags { "RenderType"="Opaque" }
+		LOD 300
+		
+		CGPROGRAM
+		
+		// surf - which surface function.
+		// CustomLambert - which lighting model to use.
+		// vertex:myvert - use custom vertex modification function.
+		// finalcolor:mycolor - use custom final color modification function.
+		// addshadow - generate a shadow caster pass. Because we modify the vertex position, the shder needs special shadows handling.
+		// exclude_path:deferred/exclude_path:prepas - do not generate passes for deferred/legacy deferred rendering path.
+		// nometa - do not generate a “meta” pass (that’s used by lightmapping & dynamic global illumination to extract surface information).
+		#pragma surface surf CustomLambert vertex:myvert finalcolor:mycolor addshadow exclude_path:deferred exclude_path:prepass nometa
+		#pragma target 3.0
+		
+		fixed4 _ColorTint;
+		sampler2D _MainTex;
+		sampler2D _BumpMap;
+		half _Amount;
+		
+		struct Input {
+			float2 uv_MainTex;
+			float2 uv_BumpMap;
+		};
+		
+		void myvert (inout appdata_full v) {
+			v.vertex.xyz += v.normal * _Amount;
+		}
+		
+		void surf (Input IN, inout SurfaceOutput o) {
+			fixed4 tex = tex2D(_MainTex, IN.uv_MainTex);
+			o.Albedo = tex.rgb;
+			o.Alpha = tex.a;
+			o.Normal = UnpackNormal(tex2D(_BumpMap, IN.uv_BumpMap));
+		}
+		
+		half4 LightingCustomLambert (SurfaceOutput s, half3 lightDir, half atten) {
+			half NdotL = dot(s.Normal, lightDir);
+			half4 c;
+			c.rgb = s.Albedo * _LightColor0.rgb * (NdotL * atten);
+			c.a = s.Alpha;
+			return c;
+		}
+		
+		void mycolor (Input IN, SurfaceOutput o, inout fixed4 color) {
+			color *= _ColorTint;
+		}
+		
+		ENDCG
+	}
+	FallBack "Legacy Shaders/Diffuse"
+}
+```
+
+①在顶点修改函数中，使用顶点法线对顶点位置进行膨胀；  
+②表面函数使用主纹理设置了表面属性中的反射率，并使用法线纹理设置了表面法线方向；  
+③光照函数实现了简单的兰伯特漫反射光照模型；  
+④最后的颜色修改函数，简单地使用颜色参数对输出颜色进行调整。
+
+注意，除了上面四个函数外，我们在 \#pragma surface 的编译指令一行中还指定了一些额外的参数：  
+①由于修改了顶点位置，为了产生正确的阴影效果，不能直接依赖 FallBack 中找到的阴影投射 Pass，使用 addshadow 参数告诉 Unity 生成一个对应当前表面着色器的阴影投射 Pass。  
+②
