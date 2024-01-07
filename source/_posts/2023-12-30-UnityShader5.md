@@ -988,6 +988,322 @@ $$ 其中，\alpha_g = （0.5 + \frac {roughness} {2})^2 $$
 
 在之前的内容中，我们提到了 Unity 5 的 PBS 实际上是受 Disney BRDF 的启发。这种 BRDF 最大的好处之一就是很直观，只需要提供一个万能的 Shader 就可以让美术人员通过调整少量参数来渲染绝大部分常见的材质。我们可以在 Unity 内置的 UnityStandardBRDF.cginc 文件中找到它的实现。
 
+总体来说，Unity 5 一共实现了两种 PBS 模型。一种是基于 GGX 模型的，另一种则是基于归一化的 Blinn-Phong 模型的，这两种模型使用了不同的公式来计算高光反射项中的法线分布函数 $\,D(h)\,$ 和阴影-遮掩函数 $\,G(l, v, h)\,$。Unity 5.3 以前的版本默认会使用基于归一化后的 Blinn-Phong 模型来实现基于物理的渲染，但在 Unity 5.3 及后续版本中，默认将使用 GGX 模型，这和很多其他主流引擎的选择一致。
 
+①**漫反射项：**  
+在这两种实现中，Unity 使用的 BRDF 中的漫反射项都与 Disney BRDF 中的漫反射项相同，即：  
+
+
+$$ f_{diff} (l, v) = \cfrac {baseColor} {\pi} (1 + (F_{D90} - 1)(1 - n \cdot l)^5) (1 + (F_{D90} - 1)(1 - n \cdot v)^5) $$
+
+$$ 其中，F_{D90} = 0.5 + 2roughness(h \cdot l)^2 $$
+
+baseColor 一般由纹理采样和颜色参数共同决定。  
+
+②**菲涅耳反射函数：**  
+高光反射项中的菲涅耳反射函数 $\,F(l, h)\,$ 也与 Disney BRDF 中的一致，即使用的 Schlick 菲涅耳近似等式：  
+
+$$ F_{Schlick} (l,h) = c_{spec} + (1 - c_{spec})(1 - (l \cdot h))^5 $$
+
+其中，$\,c_{spec}\,$ 一般由纹理采样或高光颜色所决定。
+
+③**法线分布函数：**  
+Unity 5 两种 PBS 模型的主要区别在于它们所选择的法线分布函数及其对应的阴影-遮掩函数的不同。基于 GGX 模型的 PBS 的法线分布函数为 GGX 分布，基于归一化 Blinn-Phong 模型的 PBS 的法线分布函数则为归一化后的 Phong 分布。它们的公式分别如下：  
+
+$$ D_{GGX}(h) = \cfrac {\alpha ^ 2} {\pi ((\alpha ^ 2 - 1)(n \cdot h)^2 + 1)^2}, \alpha = {roughness}^2 $$
+
+$$ D_{blinn} (h) = \cfrac {\alpha + 2} {2 \pi} (n \cdot h)^{\alpha}, \alpha = \cfrac {2} {roughness^4} - 2 $$
+
+需要注意的是，不同 Unity 版本在上述实现上可能会略有不同，比如 roughness 的指数部分会有所不同。
+
+④**Unity 5.3 之前的阴影-遮掩函数：**  
+阴影-遮掩函数的选择更加复杂一些。在 Unity 5.3 之前的版本中，基于 GGX 模型和归一化 Blinn-Phong 模型的 PBS 的阴影-遮掩函数分别是为 GGX 和 Beckmann 设计的 Smith-Schlick 模型。它们的公式分别如下：  
+
+$$ \cfrac {G_{GGX}(l,v,h)} {(n \cdot l)(n \cdot v)} = \cfrac {1} {((n \cdot l)(1 - k) + k)((n \cdot v)(1 - k) + k)}, k = \frac {roughness^2} {2} $$
+
+$$ \cfrac {G_{Beckmann}(l,v,h)} {(n \cdot l)(n \cdot v)} = \cfrac {1} {((n \cdot l)(1 - k) + k)((n \cdot v)(1 - k) + k)}, k = roughness^2 \sqrt {\cfrac {2} {\pi}} $$
+
+⑤**Unity 5.3 以后 GGX 的阴影-遮掩函数：**  
+尽管很多文献都曾推荐使用上述的 Smith-Schlick 阴影-遮掩函数，然而，Naty Hoffman 和 Eric Heitz 都指出，这种 Smith-Schlick 阴影-遮掩函数是作者 Schlick 对一个错误版本的 Smith 模型的近似公式，这意味着这些 Smith-Schlick 阴影-遮掩函数并不是基于物理的，因为它不能保证微面元投影区域面积的守恒定律。在 Unity 5.3 及其后续版本中，Unity 为基于 GGX 的 PBS 模型改用了 Smith-Joint 阴影-遮掩函数。Smith-Joint 阴影-遮掩函数的公式如下：  
+
+$$ \begin{align*} \cfrac {G_{SmithJoint}(l,v,h)} {(n \cdot l)(n \cdot v)} & = \cfrac {1} {(n \cdot l)(n \cdot v)(1 + \Lambda(w_o) + \Lambda(w_i))} \\ &= \cfrac {1} {(n \cdot l)(n \cdot v)(1 + 0.5(-1 + \sqrt {1 + \alpha_g^2 \tan \theta_v^2 }) + 0.5(-1 + \sqrt {1 + \alpha_g^2 \tan \theta_l^2 }))} \\ &= \cfrac {2} {(n \cdot l) \sqrt {\alpha_g^2 + (n \cdot v)^2(1 - \alpha_g^2)} + (n \cdot v) \sqrt {\alpha_g^2 + (n \cdot l)^2(1 - \alpha_g^2)}} \\ & \approx \cfrac {2} {(n \cdot l)((n \cdot v)(1 - \alpha_g) + \alpha_g)  + (n \cdot v)((n \cdot l)(1 - \alpha_g) + \alpha_g)} \end{align*} $$
+
+$$ 其中，\alpha_g = roughness^2 $$
+
+在上述的式子中，$\,\Lambda(w_o)\,$ 和 $\,\Lambda(w_i)\,$ 分别评估出射方向和入射方向上的阴影和遮掩，基于这种分开计算的 $\,\Lambda(w_o)\,$ 和 $\,\Lambda(w_i)\,$ 的 Smith 模型，Eric Heitz 针对 $\,\Lambda(w_o)\,$ 和 $\,\Lambda(w_i)\,$ 的不同组合方式列举了四种形式的阴影-遮掩函数。上述的公式显示了其中一种被称为 **Height-Correlated Masking and Shadowing** 的组合方式，也是 Eric 建议在实践中使用的一种方式。由于原始的 Smith-Joint 阴影遮掩函数涉及两个开根号操作，处于性能方面的考虑，Unity 在实现上选择使用上述仅包含乘法的近似公式来简化计算。尽管在数学上这个近似公式并不正确，但从效果上来看是足够接受的。
+
+--- 
+
+如果读者想要深入了解基于物理的渲染的数学原理和应用的话，可以参见本章的扩展阅读部分。需要再次强调的是，由于 Unity 版本的不同，内置 PBS 的实现也可能会发生变化。除此之外，在学术界和工业界仍然不断有新的或改良后的 BRDF 模型的出现，读者也可以根据项目需要选择与 Unity 实现不同的 BRDF 模型。尤其是如果需要在移动端应用基于物理的渲染，除了效果外性能是我们最应当关心的问题之一，此时我们可能需要针对移动平台对采用的 BRDF 模型进行一些修改，读者可以在本章的扩展阅读部分中找到更多的资料。
+
+
+## PBS 实践
+本节中，将在 Unity Shader 中实现之前提到的 BRDF 模型。读者可以发现，把 PBS 应用到自己的材质中并不是一件非常困难的事情。我们回顾使用了精确光源简化后的渲染方程：  
+
+$$ L_o(v) = L_e(v) + \sum_{i=0}^{n} L_o^i(v) = L_e(v) + \sum_{i=0}^{n} \pi f(l_c^i,v) c_{light} (n \cdot l_c^i) $$
+
+其中，$\,L_e(v)\,$ 是自发光部分，$\,f(l_c^i, v)\,$ 是最为关键的 BRDF 模型部分。BRDF 的高光反射项则可以用下面的通用形式来表示：  
+
+$$ f_{spec}(l,v) = \cfrac {F(l,h)G(l,v,h)D(h)} {4(n \cdot l)(n \cdot v)} $$
+
+在本例中，我们会使用 Disney BRDF 中的漫反射项、Schlick 菲涅耳近似等式、基于 GGX 模型的法线分布函数和 Smith-Joint 阴影-遮掩函数作为 BRDF 光照模型的实现。
+
+### 实践
+准备工作如下：  
+①在 Unity 中新建一个场景，名为 Scene_18_2。我们使用本书资源中的天空盒材质 EveningSkyboxHDR，在 Window -> Lighting -> Skybox 中代替场景默认的天空盒。  
+②新建两个材质，分别名为 CustomPBSCubeMat 和 CustomPBSSphereMat。  
+③新建一个 Unity Shader，名为 Chapter18-CustomPBR。把它赋给第 2 步中创建的材质。  
+④在场景中放置一个球体和立方体，并把第 2 步中的两个材质分别赋给两个物体。
+
+Chapter18-CustomPBR 的 Shader 代码如下：  
+
+``` C C for Graphics
+Shader "Unity Shaders Book v2/Chapter 18/Custom PBR" {
+    Properties {
+        _Color ("Color", Color) = (1, 1, 1, 1)
+        _MainTex ("Albedo", 2D) = "white" {} //漫反射材质纹理
+        _Glossiness ("Smoothness", Range(0.0, 1.0)) = 0.5
+        _SpecularColor ("Specular", Color) = (0.2, 0.2, 0.2)
+        _SpecGlossMap ("Specular (RGB) Smoothness (A)", 2D) = "white" {} //_SpecGlossMap 的 RGB 通道值用于控制材质的高光反射颜色；_SpecGlossMap 的 A 通道值和 _Glossiness 用于共同控制材质的粗糙度
+        _BumpScale ("Bump Scale", Float) = 1.0
+        _BumpMap ("Normal Map", 2D) = "bump" {}
+        _EmissionColor ("Color", Color) = (0, 0, 0)
+        _EmissionMap ("Emission", 2D) = "white" {}
+    }
+
+    SubShader {
+        Tags { "RenderType"="Opaque" }
+        LOD 300
+
+        Pass {
+            Tags { "LightMode" = "ForwardBase" }
+
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma fragment frag
+            
+            #include "Lighting.cginc"
+            #include "AutoLight.cginc"
+            #include "UnityCG.cginc"
+            #include "HLSLSupport.cginc"
+
+            //通过使用#pragma target 3.0 来指明使用 Shader Target 3.0，这是因为基于物理渲染涉及了较多的公式，因此需要较多的数学指令来进行计算，这可能会超过 Shader Target 2.0 对指令数目的规定，因此我们选择使用更高的 Shader Target 3.0。
+            #pragma target 3.0
+
+            #pragma multi_compile_fwdbase
+            #pragma multi_compile_fog
+
+            fixed4 _Color;
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            fixed _Glossiness;
+            fixed4 _SpecularColor;
+            sampler2D _SpecGlossMap;
+            float4 _SpecGlossMap_ST;
+            float _BumpScale;
+            sampler2D _BumpMap;
+            float4 _BumpMap_ST;
+            fixed4 _EmissionColor;
+            sampler2D _EmissionMap;
+            float4 _EmissionMap_ST;
+            
+            struct a2v {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float4 tangent : TANGENT;
+                float4 texcoord : TEXCOORD0;
+            };
+            struct v2f {
+                float4 pos : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                float4 TtoW0 : TEXCOORD1;
+                float4 TtoW1 : TEXCOORD2;
+                float4 TtoW2 : TEXCOORD3;
+                SHADOW_COORDS(4) // Defined in AutoLight.cginc
+                UNITY_FOG_COORDS(5) // Defined in UnityCG.cginc
+            };
+
+            //选择使用 Disney BRDF 中的漫反射项实现，CustomDisneyDiffuseTerm 函数的实现如下。UNITY_INV_PI 是在 UnityCG.cginc 文件中定义的宏变量，即圆周率 π 的倒数。在上面的实现中，我们还使用了 Cg 关键词 inline 来修饰函数声明，inline 的作用是用于告诉编译器应该尽可能使用内联调用的方式来调用该函数，减少函数调用的开销。  
+            inline half3 CustomDisneyDiffuseTerm(half NdotV, half NdotL, half LdotH, half roughness, half3 baseColor) {
+                half fd90 = 0.5 + 2 * LdotH * LdotH * roughness;
+                // Two schlick fresnel term
+                half lightScatter = (1 + (fd90 - 1) * pow(1 - NdotL, 5));
+                half viewScatter = (1 + (fd90 - 1) * pow(1 - NdotV, 5));
+
+                return baseColor * UNITY_INV_PI * lightScatter * viewScatter;
+            }
+
+            //可见性项 V，它计算的是阴影-遮掩函数除以高光反射项的分母部分后的结果。CustomSmithJointGGXVisibilityTerm 函数的实现如下：  
+            inline half CustomSmithJointGGXVisibilityTerm(half NdotL, half NdotV, half roughness) {
+                // Original formulation:
+                // lambda_v = (-1 + sqrt(a2 * (1 - NdotL2) / NdotL2 + 1)) * 0.5f;
+                // lambda_l = (-1 + sqrt(a2 * (1 - NdotV2) / NdotV2 + 1)) * 0.5f;
+                // G = 1 / (1 + lambda_v + lambda_l);
+
+                // Approximation of the above formulation
+                half a = roughness * roughness;
+                half lambdaV = NdotL * (NdotV * (1 - a) + a);
+                half lambdaL = NdotV * (NdotL * (1 - a) + a);
+
+                return 0.5f / (lambdaV + lambdaL + 1e-5f);
+            }
+
+            //法线分布项 D，CustomGGXTerm 函数的实现如下：  
+            inline half CustomGGXTerm(half NdotH, half roughness) {
+                half a = roughness * roughness;
+                half a2 = a * a;
+                half d = (a2 - 1.0f) * NdotH * NdotH + 1.0f;
+                return UNITY_INV_PI * a2 / (d * d + 1e-7f);
+            }
+
+            //菲涅耳反射项 F，CustomFresnelTerm 函数的实现如下：  
+            inline half3 CustomFresnelTerm(half3 c, half cosA) {
+                half t = pow(1 - cosA, 5);
+                return c + (1 - c) * t;
+            }
+
+            //菲涅耳插值 CustomFresnelLerp 的函数实现如下：  
+            inline half3 CustomFresnelLerp(half3 c0, half3 c1, half cosA) {
+                half t = pow(1 - cosA, 5);
+                return lerp (c0, c1, t);
+            }
+            
+            v2f vert(a2v v) {
+                v2f o;
+                UNITY_INITIALIZE_OUTPUT(v2f, o); // Defined in HLSLSupport.cginc
+
+                o.pos = UnityObjectToClipPos(v.vertex); // Defined in UnityCG.cginc
+                o.uv = TRANSFORM_TEX(v.texcoord, _MainTex); // Defined in UnityCG.cginc
+
+                float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+                fixed3 worldNormal = UnityObjectToWorldNormal(v.normal);
+                fixed3 worldTangent = UnityObjectToWorldDir(v.tangent.xyz);
+                fixed3 worldBinormal = cross(worldNormal, worldTangent) * v.tangent.w;
+
+                o.TtoW0 = float4(worldTangent.x, worldBinormal.x, worldNormal.x, worldPos.x);
+                o.TtoW1 = float4(worldTangent.y, worldBinormal.y, worldNormal.y, worldPos.y);
+                o.TtoW2 = float4(worldTangent.z, worldBinormal.z, worldNormal.z, worldPos.z);
+
+                //We need this for shadow receving
+                TRANSFER_SHADOW(o); // Defined in AutoLight.cginc
+                //We need this for fog rendering
+                UNITY_TRANSFER_FOG(o, o.pos); // Defined in UnityCG.cginc
+                return o;
+            }
+
+            half4 frag(v2f i) : SV_Target {
+                /////首先需要为后续计算准备好所有的输入数据，这些输入大多来源于材质面板中的各个属性，例如漫反射颜色 diffColor 和高光反射颜色 specColor、粗糙度 roughness、世界空间下的法线方向、光源方向、观察方向、反射方向等。我们还使用内置宏 UNITY_LIGHT_ATTENUATION 计算了阴影和光照衰减值 atten。除此之外，我们还计算了一个变量 oneMinusReflectivity，这个变量并不是我们之前提到的 BRDF 中需要的变量，它主要是为了计算掠射角的反射颜色，从而得到效果更好的菲涅耳反射效果。
+                half4 specGloss = tex2D(_SpecGlossMap, i.uv);
+                specGloss.a *= _Glossiness;
+                half3 specColor = specGloss.rgb * _SpecularColor.rgb;
+                half roughness = 1 - specGloss.a;
+
+                half oneMinusReflectivity = 1 - max(max(specColor.r, specColor.g), specColor.b);
+
+                half3 diffColor = _Color.rgb * tex2D(_MainTex, i.uv).rgb * oneMinusReflectivity;
+
+                half3 normalTangent = UnpackNormal(tex2D(_BumpMap, i.uv));
+                normalTangent.xy *= _BumpScale;
+                normalTangent.z = sqrt(1.0 - saturate(dot(normalTangent.xy, normalTangent.xy)));
+                half3 normalWorld = normalize(half3(dot(i.TtoW0.xyz, normalTangent), dot(i.TtoW1.xyz, normalTangent), dot(i.TtoW2.xyz, normalTangent)));
+                
+                float3 worldPos = float3(i.TtoW0.w, i.TtoW1.w, i.TtoW2.w);
+                half3 lightDir = normalize(UnityWorldSpaceLightDir(worldPos)); // Defined in UnityCG.cginc
+                half3 viewDir = normalize(UnityWorldSpaceViewDir(worldPos)); // Defined in UnityCG.cginc
+
+                half3 reflDir = reflect(-viewDir, normalWorld);
+
+                UNITY_LIGHT_ATTENUATION(atten, i, worldPos); // Defined in AutoLight.cginc
+
+                /////接下来开始计算最重要的 BRDF 光照模型。在此之前，我们先准备好各个角度的余弦值，即之前公式中的各个点乘项。通过使用 Cg 的 saturate 函数，我们把这些点乘值的范围截取到了[0, 1]之间，来避免背光面的光照
+                half3 halfDir = normalize(lightDir + viewDir);
+                half nv = saturate(dot(normalWorld, viewDir));
+                half nl = saturate(dot(normalWorld, lightDir));
+                half nh = saturate(dot(normalWorld, halfDir));
+                half lv = saturate(dot(lightDir, viewDir));
+                half lh = saturate(dot(lightDir, halfDir));
+
+                //计算 BRDF 中的漫反射项：  
+                half3 diffuseTerm = CustomDisneyDiffuseTerm(nv, nl, lh, roughness, diffColor);
+
+                //计算高光反射项：
+                half V = CustomSmithJointGGXVisibilityTerm(nl, nv, roughness);
+                half D = CustomGGXTerm(nh, roughness * roughness);
+                half3 F = CustomFresnelTerm(specColor, lh);
+                half3 specularTerm = F * V * D;
+
+                //计算自发光项：
+                half3 emisstionTerm = tex2D(_EmissionMap, i.uv).rgb * _EmissionColor.rgb;
+
+                //为了得到更加真实的光照，还需要计算基于图像的光照部分（IBL），详见补充：  
+                half perceptualRoughness = roughness * (1.7 - 0.7 * roughness);
+                half mip = perceptualRoughness * 6;
+                half4 envMap = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, reflDir, mip); // Defined in HLSLSupport.cginc
+                half3 decodeEnvMap = DecodeHDR(envMap, unity_SpecCube0_HDR);  //Decode the 4 channels HDR data to RGB format. Otherwise the indirectLight will be too bright because the cube map contains high dynamic range colors, which allows the values greater than 1.
+                
+                half grazingTerm = saturate((1 - roughness) + (1 - oneMinusReflectivity));
+                half surfaceReduction = 1.0 / (roughness * roughness + 1.0);
+                half3 indirectSpecular = surfaceReduction * decodeEnvMap.rgb * CustomFresnelLerp(specColor, grazingTerm, nv);
+
+                //最后按照渲染方程把所有项加起来：
+                half3 col = emisstionTerm + UNITY_PI * (diffuseTerm + specularTerm) * _LightColor0.rgb * nl * atten + indirectSpecular;
+
+                UNITY_APPLY_FOG(i.fogCoord, c.rgb); // Defined in UnityCG.cginc
+
+                return half4(col, 1);
+                }
+            ENDCG
+        }
+    }
+    Fallback Off
+}
+```
+
+关于 IBL 部分的补充：IBL 部分的主要思想是使用材质粗糙度对环境贴图进行 LOD，Level Of Detail 采样，这是因为粗糙度越大的材质，反射的环境光照应该越模糊，而这可以通过对环境贴图不同级数的多级渐远纹理 mipmaps 进行采样来模拟得到。级数越高，在多级渐远纹理中对应的纹理就越小，图像也就越模糊。
+
+为了计算需要采样的多级渐远纹理的级数，我们将材质粗糙度乘以某个常数（在上述实现中该常数为 6），这个常数表明了整个粗糙度范围内多级渐远纹理的总级数。需要注意的是，这种由粗糙度计算级数的方法并不是唯一的，读者可以在 UnityImageBasedLighting.cginc 文件的 perceptualRoughnessToMipmapLevel 函数中找到相关实现。然后，我们使用该级数和反射方向来对环境贴图进行采样。其中，unity_SpecCube0 包含了该物体周围当前活跃的反射探针 Reflection Probe 中所包含的环境贴图。尽管我们没有在场景中手动放置任何反射探针，但 Unity 会根据 Window -> Lighting -> Skybox 中的设置，在场景中生成一个默认的反射探针。由于在本节的准备工作中我们在 Window -> Lighting -> Skybox 中设置了自定义的天空盒，因此此时 unity_SpecCube0 中包含的就是这个自定义天空盒的环境贴图。如果我们在场景中放置了其他反射探针，Unity 则会根据相关设置和物体所在的位置自动把距离该物体最近的一个或几个反射探针数据传递给 Shader。尽管在之前的内容中，我们是使用 samplerCUBE 来声明一个立方体贴图并使用 texCUBE 来采样它，但是 Unity 内置反射探针的立方体贴图则是以一种特殊的方式声明的，这主要是为了在某些平台下可以节省 sampler slots。读者可以在 UnityShaderVariables.cginc 文件中找到 unity_SpecCube0 的声明，Unity 主要是通过 HLSLSupport.cginc 文件中定义的内置宏 UNITY_DECLARE_TEXCUBE 来实现的。 由于这样的特殊性， 在采样 unity_SpecCube0 时我们也应该使用内置宏如 UNITY_SAMPLE_TEXCUBE（在 HLSLSupport.cginc 文件中被定义）来采样。由于在这里我们还需要对指定级数的多级渐远纹理采样，因此我们使用内置宏 UNITY_SAMPLE_TEXCUBE_LOD（在 HLSLSupport.cginc 文件中被定义）来实现。至此，我们得到了采样后的环境光照颜色 envMap。
+
+对环境光采样后变量 envMap 为 HDR 值 RGBM，直接使用会导致材质过曝，因此添加了 DecodeHDR 函数将 HDR 转换为 RGB。
+
+然后，为了给 IBL 添加更加真实的菲涅耳反射，我们对高光反射颜色 specColor 和掠射颜色 grazingTerm 进行菲涅耳插值。掠射颜色 grazingTerm 是由材质粗糙度和之前计算得到的 oneMinusReflectivity 共同决定的。使用掠射角度进行菲涅耳插值的好处是，我们可以在掠射角得到更加真实的菲涅耳反射效果，同时还考虑了材质粗糙度的影响。除此之外，我们还使用了由粗糙度计算得到的 surfaceReduction 参数进一步对 IBL 的进行修正。
+
+CustomFresnelLerp 的函数的实现和之前实现的 CustomFresnelTerm 函数很类似，不同的是这里使用参数 t 来混合两个颜色。尽管 grazingTerm 被声明为单一维数的 half 变量，在传递给 CustomFresnelLerp 时它会自动被转换成 half3 类型的变量，这在 Cg 中被称为是 **"Smearing" Of Scalars To Vectors**。
+
+---
+
+若场景中存在多个光源，需要实现 Forward Add Pass。Forward Add Pass 的实现与 Forward Base Pass 基本一致，其中不同的是，Forward Add Pass 不需要计算雾效、自发光和 IBL 的部分，因为这些只需要在 Forward Base Pass 计算一遍即可。其他实现在此不再赘述。
+
+保存后返回场景，再调整相关参数，Color 为黑色，Smoothness 为 0.75，Specular 为白色，不添加任何贴图的效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/01/07/duosjItMTSVGU9P.jpg" width = "80%" height = "80%" alt="图92- 使用自定义的基于物理渲染的材质"/>
+</div>
+
+需要注意的是，我们还需要保证 Edit -> Project Settings -> Player -> Color Space 中的选项是 Linear，即线性空间，只有这样才能保证我们的计算是在线性空间下进行的，且输出的为线性颜色。与线性空间相关的是**伽马校正**，详见后面。
+
+在上面的内容中，我们依靠自定义的函数实现了一个基于 GGX BRDF 模型的 Shader。实际上，Unity 已经帮我们实现了很多 BRDF 模型中的函数，并为我们提供了现成的基于物理着色的 Shader，也就是 **Standard Shader**。
+
+
+## Unity 5 的 Standard Shader
+在 Unity 5 中新创建一个模型或是新创建一个材质时，其默认使用的着色器都是一个名为 Standard 的着色器。Unity 支持两种流行的基于物理的工作流程：**金属工作流 metallic workflow** 和**高光反射工作流 specular workflow**。其中，金属工作流是默认的工作流程，对应的 Shader 为 Standard Shader。而如果想要使用高光反射工作流，就需要在材质的 Shader 下拉框中选择 Standard（Specular setup）。在内部实现上，这两种工作流实际上最终都会使用同一套 BRDF 模型，不同的是 BRDF 模型中各个输入参数的来源不同而已。
+
+### 它们是如何实现的
+Standard 和 Standard（Specular setup）的 Shader 源代码可以在 Unity 内置的 builtin_shaders-XXXXXX/DefaultResourcesExtra 文件夹中找到，这些 Shader 依赖于 builtin_shaders-XXXXXX/CGIncludes 文件夹中定义的一些头文件。这些相关的头文件的名称大多类似于 UnityStandardXXX.cginc，其中定义了和 PBS 相关的各个函数、结构体和宏等。下表列出了这些头文件的名称以及它们的主要用处：  
+
+| 文件 | 描述 |
+| :---- | :---- |
+| UnityStandardInput.cginc | 声明了 Standard 和 Standard (Specular setup) Shader 使用的所有材质参数（如 _Color、_MainTex、_EmissionMap），定义了顶点着色器的输入结构体 VertexInput，还定义了相关辅助函数用于从这些输入中计算得到相关的材质变量，例如 Albedo 函数可以从 _MainTex 和 _Color 参数中计算得到漫反射颜色，Occlusion 函数可以从 _OcclusionMap 中计算得到遮挡值 |
+| UnityLightingCommon.cginc | 定义了和 PBS 光照相关的各个结构体，例如 UnityLight、UnityIndirect、UnityGI 和 UnityGIInput 等 |
+| UnityStandardCore.cginc | 定义了 Standard 和 Standard (Specular setup) Shader 使用的顶点/片元着色器（ 如 vertForwardBase 和 fragForwardBase ）、相关的结构体 （ 如 VertexOutputForwardBase 和 FragmentCommonData ） 和辅助函数（如 MetallicSetup、SpecularSetup、MainLight、PerPixelWorldNormal、FragmentGI）等 |
+| UnityStandardCoreForwardSimple.cginc | 定义了简化版的顶点/片元着色器（ 如 vertForwardBaseSimple 和 fragForwardBaseSimple）、相关的结构体（如 VertexOutputBaseSimple）和辅助函数（如 FragmentSetupSimple、MainLightSimple）等。在默认情况下，Unity 会将 UNITY_STANDARD_SIMPLE（在 UnityStandardConfig.cginc 文件中被定义）设为 0，即不使用这些简化后的实现 |
+| UnityPBSLighting.cginc | 定义了表面着色器使用的标准光照函数和相关的结构体等，如 LightingStandardSpecular 函数和 SurfaceOutputStandardSpecular 结构体，这些定义主要是为 Unity 表面着色器（Surface Shader）服务的。除此之外，还定义 PBS 函数的调用宏 UNITY_BRDF_PBS，Unity 会根据当前平台设置等为 UNITY_BRDF_PBS 设置不同性能的函数入口，如 BRDF1_Unity_PBS、BRDF2_Unity_PBS 和 BRDF3_Unity_PBS 等函数，而这些函数是在 UnityStandardBRDF.cginc 文件中被定义的 |
+| UnityStandardBRDF.cginc | 实现了 Unity 中基于物理的渲染技术，定义了 BRDF1_Unity_PBS、BRDF2_Unity_PBS 和 BRDF3_Unity_PBS 等函数，来实现不同平台下的 BRDF。这个文件包含了关键的 BRDF 模型的实现部分，包括漫反射项和高光反射项的函数实现（如 DisneyDiffuse、SmithJointGGXVisibilityTerm）和相关的辅助函数（如 常用的数学函数 Pow4 和 Pow5 、 PerceptualRoughnessToSpecPower） |
+| UnityGlobalIllumination.cginc | 定义了计算全局光照的 UnityGlobalIllumination 函数，该函数在 FragmentGI 函数（在 UnityStandardCore.cginc 中被定义）中被调用，它会从光照贴图、光照探针、反射探针等输入中读取数据，计算全局光照中的间接漫反射颜色和高光反射颜色，并存储 UnityGI 结构体中的 UnityIndirect 结构体变量中（两个结构体均在 UnityLightingCommon.cginc 中被定义） |
+| UnityImageBasedLighting.cginc | 定义了和基于图像的光照相关的结构体和函数，这些结构体和函数会在计算全局光照时被使用，例如 Unity_GlossyEnvironment 函数会采样反射探针中的数据，它可以用于计算间接的高光反射 |
+| UnityStandardUtils.cginc | Standard Shader 使用的一些辅助函数，将来可能会移到 UnityCG.cginc 文件中 |
+| UnityStandardConfig.cginc |  Standard Shader 的相关配置，例如默认情况下使用 GGX 模型来实现 BRDF（将 UNITY_BRDF_GGX 设为 1） |
+| UnityStandardMeta.cginc | 定义了 Standard Shader 中 “LightMode” 为 “Meta” 的 Pass（用于提取光照纹理和全局光照的相关信息）使用的顶点/片元着色器，以及它们使用的输入/输出结构体 |
+| UnityStandardShadow.cginc | 定义了 Standard Shader 中 “LightMode” 为 “ShadowCaster” 的 Pass（用于投射阴影）使用的顶点/片元着色器，以及它们使用的输入/输出结构体 |
 
 
