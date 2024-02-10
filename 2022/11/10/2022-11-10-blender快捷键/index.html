@@ -1,0 +1,559 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Blender快捷键操作以及一些基础知识 | 鸟布的博客</title><meta name="author" content="鸟布"><meta name="copyright" content="鸟布"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="注意事项 快捷键要英文输入法！！！！！！ 有些快捷键要选中物体。 区分小键盘的数字和数字键，小键盘会特别说明。 最好的教程就是blender自己的英文版官方手册 Blender保存后打开会自动清理没有被使用的数据，可以使用伪用户来保存未使用的数据 打包：将外部数据保存在blender工程中；解包：将"><link rel="shortcut icon" href="https://s2.loli.net/2022/09/08/Ygib4lfw6z1khnr.png"><link rel="canonical" href="https://ybniaobu.github.io/2022/11/10/2022-11-10-blender%E5%BF%AB%E6%8D%B7%E9%94%AE/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":50,"languages":{"author":"作者: 鸟布","link":"链接: ","source":"来源: 鸟布的博客","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: true,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Blender快捷键操作以及一些基础知识',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-07-02 21:00:51'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.2.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/images/wechat%20avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">23</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">12</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">15</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/images/black.jpg')"><nav id="nav"><span id="blog-info"><a href="/" title="鸟布的博客"><span class="site-name">鸟布的博客</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">Blender快捷键操作以及一些基础知识</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2022-11-10T06:44:00.000Z" title="发表于 2022-11-10 14:44:00">2022-11-10</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2023-07-02T13:00:51.702Z" title="更新于 2023-07-02 21:00:51">2023-07-02</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/blender/">blender</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/blender/blender%E6%95%99%E7%A8%8B/">blender教程</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/blender/blender%E6%95%99%E7%A8%8B/blender%E5%BF%AB%E6%8D%B7%E9%94%AE%E5%90%88%E9%9B%86/">blender快捷键合集</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">8.7k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>26分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="Blender快捷键操作以及一些基础知识"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h1><ul>
+<li>快捷键要英文输入法！！！！！！</li>
+<li>有些快捷键要选中物体。</li>
+<li>区分小键盘的数字和数字键，小键盘会特别说明。</li>
+<li>最好的教程就是blender自己的英文版官方手册</li>
+<li>Blender保存后打开会自动清理没有被使用的数据，可以使用伪用户来保存未使用的数据</li>
+<li>打包：将外部数据保存在blender工程中；解包：将blender工程数据保存在外部</li>
+</ul>
+<h1 id="基础操作"><a href="#基础操作" class="headerlink" title="基础操作"></a>基础操作</h1><h2 id="网格对象相关"><a href="#网格对象相关" class="headerlink" title="网格对象相关"></a>网格对象相关</h2><h3 id="物体模式下，移动、缩放、旋转等物体变化"><a href="#物体模式下，移动、缩放、旋转等物体变化" class="headerlink" title="物体模式下，移动、缩放、旋转等物体变化"></a>物体模式下，移动、缩放、旋转等物体变化</h3><ul>
+<li>Grab抓取状态（移动）：<kbd>G</kbd><ul>
+<li>再按<kbd>X</kbd>，锁定按x轴移动</li>
+<li>再按<kbd>Y</kbd>，锁定按y轴移动</li>
+<li>再按<kbd>Z</kbd>，锁定按z轴移动</li>
+<li>按2次<kbd>X</kbd> or <kbd>Y</kbd> or <kbd>Z</kbd>，会按物体自己的局部坐标移动，前提是当前坐标系为全局；若为当前为局部坐标系，按一次为局部，二次为全局</li>
+<li>按2次<kbd>G</kbd>，可以进行单一边线或顶点滑移</li>
+</ul>
+</li>
+<li>同理缩放Scale、旋转Rotate：<kbd>S</kbd>、<kbd>R</kbd>，再对应X、Y、Z<ul>
+<li>再按<kbd>shift</kbd> + <kbd>X</kbd>，锁定X轴，按Y、Z轴缩放（同理shift + Y、Z）</li>
+<li>可以输入数字，来设置缩放大小和旋转角度</li>
+<li>选择2个点按X或Y或Z轴方向对齐到2个点的中心，可以按<kbd>S</kbd> + <kbd>X、Y、Z</kbd> + <kbd>0</kbd></li>
+</ul>
+</li>
+<li>重置移动、缩放、旋转：<kbd>alt</kbd> + <kbd>G or S or R</kbd></li>
+<li>应用物体变化：<kbd>ctrl</kbd> + <kbd>A</kbd>；变换 -&gt; 增量的意思就是改变“归零点”，应用过增量后，移动、缩放、旋转变换物体后，重置移动、缩放、旋转回归的是增量应用后的位置。此时若要重置回到世界原点，可以勾选清除增量</li>
+<li>镜像变换：<kbd>ctrl</kbd> + <kbd>M</kbd>，底部会有操作提示，可以按住<kbd>鼠标中键</kbd>拖拽</li>
+</ul>
+<h3 id="物体模式下，其他物体操作"><a href="#物体模式下，其他物体操作" class="headerlink" title="物体模式下，其他物体操作"></a>物体模式下，其他物体操作</h3><ul>
+<li>添加对象：<kbd>shift</kbd> + <kbd>A</kbd></li>
+<li>复制对象：<kbd>shift</kbd> + <kbd>D</kbd>；关联复制<kbd>alt</kbd> + <kbd>D</kbd>即2个物体对应同一个mesh，改动一个，另一个也会变</li>
+<li>删除对象：<kbd>X</kbd> 或 <kbd>Del</kbd></li>
+<li>物体合并join：<kbd>ctrl</kbd> + <kbd>J</kbd>，分离要进入编辑模式</li>
+<li>移动游标：<kbd>shift</kbd> + <kbd>鼠标右键</kbd></li>
+<li>调回添加物体设置菜单（微调面板）：<kbd>F9</kbd></li>
+<li>侧边栏sidebar（n面板）：<kbd>N</kbd></li>
+<li>工具栏：<kbd>T</kbd>可以隐藏/开启，小数字键盘的<kbd>+ 或 -</kbd>可以将UI放大缩小，也可以用鼠标拖拽让其并排显示</li>
+<li>坐标系选择菜单：<kbd>,</kbd></li>
+<li>轴心点选择菜单：<kbd>.</kbd></li>
+<li>开关吸附功能：<kbd>shift</kbd> + <kbd>tab</kbd>，或者在移动物体时，按住<kbd>ctrl</kbd>来临时开启吸附功能</li>
+<li>吸附上下文菜单：<kbd>shift</kbd> + <kbd>S</kbd></li>
+<li>启用衰减编辑：<kbd>O</kbd></li>
+<li>仅影响原点：<kbd>ctrl</kbd> + <kbd>.</kbd></li>
+<li>重复上一步操作：<kbd>shift</kbd> + <kbd>R</kbd></li>
+<li>建立父子级：选择多个物体按<kbd>ctrl</kbd> + <kbd>P</kbd>，活动项为父级，或者大纲视图（视图层）里把子级按住<kbd>shift</kbd>往父级拖</li>
+<li>清空父级：选择子级按<kbd>alt</kbd> + <kbd>P</kbd>，或者大纲视图（视图层）里把子级按住<kbd>alt</kbd>往外拖</li>
+<li>关联/传递数据：<kbd>ctrl</kbd> + <kbd>L</kbd>，根据最后的活动项关联</li>
+<li>多个物体同时操作：选中多个物体，按住<kbd>alt</kbd>，可以同时操作设置多个物体</li>
+</ul>
+<h3 id="编辑模式下，选择点边面"><a href="#编辑模式下，选择点边面" class="headerlink" title="编辑模式下，选择点边面"></a>编辑模式下，选择点边面</h3><ul>
+<li>编辑模式：<kbd>Tab</kbd><ul>
+<li>编辑模式下，按<kbd>1</kbd>为点模式</li>
+<li>编辑模式下，按<kbd>2</kbd>为线模式</li>
+<li>编辑模式下，按<kbd>3</kbd>为面模式</li>
+<li>按住<kbd>shift</kbd>再按<kbd>1或2或3</kbd>，可以同时选择多个模式（加选或减选）</li>
+</ul>
+</li>
+<li>循环选择：<kbd>alt</kbd> + <kbd>鼠标左键</kbd></li>
+<li>选择并排边：<kbd>ctrl</kbd>  + <kbd>alt</kbd>  + <kbd>鼠标左键</kbd></li>
+<li>选择边界边：<kbd>alt</kbd> + <kbd>鼠标左键双击</kbd></li>
+<li>最短路径选择：<kbd>ctrl</kbd> + <kbd>鼠标左键</kbd></li>
+<li>反向选择（选择物体除了当前选择的部分）：<kbd>ctrl</kbd> + <kbd>I</kbd></li>
+<li>加选或减选：<kbd>ctrl</kbd> + 小数字键盘的<kbd>+ 或 -</kbd></li>
+<li>关联选择（选择相关联的所有点边面）：选中点、边、面 + <kbd>L</kbd>，鼠标要在选中的点、边、面附近，会受到划界的影响（详见微调菜单）；或者使用<kbd>ctrl</kbd> + <kbd>L</kbd></li>
+</ul>
+<h3 id="编辑模式下，常用工具"><a href="#编辑模式下，常用工具" class="headerlink" title="编辑模式下，常用工具"></a>编辑模式下，常用工具</h3><ul>
+<li>挤出选区Extrude Region：<kbd>E</kbd>，快速挤出：<kbd>ctrl</kbd> + <kbd>鼠标右键</kbd><ul>
+<li><strong>注意</strong>：按<kbd>E</kbd>后按右键取消，仍然会挤出，只不过重叠了看不见，需要撤销</li>
+<li>挤出上下文菜单：<kbd>alt</kbd>  + <kbd>E</kbd></li>
+</ul>
+</li>
+<li>内插面Inset Faces：<kbd>I</kbd><ul>
+<li>上面会有操作提示</li>
+<li>再按住<kbd>ctrl</kbd>控制深度；再按<kbd>O</kbd>外插；多个面，再按<kbd>I</kbd>分别内插；若面存在边界（即边旁边没有面），再按<kbd>B</kbd>，可让边界边不内插。</li>
+</ul>
+</li>
+<li>切割工具Knife：<kbd>K</kbd>，并按回车确认<ul>
+<li>下面会有操作提示</li>
+<li>按住<kbd>shift</kbd>开启中点吸附，按住<kbd>ctrl</kbd>取消吸附</li>
+<li>按<kbd>C</kbd>可以开启切穿立体，最好在正交图下切穿，并且在下刀前开启</li>
+<li>在按钮模式下，关闭遮蔽几何体（上方），也可以切穿立体</li>
+<li>切割下的切分工具，可以讲立体一分为二，轴阈值可以让切线吸附至最近点或线</li>
+</ul>
+</li>
+<li>倒角（斜切）Bevel：<kbd>ctrl</kbd> + <kbd>B</kbd><ul>
+<li>下面会有操作提示</li>
+<li>注意宽度类型：偏移量、宽度、深度、百分比和绝对的区别，斜切面的长度为宽度，原边到斜切面的边（垂直距离）为偏移量，原边到斜切面的距离为深度，百分比为临边的百分比，绝对为临边的绝对距离</li>
+<li>上下滚动鼠标滚轮，会增减斜切细分Segments的数量，即更平滑</li>
+<li>多细分的情况下，按<kbd>P</kbd>可以控制内凹还是外凸，即形状轮廓参数（默认0.5为圆）</li>
+<li>微调菜单中<strong>硬化法向</strong>可以平滑倒角的同时不影响原始面法向</li>
+<li><strong>外斜接的补块和圆弧</strong>以及<strong>内部的圆弧</strong>可以更优化处理多条连接的线的倒角导致的连接问题；相交类型自动的栅格填充会自动填充多个相交边同时倒角产生的面，截止则会不产生该面</li>
+<li>轮廓类型的自定义里面包括阶梯类型等等</li>
+<li>一般为边倒角，<strong>顶点倒角</strong>为<kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>B</kbd>，可以使用该方法来给平面中心开洞（配合球形化工具），或者让曲线变的圆滑</li>
+<li>建议的倒角段数为2的倍数，比如4</li>
+</ul>
+</li>
+<li>环切Loop Cut（环切并滑移）：<kbd>ctrl</kbd> + <kbd>R</kbd><ul>
+<li>上下滚动鼠标滚轮，会增减环切边的数量</li>
+<li>上面会有操作提示</li>
+<li>输入数字，来设置环切边的数量</li>
+<li>微调菜单中的<strong>均匀</strong>和<strong>翻转</strong>指的是环切的相邻的边非平行情况下使环切线优先匹配其中一条边</li>
+<li>偏移环切边：<kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>R</kbd>，和倒角类似，但是若选中的边非直线，偏移环切边和环切模式类似，新生成的线是选中的边和它平行的边的平均化后的线（使用均匀或翻转可以改变该模式），而倒角则完全是原来选中的边的样子。微调菜单中还有个封盖端点的功能</li>
+</ul>
+</li>
+<li>多边形建形工具Poly Build：选择此工具后<ul>
+<li>当编辑模式下，没有点时，按住<kbd>ctrl</kbd> + <kbd>左键单击</kbd>，可以生成点，可以按住<kbd>左键</kbd>拖动点</li>
+<li>当存在面后，该工具会预选择或者说是捕捉到一条线（蓝色的线）按住<kbd>ctrl</kbd> + <kbd>左键单击</kbd>，会形成三角形，再次按住<kbd>ctrl</kbd>，形成三角形，2个三角形会形成四边形。也可以按住<kbd>左键</kbd>拖动，挤出边（四边形）</li>
+<li>按住<kbd>shift</kbd> + <kbd>左键</kbd>可以快捷删除线（四边形面）或点（三角形）</li>
+</ul>
+</li>
+<li>旋绕工具Spin：以3D游标为中心，按圆形挤出<ul>
+<li>旋转方向的不同会改变法线的方向，需注意法线的方向</li>
+</ul>
+</li>
+<li>光滑工具Smooth<ul>
+<li>（光滑）平滑顶点：当有多个顶点时，微调菜单中的重复次数可以增加所影响的面（因为一次只影响相邻顶点）</li>
+</ul>
+</li>
+<li>滑移工具Slide<ul>
+<li>双击<kbd>G</kbd>可以对单一边线或者单一顶点进行滑移，操作提示在上方</li>
+<li>顶点滑移：可以选取多个顶点并按<kbd>shift</kbd> + <kbd>V</kbd>进行滑移</li>
+</ul>
+</li>
+<li>法向收缩：<kbd>alt</kbd> + <kbd>S</kbd><ul>
+<li>法向收缩基于选择对象的法向进行缩放，而普通的S缩放基于轴心点缩放</li>
+<li>推/拉：等距离的缩放，S缩放是等比例</li>
+</ul>
+</li>
+<li>切变工具Shear<ul>
+<li>切变以及球形化，球形化可以结合顶点倒角进行面开洞</li>
+</ul>
+</li>
+<li>断离工具Rip：<kbd>V</kbd><ul>
+<li>根据鼠标的位置系统自动确定断离的方向</li>
+<li><strong>注意</strong>：按<kbd>V</kbd>后按右键取消，仍然会断离，只不过重叠了看不见，需要撤销</li>
+<li>断离并进入滑移：<kbd>V</kbd> + <kbd>G</kbd></li>
+<li>断离边线（挤出顶点并移动）：<kbd>alt</kbd> + <kbd>D</kbd>，可以快速加点，再按<kbd>G</kbd>可以进入滑移状态</li>
+</ul>
+</li>
+</ul>
+<h3 id="编辑模式下，其他操作"><a href="#编辑模式下，其他操作" class="headerlink" title="编辑模式下，其他操作"></a>编辑模式下，其他操作</h3><ul>
+<li>选择菜单下的操作：<ul>
+<li>全选：<kbd>A</kbd>，弃选：<kbd>alt</kbd> + <kbd>A</kbd></li>
+<li>框选：<kbd>B</kbd>，刷选：<kbd>C</kbd>，按住<kbd>shift</kbd>拖动鼠标取消选取</li>
+<li>反转（反向选择）：<kbd>ctrl</kbd> + <kbd>I</kbd></li>
+<li>选择相似菜单：<kbd>shift</kbd> + <kbd>G</kbd></li>
+<li>有些操作见：编辑模式下，选择点边面</li>
+</ul>
+</li>
+<li>网格菜单下的操作：<ul>
+<li>重置蒙皮尺寸（即缩放蒙皮半径）：<kbd>ctrl</kbd> + <kbd>A</kbd>，见蒙皮修改器</li>
+<li>吸附上下文菜单：<kbd>shift</kbd> + <kbd>S</kbd></li>
+<li>合并上下文菜单：<kbd>M</kbd>，自动合并顶点在右上角开启</li>
+<li>拆分上下文菜单：<kbd>alt</kbd> + <kbd>M</kbd>；拆分选中项：<kbd>Y</kbd></li>
+<li>物体分离Separate：<kbd>P</kbd>，变为独立的物体</li>
+<li>凸壳：根据物体生成罩体</li>
+<li>法向上下文菜单：<kbd>alt</kbd>  + <kbd>N</kbd>；法向旋转可以用<kbd>R</kbd>  + <kbd>N</kbd></li>
+<li><strong>清理菜单</strong>：精简几何体可以减少面数；简并融并可以融并面积为零的面或长度为零的边，可以去除重叠的点；有限融并根据夹角来融并点和线；平整表面可以把不可能的四边形恢复水平</li>
+</ul>
+</li>
+<li>顶点菜单下的操作：<ul>
+<li><kbd>ctrl</kbd> + <kbd>V</kbd>弹出顶点菜单，V for vertex</li>
+<li>从顶点创建边/面：<kbd>F</kbd>；连接顶点路径：<kbd>J</kbd>；注意F和J的区别，F是架桥，不影响沿途边线（相当于新连接的线会与沿途的边线重叠在一个面上）；J是修路，会切断沿途边和面，在一个面上使用连接顶点建议使用<kbd>J</kbd>，但是J无法连接彼此完全分离的点</li>
+<li>打开顶点组菜单：<kbd>ctrl</kbd> + <kbd>G</kbd></li>
+<li>钩挂：<kbd>ctrl</kbd> + <kbd>H</kbd>，详见钩挂修改器</li>
+</ul>
+</li>
+<li>边菜单下的操作：<ul>
+<li><kbd>ctrl</kbd> + <kbd>E</kbd>弹出边菜单，E for edge</li>
+<li>桥接循环边，或者搜索Bridge Edge Loops（需2组循环边）</li>
+<li>边线折痕强度：<kbd>shift</kbd> + <kbd>E</kbd>并拖动</li>
+</ul>
+</li>
+<li>面菜单下的操作：<ul>
+<li><kbd>ctrl</kbd> + <kbd>F</kbd>弹出面菜单，F for face</li>
+<li>尖分面：将面拆分为数个三角面，会新建一个中心点；面三角化：<kbd>ctrl</kbd> + <kbd>T</kbd>将面拆分为数个三角面，不会新建点</li>
+<li>三角填充：<kbd>alt</kbd> + <kbd>F</kbd></li>
+<li>交集（切割）与交集（布尔）为自带的布尔运算</li>
+</ul>
+</li>
+<li>快速收藏夹：<kbd>Q</kbd>，可以在想添加按钮右键选择添加到快速收藏夹，之后就可以使用这个快捷使用</li>
+</ul>
+<h2 id="曲线对象相关"><a href="#曲线对象相关" class="headerlink" title="曲线对象相关"></a>曲线对象相关</h2><h3 id="曲线编辑模式下相关操作"><a href="#曲线编辑模式下相关操作" class="headerlink" title="曲线编辑模式下相关操作"></a>曲线编辑模式下相关操作</h3><ul>
+<li>曲线的样条类型：①多段线：控制点连线为固定的直线；②贝塞尔；③NURBS(非均匀有理B样条)</li>
+<li>可以在视图叠加层开启全部控制柄，这样可以不先选中控制柄再调节，加快效率</li>
+<li>贝塞尔曲线：控制点拥有权重、半径和倾斜属性（见N面板）<ul>
+<li>自由线画笔工具：表(曲)面可以让线吸附至网格表面；锥化可以控制曲线控制点半径；偏移量指从表面偏移画笔，未开启绝对偏移时，偏移值为系数*半径</li>
+<li>控制柄切换：<kbd>V</kbd>；对齐（粉色）：同控制点控制柄协同操控；自由（红色）：单独操控；自动（黄色）：转化为均值状态并自动适应，手动介入手柄会使其转换为对齐类型；矢量（绿色）：基于点连线，手动介入手柄转换为自由类型。重新计算控制柄：<kbd>shift</kbd> + <kbd>N</kbd></li>
+<li>挤出工具：<kbd>E</kbd>；快速挤出：<kbd>ctrl</kbd> + <kbd>鼠标右键</kbd></li>
+<li>调节半径：<kbd>alt</kbd> + <kbd>S</kbd></li>
+<li>调节倾斜：<kbd>ctrl</kbd> + <kbd>T</kbd>，倾斜控制曲线法向的方向；重置倾斜：<kbd>alt</kbd> + <kbd>T</kbd></li>
+<li>切换循环<kbd>alt</kbd> + <kbd>C</kbd>将曲线变为闭合状态；或者直接<kbd>F</kbd>首尾相连；或者在曲线属性的活动样条线里勾选循环</li>
+</ul>
+</li>
+<li>NURBS(非均匀有理B样条)的每个控制点有个W值（见N面板），即weight，其根据控制点和W值进行曲线生成</li>
+</ul>
+<h2 id="视角、视图、窗口相关"><a href="#视角、视图、窗口相关" class="headerlink" title="视角、视图、窗口相关"></a>视角、视图、窗口相关</h2><h3 id="改变视角"><a href="#改变视角" class="headerlink" title="改变视角"></a>改变视角</h3><ul>
+<li>旋转视角：<kbd>鼠标中键</kbd></li>
+<li>缩放视角：<kbd>鼠标滚轮</kbd> 或者 <kbd>ctrl</kbd> + <kbd>鼠标中键</kbd></li>
+<li>平移视角：<kbd>shift</kbd> + <kbd>鼠标中键</kbd></li>
+<li>快速聚焦：小数字键盘上的<kbd>·</kbd>，或者按住<kbd>~</kbd>选择View Selected</li>
+<li>快速回归全场景（聚焦全场景）：<kbd>Home</kbd></li>
+<li>隐藏物体：<kbd>H</kbd></li>
+<li>隐藏所有除选中物体：<kbd>shift</kbd> + <kbd>H</kbd></li>
+<li>取消所有隐藏：<kbd>alt</kbd> + <kbd>H</kbd></li>
+<li>第一人称视角：<kbd>shift</kbd> + <kbd>~</kbd>，底部会有操作提示</li>
+</ul>
+<h3 id="视图快捷键"><a href="#视图快捷键" class="headerlink" title="视图快捷键"></a>视图快捷键</h3><ul>
+<li>正交前视图：小数字键盘<kbd>1</kbd>；后视图：<kbd>ctrl</kbd> + 小数字键盘<kbd>1</kbd></li>
+<li>正交右视图：小数字键盘<kbd>3</kbd>；左视图：<kbd>ctrl</kbd> + 小数字键盘<kbd>3</kbd></li>
+<li>正交顶视图：小数字键盘<kbd>7</kbd>；底视图：<kbd>ctrl</kbd> + 小数字键盘<kbd>7</kbd></li>
+<li>以上直接使用右上角xyz的那个坐标轴比较方便</li>
+<li>视角对齐物体局部坐标的xyz轴：<kbd>shift</kbd> + 小数字键盘<kbd>1或3或7</kbd></li>
+<li>视图反转：小数字键盘<kbd>9</kbd></li>
+<li>透视图和正交视图的切换：小数字键盘<kbd>5</kbd></li>
+<li>四格视图：<kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>Q</kbd></li>
+<li>局部视图（只显示选中的物体，可以多选）：<kbd>/</kbd>，再次点击退出局部视图</li>
+<li>最大化视窗（窗口）：<kbd>ctrl</kbd> + <kbd>空格</kbd>，根据鼠标的位置选择最大化的窗口，再次点击退出；全屏视窗：<kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>空格</kbd>，同上</li>
+<li>视图着色方式菜单：<kbd>Z</kbd>；透视模式：<kbd>alt</kbd> + <kbd>Z</kbd>，透视模式 + 线框模式：<kbd>shift</kbd> + <kbd>Z</kbd></li>
+</ul>
+<h3 id="摄像机相关"><a href="#摄像机相关" class="headerlink" title="摄像机相关"></a>摄像机相关</h3><ul>
+<li>切换到摄像机视角：小数字键盘的<kbd>0</kbd>，摄像机视图大小，受 Output properties 输出属性的 Format 格式中 Resolution 分辨率控制，默认1920px*1080px</li>
+<li>摄像机镜头对齐到当前屏幕视角：<kbd>ctrl</kbd> + <kbd>alt</kbd> + 小数字键盘的<kbd>0</kbd>，或者N面板上的view，选择Camera to View</li>
+<li>切换到摄像机视角后，并且Camera to View（锁定摄像机到视图方位），可以开启第一人称视角（<kbd>shift</kbd> + <kbd>~</kbd>）来移动（微调）摄像机</li>
+</ul>
+<h1 id="其他名词解释"><a href="#其他名词解释" class="headerlink" title="其他名词解释"></a>其他名词解释</h1><ul>
+<li><strong>缝合边Seam</strong>：UV展开的边；<strong>锐边Sharp</strong>：自动平滑不影响的边；<strong>Freestyle边</strong>：模型的轮廓边（比如三渲二下模型的描边效果）</li>
+<li>形态键Shape Keys：用于记录顶点排布方式</li>
+<li>纹理空间Texture Space：纹理图案映射到三维物体表面的区域，可以通过改变纹理空间配合UV改变纹理的显示区域和效果</li>
+<li>平滑着色Shade Smooth：改变了面的法向的方向从而改变了表面着色，造成光滑表面的错觉（可以平滑着色后看看法线方向的变化）。法线与着色相互关联，完全拆分拆分法向（可以在视图叠加层显示拆分法向）可以模拟锐利的棱（即锐边），完全合并拆分法向可以模拟平滑。</li>
+<li>纹理基础：<ul>
+<li>图像：RGB三条通道混合产生颜色，通道位宽（bit）影响精度，而每条通道位宽可以以灰度信息进行存储，比如8 bit（0-255）为例，0即黑色对应通道贡献为0，255即白色对应通道贡献为1；而Alpha通道存储透明信息，黑色即alpha为0，显示为绝对透明，白色即alpha为1，显示为绝对不透明</li>
+<li>高动态范围图像 HDRI 或 HDR (High Dynamic Range Imaging)，比普通8 bit RGB图像拥有更大的亮度范围，HDR文件通常使用32位浮点数来存储每个像素的颜色值；EXR文件使用16位或者32位浮点数格式</li>
+<li>Alpha直通型：RGB先混合再乘Alpha；预乘型：RGB分别乘Alpha再混合；主要因为sRGB是非线性色彩空间，所以直通型和预乘型会有不同效果；通道打包：Alpha不与RGB通道相乘，互不影响，因为RGBA包含4个灰度通道，可以在每个通道里存储不同的灰度信息，从而1张图可以当4个灰度图使用，从而节约内存空间</li>
+</ul>
+</li>
+</ul>
+<h1 id="修改器相关操作"><a href="#修改器相关操作" class="headerlink" title="修改器相关操作"></a>修改器相关操作</h1><p>修改器的优势在于其操作可逆，更能满足动画的需求</p>
+<h2 id="通用修改器操作"><a href="#通用修改器操作" class="headerlink" title="通用修改器操作"></a>通用修改器操作</h2><ul>
+<li>批量应用修改器：物体模式下，<kbd>ctrl</kbd> + <kbd>A</kbd>，选择可视几何-&gt;网格；或者使用官方插件（界面：Modifier Tools 修改器工具），可以直接在修改器上面全部应用</li>
+<li>在一个物体内复制修改器：鼠标放在要复制的修改器上<kbd>shift</kbd> + <kbd>D</kbd></li>
+<li>复制/传递修改器至其他物体：物体模式下，<kbd>ctrl</kbd> + <kbd>L</kbd>，选择复制修改器（注意复制的是最后选择的活动项的修改器）；或者使用官方插件（界面：Copy Attributes Menu 复制属性菜单），选择要被复制的物体，加上最后选择的提供修改器属性的物体，按<kbd>ctrl</kbd> + <kbd>C</kbd>选择复制修改器；或者使用修改器的下拉菜单（同上最后选择活动项）点击复制到选定项</li>
+<li>大纲视图里也可以改变修改器的顺序；也可以在大纲里把修改器拖至其他物体，实现复制/传递修改器的效果</li>
+<li>注意：法向会影响到修改器的效果</li>
+</ul>
+<h2 id="生成类-generate-修改器"><a href="#生成类-generate-修改器" class="headerlink" title="生成类 generate 修改器"></a>生成类 generate 修改器</h2><p>生成修改器能够影响整个网格的拓扑，侧重处理原始网格生成新的结构，往往伴随着点边面的数量变化</p>
+<h3 id="阵列修改器-Array"><a href="#阵列修改器-Array" class="headerlink" title="阵列修改器 Array"></a>阵列修改器 Array</h3><ul>
+<li>适配类型：根据数量、长度或者曲线（曲线的长度，与形状无关）来复制网格物体</li>
+<li>相对偏移 = 原始网格边界框*系数；恒定偏移 = 质心点距离；物体偏移根据物体与参考物体质心点的距离偏移，同时可以传递缩放和旋转信息（比如在物体模式下对参考物体缩放），其实本质是传递位置、旋转和缩放的信息</li>
+<li>合并选项可以合并距离小于设定值的顶点，注意可能会保留的内部面</li>
+<li>UV选项可以让UV进行偏离，根据贴图的U或V方向偏离地显示一定区域</li>
+<li>可以借助父级网格顶点、面来生成实例，实现类似阵列修改器的效果；也可以用实例化配合阵列修改器，让除网格外的物体也能形成阵列效果（阵列修改器只作用于网格物体）；实例化类似于面向对象的实例化对象的概念，实例化集合类似于引用，可以减少内存压力</li>
+<li>也可以借助网格生成粒子毛发，将毛发替换为物体来实现类似阵列修改器的效果</li>
+</ul>
+<h3 id="倒角修改器-Bevel"><a href="#倒角修改器-Bevel" class="headerlink" title="倒角修改器 Bevel"></a>倒角修改器 Bevel</h3><ul>
+<li>与编辑模式下的倒角工具类似，详见上面</li>
+<li>限定方式选项的角度、权重以及顶点组可以对倒角的范围进行限制</li>
+</ul>
+<h3 id="布尔修改器-Boolean"><a href="#布尔修改器-Boolean" class="headerlink" title="布尔修改器 Boolean"></a>布尔修改器 Boolean</h3><ul>
+<li>两种解算器：①快速：传统的布尔算法，速度快，但是对重叠孔洞等非流形表现不佳；②准确：更高准确度，但面数较多时需要更多算力，可能会卡顿</li>
+<li>可以使用官方插件（物体：Bool工具，建议勾选快速转换和display as wireframe）来代替该修改器提高工作效率：被布尔的物体为画布，指定目标物体为笔刷，先选择笔刷，再选择被布尔的画布。Brush布尔是添加布尔修改器但是不应用，自动布尔直接应用修改器。快速转换勾选上，点击笔刷物体，开启快速可视化，可以在准确的解算器模式下移动笔刷物体而不卡顿（其实就是移动时暂时关闭了修改器的视图实时显示）。<kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>B</kbd>可以跳出布尔工具菜单</li>
+<li>法向会影响布尔的效果，笔刷物体的法向（着色）信息会传递到被布尔的物体，注意面朝向导致的布尔异常</li>
+</ul>
+<h3 id="建形修改器-Build"><a href="#建形修改器-Build" class="headerlink" title="建形修改器 Build"></a>建形修改器 Build</h3><ul>
+<li>使网格物体根据时间推移一个面一个面得建立或消失，顺序跟网格元素排序有关</li>
+<li>结合物体实例化、粒子系统来实现比如灯光等等的出现与消失</li>
+</ul>
+<h3 id="精简修改器-Decimate"><a href="#精简修改器-Decimate" class="headerlink" title="精简修改器 Decimate"></a>精简修改器 Decimate</h3><ul>
+<li>用于减少面与顶点的数量，并尽量维持物体的结构</li>
+<li>有三种算法：塌陷、反细分和平面。塌陷：渐进式地合并顶点；反细分：可以认为是反向的细分，它试图删除细分操作的结果；平面：减少角度低于角度限制的平面来精简面数</li>
+</ul>
+<h3 id="拆边修改器-Edge-Split"><a href="#拆边修改器-Edge-Split" class="headerlink" title="拆边修改器 Edge Split"></a>拆边修改器 Edge Split</h3><ul>
+<li>将满足条件参数的边一分为二地拆开</li>
+</ul>
+<h3 id="遮罩修改器-Mask"><a href="#遮罩修改器-Mask" class="headerlink" title="遮罩修改器 Mask"></a>遮罩修改器 Mask</h3><ul>
+<li>借助顶点组或骨架，对网格物体的网格进行遮蔽隐藏</li>
+</ul>
+<h3 id="镜像修改器-Mirror"><a href="#镜像修改器-Mirror" class="headerlink" title="镜像修改器 Mirror"></a>镜像修改器 Mirror</h3><ul>
+<li>镜像中心默认为物体自身原点，可设置为其他物体</li>
+<li>使用该修改器时，注意内部面的产生</li>
+</ul>
+<h3 id="表面细分修改器-Subdivision-Surface"><a href="#表面细分修改器-Subdivision-Surface" class="headerlink" title="表面细分修改器 Subdivision Surface"></a>表面细分修改器 Subdivision Surface</h3><ul>
+<li>添加表面细分修改器：物体模式下，<kbd>ctrl</kbd> + <kbd>1</kbd>，数字1-5都可以，代表的是视图层级的数字</li>
+<li>简单型就是对每个面进行简单细分，不影响面与面之间的角度；Catmull-Clark算法会平滑网格</li>
+<li>优化显示需要在物体模式下开启线框，开启优化显示，会显示原来边线的变化，不包括内部的细分边线</li>
+</ul>
+<h3 id="多级精度修改器-Multiresolution"><a href="#多级精度修改器-Multiresolution" class="headerlink" title="多级精度修改器 Multiresolution"></a>多级精度修改器 Multiresolution</h3><ul>
+<li>跟表面细分修改器类似，但是在雕刻的时候使用该修改器合适，在雕刻模式下，只有多级精度修改器的处理数据支持直接被雕刻。使用表面细分修改器后开启雕刻模式，雕刻的是原始的基本网格，而不是被修改器修改的网格</li>
+<li>多级精度修改器之前不能有其他修改器，它需要在修改器堆栈顶部</li>
+<li>多级精度修改器可以一层一层添加，每一层可以用不同的算法。细分：默认的Catmull-Clark算法；简单型：对原始网格的边进行插值；线性：对目前网格物体的面进行简单细分，不影响目前网格物体的曲率</li>
+<li>物体细分应用后，可以添加多级精度修改器进行反细分</li>
+</ul>
+<h3 id="重构网格修改器-Remesh"><a href="#重构网格修改器-Remesh" class="headerlink" title="重构网格修改器 Remesh"></a>重构网格修改器 Remesh</h3><ul>
+<li>基于当前网格重新计算生成拓扑结构，拓扑结构只包含四边形</li>
+<li>包括4种模式，块状Blocks：把原网格变成积木；平滑化Smooth：重新拓扑为只包含四边形的拓扑结构；锐利Sharp：类似于平滑化，但保留锐边和转角；体素Voxel：使用OpenVDB从当前的几何体生成一个新的流形网格，同时尝试保留网格的原始体积，体素大小越小模型越精细</li>
+<li>可以使用物体数据属性中的重构网格来代替该修改器，需要点击下面的体素重构或者网格重构；在雕刻模式下，体素网格重构（相当于按了重构网格按钮）：<kbd>ctrl</kbd> + <kbd>R</kbd>；体素大小预估：<kbd>R</kbd>；四边形网格重构：<kbd>ctrl</kbd> + <kbd>alt</kbd> + <kbd>R</kbd></li>
+</ul>
+<h3 id="螺旋修改器-Screw"><a href="#螺旋修改器-Screw" class="headerlink" title="螺旋修改器 Screw"></a>螺旋修改器 Screw</h3><ul>
+<li>螺旋轴心是物体的原点</li>
+<li>注意可能产生的重叠点，别忘了勾选合并</li>
+</ul>
+<h3 id="蒙皮修改器-Skin"><a href="#蒙皮修改器-Skin" class="headerlink" title="蒙皮修改器 Skin"></a>蒙皮修改器 Skin</h3><ul>
+<li>根据点和边线（与面无关）生成蒙皮网格数据，可用于制作基本形状，为雕刻提供便利</li>
+<li>在编辑模式下的点模式，选择一个顶点，使用<kbd>ctrl</kbd> + <kbd>A</kbd>可以控制蒙皮半径，即n面板中的顶点数据的半径X和半径Y，可以再点击<kbd>X</kbd>或<kbd>Y</kbd>控制半径X和半径Y</li>
+<li>分支平滑：可以控制当一个点有多个分支时该点附近蒙皮效果的半径（不调整会过于厚实）</li>
+<li>根点：带着红圈的顶点，为蒙皮修改器不可或缺的元素，删除会导致故障</li>
+</ul>
+<h3 id="实体化修改器-Solidify"><a href="#实体化修改器-Solidify" class="headerlink" title="实体化修改器 Solidify"></a>实体化修改器 Solidify</h3><ul>
+<li>实体化厚度增加减少的方向与法向有关，偏移量为1时，且厚度乘以偏移量为正数，厚度向法向的正方向增加；偏移量为-1，且厚度乘以偏移量为负数，厚度向法向的负方向增加；偏移量为0，厚度均匀地往法向正负方向增加</li>
+<li>复杂模式可以处理非流形图形（一条边连接2个以上的面），而简单型模式会出现错误</li>
+<li>对于厚度异常，可以先选择均衡厚度解决；若不行，再选择法向里的高质量来解决。遇到该问题，处理的顺序可按下面，越后面处理能力越强，相对计算时间也越长：①简单模式或复杂模式+固定；②简单模式+均衡厚度或者法向里的选项；③简单模式+均衡厚度和法向里的选项或者复杂模式+均匀；④复杂模式+约束</li>
+</ul>
+<h3 id="三角化修改器-Triangulate"><a href="#三角化修改器-Triangulate" class="headerlink" title="三角化修改器 Triangulate"></a>三角化修改器 Triangulate</h3><ul>
+<li>将四边面或多边面转换为三角面</li>
+</ul>
+<h3 id="焊接修改器-Weld"><a href="#焊接修改器-Weld" class="headerlink" title="焊接修改器 Weld"></a>焊接修改器 Weld</h3><ul>
+<li>修改器版本的按间距合并</li>
+<li>相连项模式仅仅合并同一条边上（具有相连关系的顶点），全部模式合并所以满足条件的顶点</li>
+<li>注意顶点合并了，但是可能会产生内部面</li>
+</ul>
+<h3 id="线框修改器-Wireframe"><a href="#线框修改器-Wireframe" class="headerlink" title="线框修改器 Wireframe"></a>线框修改器 Wireframe</h3><ul>
+<li>将平面变为线框并加厚</li>
+<li>偏移量和厚度与实体化修改器类似</li>
+</ul>
+<h2 id="形变类-deform-修改器"><a href="#形变类-deform-修改器" class="headerlink" title="形变类 deform 修改器"></a>形变类 deform 修改器</h2><p>形变类修改器只改变对象的形状，不改变其拓扑结构，大多数变形基于物体原点变形。比生成类修改器多出<em>应用为形态键</em>以及<em>保存为形态键</em>，保存为形态键不会应用修改器，即点击完修改器仍然存在，而应用为形态键点击完后修改器应用掉了。注意：因为只改变对象形状，所以添加修改器的物体需要足够多的顶点，否则很难呈现效果</p>
+<h3 id="铸型修改器-Cast"><a href="#铸型修改器-Cast" class="headerlink" title="铸型修改器 Cast"></a>铸型修改器 Cast</h3><ul>
+<li>变形为球形、柱体或者方体，球形类似于球形化工具</li>
+<li>变形默认以物体原点为变形中心，可以尝试改变原点看看</li>
+<li>轴向可以控制在各自轴向上是否变形；半径可以控制以物体原点为中心的变形范围，默认的0为不产生限制效果；尺寸调节发生形变部分的网格的大小尺寸；物体可以设置其他物体的原点为铸型效果中心，默认仅位置，可以勾选使用变换</li>
+</ul>
+<h3 id="曲线修改器-Curve"><a href="#曲线修改器-Curve" class="headerlink" title="曲线修改器 Curve"></a>曲线修改器 Curve</h3><ul>
+<li>使用曲线物体折弯网格，同理变形默认以物体原点为变形中心</li>
+<li>修改器修改的是网格数据，并非原点数据。当网格物体与曲线原点重合（没有相对位置差和旋转差），将会使用网格原点位置（变形原点）对应曲线起始点，所以若变形原点两侧都有网格，网格变形后的一部分会在曲线外面</li>
+<li>前进轴取决于形变轴设置与物体原点间的旋转差，推荐使用时避免旋转差；网格原点位置和曲线原点有位置差，那么变换后的网格原点位置与曲线起始点的位置也会有该位置差（基于若该修改器会修改网格原点的局部坐标）</li>
+<li>曲线的性质也能影响到变形，比如半径、倾斜等等</li>
+</ul>
+<h3 id="置换修改器-Displace"><a href="#置换修改器-Displace" class="headerlink" title="置换修改器 Displace"></a>置换修改器 Displace</h3><ul>
+<li>基于纹理偏离顶点，对8比特位图非矢量置换来说，纯黑0对应纹理强度0，纯白255对应纹理强度1</li>
+<li>强度力度控制纹理强度；中间值与实体化修改器的偏移量类似，控制位移</li>
+</ul>
+<h3 id="钩挂修改器-Hook"><a href="#钩挂修改器-Hook" class="headerlink" title="钩挂修改器 Hook"></a>钩挂修改器 Hook</h3><ul>
+<li>利用其他物体控制网格或曲线的顶点（需要指定，指定需进入编辑模式）从而改变形状</li>
+<li>区分指定的参与钩挂的顶点和顶点组，同时顶点组权重驱动强度的范围为参与钩挂的顶点（即指定的顶点）</li>
+<li>衰减中心为物体原点</li>
+</ul>
+<h3 id="拉普拉斯形变修改器-Laplacian-Deform"><a href="#拉普拉斯形变修改器-Laplacian-Deform" class="headerlink" title="拉普拉斯形变修改器 Laplacian Deform"></a>拉普拉斯形变修改器 Laplacian Deform</h3><ul>
+<li>一种积分变换，对非锚点顶点执行自适应计算以尽可能保持原始几何形态；使用必须指定锚点权重，然后绑定，然后在编辑模式移动指定锚点的一些顶点，修改器将其余锚点顶点保持在固定位置，并计算所有剩余顶点的最佳位置以保留原始几何细节</li>
+<li>建议指定锚点时，一些为固定点，一些为移动点，或者这两部分都钩挂到另外物体上</li>
+</ul>
+<h3 id="晶格形变修改器-Lattice"><a href="#晶格形变修改器-Lattice" class="headerlink" title="晶格形变修改器 Lattice"></a>晶格形变修改器 Lattice</h3><ul>
+<li>通过给网格添加外部晶格控制物体（需绑定），借助插值计算实现更少点控制更多点的操作</li>
+<li>建议在物体模式下将晶格物体缩放适配被变形物体，建议设置晶格物体为父级，建议使用形态键记录晶格顶点初始位置</li>
+<li>晶格物体的细分在物体属性里的分辨率设置以及插值类型（可以改变形变的算法）</li>
+<li>可以通过设置父级目标<kbd>ctrl</kbd> + <kbd>P</kbd>中的晶格形变也可以对物体添加该修改器</li>
+</ul>
+<h3 id="网格形变修改器-Mesh-Deform"><a href="#网格形变修改器-Mesh-Deform" class="headerlink" title="网格形变修改器 Mesh Deform"></a>网格形变修改器 Mesh Deform</h3><ul>
+<li>与晶体形变修改器相似，用外部网格物体控制物体形变（需绑定）</li>
+<li>网格笼注意事项：尽可能包裹物体（在网格外就不会形变）；面数不宜过多；设置线框显示以及渲染不可见；法向朝外；绑定父级</li>
+<li>相对于晶格，网格笼的初始态取决于绑定时的样子</li>
+<li>对于面数很多的物体要生成网格笼，可以复制物体并生成凸壳（网格菜单里）再通过网格重构处理，从而减少面数</li>
+<li>可以使用形态键控制网格笼从而以小控制大的变形，可以减少计算量</li>
+</ul>
+<h3 id="缩裹修改器-Shrinkwrap"><a href="#缩裹修改器-Shrinkwrap" class="headerlink" title="缩裹修改器 Shrinkwrap"></a>缩裹修改器 Shrinkwrap</h3><ul>
+<li>将投射物体的顶点缩裹至目标物体</li>
+<li>注意事项：缩裹形变是作用于物体顶点的，需要足够的顶点支撑变形后的结构；建议尽可能让缩裹物体与目标形态一致</li>
+<li>缩裹方法：①最近表面的位置点：顶点投射到离目标物体表面的最近的点，最近的点不一定是垂直位置的点；②投影（允许2个目标物体）：根据被修改的物体的法向或轴向推移顶点直到与目标接触，若无法接触的顶点则位置不变；③最近的顶点：顶点投射到离目标物体表面的最近的顶点（网格上已存在的顶点）；④目标法线投影：使用目标物体的插值法向（自动平滑法向）</li>
+<li>吸附方式：①表面上：不受目标物体法向影响的偏移；②向内/向外：目标法向向外，正值实现向内/向外偏移；③表面外围：正值向法向外侧偏移；④表面上方：沿目标物体法向使用偏移距离</li>
+<li>可以借助缩裹实现表面重新拓扑</li>
+</ul>
+<h3 id="简易形变修改器-Simple-Deform"><a href="#简易形变修改器-Simple-Deform" class="headerlink" title="简易形变修改器 Simple Deform"></a>简易形变修改器 Simple Deform</h3><ul>
+<li>扭曲：顶点按所选旋转轴螺旋排布（基于原点的旋转轴）</li>
+<li>弯曲：根据所选轴向旋转形变，选择x、y沿着z轴弯曲，选择Z沿着x轴弯曲（看似不直观，但开关修改器结果就直观了）</li>
+<li>锥化：原点决定锥化中心，沿着所选轴向锥化</li>
+<li>拉伸：原点决定拉伸中心，沿着所选轴向拉伸；拉伸可以借助空物体的缩放进行调节</li>
+<li>注意事项：注意首尾合并，不会自动合并顶点</li>
+<li>可以使用晶格来间接控制物体，然后给晶格简易形变修改器</li>
+</ul>
+<h3 id="平滑修改器-Smooth"><a href="#平滑修改器-Smooth" class="headerlink" title="平滑修改器 Smooth"></a>平滑修改器 Smooth</h3><ul>
+<li>不改变顶点数平滑网格，系数建议为0-1</li>
+</ul>
+<h3 id="矫正平滑修改器-Smooth-Corrective"><a href="#矫正平滑修改器-Smooth-Corrective" class="headerlink" title="矫正平滑修改器 Smooth Corrective"></a>矫正平滑修改器 Smooth Corrective</h3><ul>
+<li>矫正平滑依据某个初始状态，将当前顶点状态朝向初始状态平滑，有利于减少网格高度扭曲</li>
+<li>在该修改器之前添加生成类修改器可能会导致失效需要重新绑定坐标（静置源中处理）</li>
+</ul>
+<h3 id="拉普拉斯平滑修改器-Smooth-Laplacian"><a href="#拉普拉斯平滑修改器-Smooth-Laplacian" class="headerlink" title="拉普拉斯平滑修改器 Smooth Laplacian"></a>拉普拉斯平滑修改器 Smooth Laplacian</h3><ul>
+<li>减少网格表面的起伏噪点，特别是对扫描模型很有用</li>
+<li>Lambda系数控制面平滑，Lambda边界控制边界平滑，规格化用于避免极端数据的出现</li>
+</ul>
+<h3 id="表面形变修改器-Surface-Deform"><a href="#表面形变修改器-Surface-Deform" class="headerlink" title="表面形变修改器 Surface Deform"></a>表面形变修改器 Surface Deform</h3><ul>
+<li>相对于晶格形变和网格形变的包裹式形变，表面形变修改器可以根据任意网格曲面控制，本质是传递其运动/形变信息</li>
+<li>同理，可以以小控制大</li>
+</ul>
+<h3 id="弯绕修改器-Warp"><a href="#弯绕修改器-Warp" class="headerlink" title="弯绕修改器 Warp"></a>弯绕修改器 Warp</h3><ul>
+<li>需要两个物体，从源物体变形至目标物体</li>
+<li>可以基于纹理灰度图变形，比置换修改器方便控制范围和衰减</li>
+</ul>
+<h3 id="波浪形变修改器-Wave"><a href="#波浪形变修改器-Wave" class="headerlink" title="波浪形变修改器 Wave"></a>波浪形变修改器 Wave</h3><ul>
+<li>理解为沿着Z轴或法向上下移位比较好</li>
+<li>生成单向线性震荡波或单向圆形波（XY控制），会自动添加动画（循环不开启就一次）</li>
+<li>顶点沿自身Z轴（可以改为沿法向）实现周期型移位，沿法向可以产生变大变小的动画效果（类似于心脏搏动）</li>
+<li>宽度为半周期长度，窄度越高，脉冲越窄</li>
+<li>时间：0帧为起始帧，速度正则波形向外扩散，速度负波形向内收缩（把偏移量拉大就可以看到）；阻尼是额外数量的帧，波从高度衰减至0；建议速率为周期（（宽度*2）/动画帧数）的倍数，否则动画会出现断离，因为没法满足循环</li>
+<li>可以基于纹理上下移位</li>
+</ul>
+<h1 id="动画相关操作"><a href="#动画相关操作" class="headerlink" title="动画相关操作"></a>动画相关操作</h1><h3 id="关键帧"><a href="#关键帧" class="headerlink" title="关键帧"></a>关键帧</h3><ul>
+<li>插入关键帧：<kbd>I</kbd></li>
+<li>平滑关键帧：<kbd>alt</kbd> + <kbd>O</kbd></li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io">鸟布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io/2022/11/10/2022-11-10-blender%E5%BF%AB%E6%8D%B7%E9%94%AE/">https://ybniaobu.github.io/2022/11/10/2022-11-10-blender%E5%BF%AB%E6%8D%B7%E9%94%AE/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://ybniaobu.github.io" target="_blank">鸟布的博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/blender/">blender</a><a class="post-meta__tags" href="/tags/3d%E5%BB%BA%E6%A8%A1/">3d建模</a></div><div class="post_share"><div class="social-share" data-image="https://s2.loli.net/2022/11/27/XQx5jBsTfePmYW7.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i> 打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/images/wechat.png" target="_blank"><img class="post-qr-code-img" src="/images/wechat.png" alt="微信"/></a><div class="post-qr-code-desc">微信</div></li><li class="reward-item"><a href="/images/alipay.png" target="_blank"><img class="post-qr-code-img" src="/images/alipay.png" alt="支付宝"/></a><div class="post-qr-code-desc">支付宝</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2022/11/15/2022-11-15-blender-preference/" title="Blender偏好设置及插件记录"><img class="cover" src="https://s2.loli.net/2022/11/29/uXNZDocJpQx5yrh.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">Blender偏好设置及插件记录</div></div></a></div><div class="next-post pull-right"><a href="/2022/11/04/2022-11-04-hexo%E5%8D%9A%E5%AE%A2%E6%95%99%E7%A8%8B/" title="Hexo博客教程"><img class="cover" src="https://s2.loli.net/2022/10/22/e5ijADhmQ1SRcnN.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Hexo博客教程</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2022/11/15/2022-11-15-blender-preference/" title="Blender偏好设置及插件记录"><img class="cover" src="https://s2.loli.net/2022/11/29/uXNZDocJpQx5yrh.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-11-15</div><div class="title">Blender偏好设置及插件记录</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">鸟布</div><div class="author-info__description">教练，我想学技术</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">23</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">12</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">15</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://niaobu.notion.site/787824630ea6480e944c1ae5ae7f4792"><i class="fa-solid fa-book"></i><span>My Notion</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/ybniaobu/ybniaobu.github.io" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:niaobubob@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">为了蒂法！！！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="toc-number">1.</span> <span class="toc-text">注意事项</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9F%BA%E7%A1%80%E6%93%8D%E4%BD%9C"><span class="toc-number">2.</span> <span class="toc-text">基础操作</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BD%91%E6%A0%BC%E5%AF%B9%E8%B1%A1%E7%9B%B8%E5%85%B3"><span class="toc-number">2.1.</span> <span class="toc-text">网格对象相关</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%89%A9%E4%BD%93%E6%A8%A1%E5%BC%8F%E4%B8%8B%EF%BC%8C%E7%A7%BB%E5%8A%A8%E3%80%81%E7%BC%A9%E6%94%BE%E3%80%81%E6%97%8B%E8%BD%AC%E7%AD%89%E7%89%A9%E4%BD%93%E5%8F%98%E5%8C%96"><span class="toc-number">2.1.1.</span> <span class="toc-text">物体模式下，移动、缩放、旋转等物体变化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%89%A9%E4%BD%93%E6%A8%A1%E5%BC%8F%E4%B8%8B%EF%BC%8C%E5%85%B6%E4%BB%96%E7%89%A9%E4%BD%93%E6%93%8D%E4%BD%9C"><span class="toc-number">2.1.2.</span> <span class="toc-text">物体模式下，其他物体操作</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%96%E8%BE%91%E6%A8%A1%E5%BC%8F%E4%B8%8B%EF%BC%8C%E9%80%89%E6%8B%A9%E7%82%B9%E8%BE%B9%E9%9D%A2"><span class="toc-number">2.1.3.</span> <span class="toc-text">编辑模式下，选择点边面</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%96%E8%BE%91%E6%A8%A1%E5%BC%8F%E4%B8%8B%EF%BC%8C%E5%B8%B8%E7%94%A8%E5%B7%A5%E5%85%B7"><span class="toc-number">2.1.4.</span> <span class="toc-text">编辑模式下，常用工具</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%96%E8%BE%91%E6%A8%A1%E5%BC%8F%E4%B8%8B%EF%BC%8C%E5%85%B6%E4%BB%96%E6%93%8D%E4%BD%9C"><span class="toc-number">2.1.5.</span> <span class="toc-text">编辑模式下，其他操作</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9B%B2%E7%BA%BF%E5%AF%B9%E8%B1%A1%E7%9B%B8%E5%85%B3"><span class="toc-number">2.2.</span> <span class="toc-text">曲线对象相关</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9B%B2%E7%BA%BF%E7%BC%96%E8%BE%91%E6%A8%A1%E5%BC%8F%E4%B8%8B%E7%9B%B8%E5%85%B3%E6%93%8D%E4%BD%9C"><span class="toc-number">2.2.1.</span> <span class="toc-text">曲线编辑模式下相关操作</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%A7%86%E8%A7%92%E3%80%81%E8%A7%86%E5%9B%BE%E3%80%81%E7%AA%97%E5%8F%A3%E7%9B%B8%E5%85%B3"><span class="toc-number">2.3.</span> <span class="toc-text">视角、视图、窗口相关</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%94%B9%E5%8F%98%E8%A7%86%E8%A7%92"><span class="toc-number">2.3.1.</span> <span class="toc-text">改变视角</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%86%E5%9B%BE%E5%BF%AB%E6%8D%B7%E9%94%AE"><span class="toc-number">2.3.2.</span> <span class="toc-text">视图快捷键</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%91%84%E5%83%8F%E6%9C%BA%E7%9B%B8%E5%85%B3"><span class="toc-number">2.3.3.</span> <span class="toc-text">摄像机相关</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E5%90%8D%E8%AF%8D%E8%A7%A3%E9%87%8A"><span class="toc-number">3.</span> <span class="toc-text">其他名词解释</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%BF%AE%E6%94%B9%E5%99%A8%E7%9B%B8%E5%85%B3%E6%93%8D%E4%BD%9C"><span class="toc-number">4.</span> <span class="toc-text">修改器相关操作</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%9A%E7%94%A8%E4%BF%AE%E6%94%B9%E5%99%A8%E6%93%8D%E4%BD%9C"><span class="toc-number">4.1.</span> <span class="toc-text">通用修改器操作</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%9F%E6%88%90%E7%B1%BB-generate-%E4%BF%AE%E6%94%B9%E5%99%A8"><span class="toc-number">4.2.</span> <span class="toc-text">生成类 generate 修改器</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%98%B5%E5%88%97%E4%BF%AE%E6%94%B9%E5%99%A8-Array"><span class="toc-number">4.2.1.</span> <span class="toc-text">阵列修改器 Array</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%80%92%E8%A7%92%E4%BF%AE%E6%94%B9%E5%99%A8-Bevel"><span class="toc-number">4.2.2.</span> <span class="toc-text">倒角修改器 Bevel</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%83%E5%B0%94%E4%BF%AE%E6%94%B9%E5%99%A8-Boolean"><span class="toc-number">4.2.3.</span> <span class="toc-text">布尔修改器 Boolean</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BB%BA%E5%BD%A2%E4%BF%AE%E6%94%B9%E5%99%A8-Build"><span class="toc-number">4.2.4.</span> <span class="toc-text">建形修改器 Build</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%B2%BE%E7%AE%80%E4%BF%AE%E6%94%B9%E5%99%A8-Decimate"><span class="toc-number">4.2.5.</span> <span class="toc-text">精简修改器 Decimate</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8B%86%E8%BE%B9%E4%BF%AE%E6%94%B9%E5%99%A8-Edge-Split"><span class="toc-number">4.2.6.</span> <span class="toc-text">拆边修改器 Edge Split</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%81%AE%E7%BD%A9%E4%BF%AE%E6%94%B9%E5%99%A8-Mask"><span class="toc-number">4.2.7.</span> <span class="toc-text">遮罩修改器 Mask</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%95%9C%E5%83%8F%E4%BF%AE%E6%94%B9%E5%99%A8-Mirror"><span class="toc-number">4.2.8.</span> <span class="toc-text">镜像修改器 Mirror</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A1%A8%E9%9D%A2%E7%BB%86%E5%88%86%E4%BF%AE%E6%94%B9%E5%99%A8-Subdivision-Surface"><span class="toc-number">4.2.9.</span> <span class="toc-text">表面细分修改器 Subdivision Surface</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%9A%E7%BA%A7%E7%B2%BE%E5%BA%A6%E4%BF%AE%E6%94%B9%E5%99%A8-Multiresolution"><span class="toc-number">4.2.10.</span> <span class="toc-text">多级精度修改器 Multiresolution</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%87%8D%E6%9E%84%E7%BD%91%E6%A0%BC%E4%BF%AE%E6%94%B9%E5%99%A8-Remesh"><span class="toc-number">4.2.11.</span> <span class="toc-text">重构网格修改器 Remesh</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%9E%BA%E6%97%8B%E4%BF%AE%E6%94%B9%E5%99%A8-Screw"><span class="toc-number">4.2.12.</span> <span class="toc-text">螺旋修改器 Screw</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%92%99%E7%9A%AE%E4%BF%AE%E6%94%B9%E5%99%A8-Skin"><span class="toc-number">4.2.13.</span> <span class="toc-text">蒙皮修改器 Skin</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E4%BD%93%E5%8C%96%E4%BF%AE%E6%94%B9%E5%99%A8-Solidify"><span class="toc-number">4.2.14.</span> <span class="toc-text">实体化修改器 Solidify</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%89%E8%A7%92%E5%8C%96%E4%BF%AE%E6%94%B9%E5%99%A8-Triangulate"><span class="toc-number">4.2.15.</span> <span class="toc-text">三角化修改器 Triangulate</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%84%8A%E6%8E%A5%E4%BF%AE%E6%94%B9%E5%99%A8-Weld"><span class="toc-number">4.2.16.</span> <span class="toc-text">焊接修改器 Weld</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BA%BF%E6%A1%86%E4%BF%AE%E6%94%B9%E5%99%A8-Wireframe"><span class="toc-number">4.2.17.</span> <span class="toc-text">线框修改器 Wireframe</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BD%A2%E5%8F%98%E7%B1%BB-deform-%E4%BF%AE%E6%94%B9%E5%99%A8"><span class="toc-number">4.3.</span> <span class="toc-text">形变类 deform 修改器</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%93%B8%E5%9E%8B%E4%BF%AE%E6%94%B9%E5%99%A8-Cast"><span class="toc-number">4.3.1.</span> <span class="toc-text">铸型修改器 Cast</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9B%B2%E7%BA%BF%E4%BF%AE%E6%94%B9%E5%99%A8-Curve"><span class="toc-number">4.3.2.</span> <span class="toc-text">曲线修改器 Curve</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BD%AE%E6%8D%A2%E4%BF%AE%E6%94%B9%E5%99%A8-Displace"><span class="toc-number">4.3.3.</span> <span class="toc-text">置换修改器 Displace</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%92%A9%E6%8C%82%E4%BF%AE%E6%94%B9%E5%99%A8-Hook"><span class="toc-number">4.3.4.</span> <span class="toc-text">钩挂修改器 Hook</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8B%89%E6%99%AE%E6%8B%89%E6%96%AF%E5%BD%A2%E5%8F%98%E4%BF%AE%E6%94%B9%E5%99%A8-Laplacian-Deform"><span class="toc-number">4.3.5.</span> <span class="toc-text">拉普拉斯形变修改器 Laplacian Deform</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%99%B6%E6%A0%BC%E5%BD%A2%E5%8F%98%E4%BF%AE%E6%94%B9%E5%99%A8-Lattice"><span class="toc-number">4.3.6.</span> <span class="toc-text">晶格形变修改器 Lattice</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BD%91%E6%A0%BC%E5%BD%A2%E5%8F%98%E4%BF%AE%E6%94%B9%E5%99%A8-Mesh-Deform"><span class="toc-number">4.3.7.</span> <span class="toc-text">网格形变修改器 Mesh Deform</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%A9%E8%A3%B9%E4%BF%AE%E6%94%B9%E5%99%A8-Shrinkwrap"><span class="toc-number">4.3.8.</span> <span class="toc-text">缩裹修改器 Shrinkwrap</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AE%80%E6%98%93%E5%BD%A2%E5%8F%98%E4%BF%AE%E6%94%B9%E5%99%A8-Simple-Deform"><span class="toc-number">4.3.9.</span> <span class="toc-text">简易形变修改器 Simple Deform</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B9%B3%E6%BB%91%E4%BF%AE%E6%94%B9%E5%99%A8-Smooth"><span class="toc-number">4.3.10.</span> <span class="toc-text">平滑修改器 Smooth</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9F%AB%E6%AD%A3%E5%B9%B3%E6%BB%91%E4%BF%AE%E6%94%B9%E5%99%A8-Smooth-Corrective"><span class="toc-number">4.3.11.</span> <span class="toc-text">矫正平滑修改器 Smooth Corrective</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8B%89%E6%99%AE%E6%8B%89%E6%96%AF%E5%B9%B3%E6%BB%91%E4%BF%AE%E6%94%B9%E5%99%A8-Smooth-Laplacian"><span class="toc-number">4.3.12.</span> <span class="toc-text">拉普拉斯平滑修改器 Smooth Laplacian</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A1%A8%E9%9D%A2%E5%BD%A2%E5%8F%98%E4%BF%AE%E6%94%B9%E5%99%A8-Surface-Deform"><span class="toc-number">4.3.13.</span> <span class="toc-text">表面形变修改器 Surface Deform</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%AF%E7%BB%95%E4%BF%AE%E6%94%B9%E5%99%A8-Warp"><span class="toc-number">4.3.14.</span> <span class="toc-text">弯绕修改器 Warp</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%A2%E6%B5%AA%E5%BD%A2%E5%8F%98%E4%BF%AE%E6%94%B9%E5%99%A8-Wave"><span class="toc-number">4.3.15.</span> <span class="toc-text">波浪形变修改器 Wave</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8A%A8%E7%94%BB%E7%9B%B8%E5%85%B3%E6%93%8D%E4%BD%9C"><span class="toc-number">5.</span> <span class="toc-text">动画相关操作</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B3%E9%94%AE%E5%B8%A7"><span class="toc-number">5.0.1.</span> <span class="toc-text">关键帧</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2023/12/30/2023-12-30-UnityShader5/" title="《Unity Shader入门精要》读书笔记（五）"><img src="https://s2.loli.net/2023/12/30/hc2s7BS45l1wUdQ.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（五）"/></a><div class="content"><a class="title" href="/2023/12/30/2023-12-30-UnityShader5/" title="《Unity Shader入门精要》读书笔记（五）">《Unity Shader入门精要》读书笔记（五）</a><time datetime="2023-12-30T08:05:42.000Z" title="发表于 2023-12-30 16:05:42">2023-12-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/12/19/2023-12-19-UnityShader4/" title="《Unity Shader入门精要》读书笔记（四）"><img src="https://s2.loli.net/2023/12/20/9Ah5ugiIpONK1cX.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（四）"/></a><div class="content"><a class="title" href="/2023/12/19/2023-12-19-UnityShader4/" title="《Unity Shader入门精要》读书笔记（四）">《Unity Shader入门精要》读书笔记（四）</a><time datetime="2023-12-19T11:35:53.000Z" title="发表于 2023-12-19 19:35:53">2023-12-19</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/11/22/2023-11-22-UnityShader3/" title="《Unity Shader入门精要》读书笔记（三）"><img src="https://s2.loli.net/2023/11/23/L3ts4WnThMlDN9d.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（三）"/></a><div class="content"><a class="title" href="/2023/11/22/2023-11-22-UnityShader3/" title="《Unity Shader入门精要》读书笔记（三）">《Unity Shader入门精要》读书笔记（三）</a><time datetime="2023-11-22T08:32:01.000Z" title="发表于 2023-11-22 16:32:01">2023-11-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/10/13/2023-10-13-UnityShader2/" title="《Unity Shader入门精要》读书笔记（二）"><img src="https://s2.loli.net/2023/10/15/RZftaNSscWoLH1u.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（二）"/></a><div class="content"><a class="title" href="/2023/10/13/2023-10-13-UnityShader2/" title="《Unity Shader入门精要》读书笔记（二）">《Unity Shader入门精要》读书笔记（二）</a><time datetime="2023-10-13T13:58:01.000Z" title="发表于 2023-10-13 21:58:01">2023-10-13</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/09/15/2023-09-15-UnityShader1/" title="《Unity Shader入门精要》读书笔记（一）"><img src="https://s2.loli.net/2023/09/19/cDvdURBPhjwkOsY.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（一）"/></a><div class="content"><a class="title" href="/2023/09/15/2023-09-15-UnityShader1/" title="《Unity Shader入门精要》读书笔记（一）">《Unity Shader入门精要》读书笔记（一）</a><time datetime="2023-09-15T04:03:32.000Z" title="发表于 2023-09-15 12:03:32">2023-09-15</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2022 - 2024 By 鸟布</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">Your time is limited, so don't waste it living someone else's life.</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div class="no-result" id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

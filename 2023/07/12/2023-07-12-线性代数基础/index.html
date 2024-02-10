@@ -1,0 +1,399 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>MIT 线性代数公开课笔记（一） | 鸟布的博客</title><meta name="author" content="鸟布"><meta name="copyright" content="鸟布"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="该笔记来源于《麻省理工公开课：线性代数》，以及 MLNLP 的关于该公开课的 GitHub 公开项目的笔记：https:&amp;#x2F;&amp;#x2F;github.com&amp;#x2F;MLNLP-World&amp;#x2F;MIT-Linear-Algebra-Notes公开课 B 站 bv 号：BV16Z4y1U7oU  第一课 方程组的几何解释通"><link rel="shortcut icon" href="https://s2.loli.net/2022/09/08/Ygib4lfw6z1khnr.png"><link rel="canonical" href="https://ybniaobu.github.io/2023/07/12/2023-07-12-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E5%9F%BA%E7%A1%80/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":50,"languages":{"author":"作者: 鸟布","link":"链接: ","source":"来源: 鸟布的博客","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: true,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'MIT 线性代数公开课笔记（一）',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2024-02-10 21:32:24'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.2.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/images/wechat%20avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">23</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">12</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">15</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/images/black.jpg')"><nav id="nav"><span id="blog-info"><a href="/" title="鸟布的博客"><span class="site-name">鸟布的博客</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">MIT 线性代数公开课笔记（一）</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-07-12T11:07:45.000Z" title="发表于 2023-07-12 19:07:45">2023-07-12</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2024-02-10T13:32:24.326Z" title="更新于 2024-02-10 21:32:24">2024-02-10</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%95%B0%E5%AD%A6/">数学</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%95%B0%E5%AD%A6/3d%E6%95%B0%E5%AD%A6%E5%9F%BA%E7%A1%80/">3d数学基础</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">11.8k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>44分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="MIT 线性代数公开课笔记（一）"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><blockquote>
+<p>该笔记来源于《麻省理工公开课：线性代数》，以及 MLNLP 的关于该公开课的 GitHub 公开项目的笔记：<a target="_blank" rel="noopener" href="https://github.com/MLNLP-World/MIT-Linear-Algebra-Notes">https://github.com/MLNLP-World/MIT-Linear-Algebra-Notes</a><br>公开课 B 站 bv 号：BV16Z4y1U7oU</p>
+</blockquote>
+<h1 id="第一课-方程组的几何解释"><a href="#第一课-方程组的几何解释" class="headerlink" title="第一课 方程组的几何解释"></a>第一课 方程组的几何解释</h1><p>通过一个例子来阐述对<strong>方程组的不同几何理解</strong>：</p>
+<p>方程组形式：  </p>
+<script type="math/tex; mode=display">\left\{ \begin{array}{c} 2x - y = 0 \\ −x + 2y = 3  \end{array} \right.\\</script><p>列向量形式：</p>
+<script type="math/tex; mode=display">x\begin{bmatrix} 2 \\ -1 \end{bmatrix} + y \begin{bmatrix} -1 \\ 2 \end{bmatrix} = \begin{bmatrix} 0 \\ 3 \end{bmatrix}</script><p>矩阵形式：</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 2 & -1 \\ -1 & 2 \end{bmatrix} \begin{bmatrix} x \\ y \end{bmatrix} = \begin{bmatrix} 0 \\ 3 \end{bmatrix}</script><p>①方程组形式（行图像）的理解：在坐标系的两条直线，相交点即为解；<br>②列向量形式（列图像）的理解：将公式左侧的向量以未知方式进行组合，组合的结果为右侧向量，该未知组合为解；<br>③矩阵形式的理解：即坐标系变换，将未知向量进行矩阵坐标系变换得到的结果为右侧向量，该未知向量为解。</p>
+<p><strong>矩阵乘法</strong>：<br>方法 1，将矩阵看做列向量的组合（建议使用这个理解，更好一点）：</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 2 & 5 \\ 1 & 3 \end{bmatrix} \begin{bmatrix} 1 \\ 2 \end{bmatrix} = 1\begin{bmatrix} 2 \\ 1 \end{bmatrix} + 2\begin{bmatrix} 5 \\ 3 \end{bmatrix} = \begin{bmatrix} 12 \\ 7 \end{bmatrix}</script><p>方法 2，将矩阵 A 看做行向量的组合（点乘）：</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 2 & 5 \\ 1 & 3 \end{bmatrix} \begin{bmatrix} 1 \\ 2 \end{bmatrix} = \begin{bmatrix} (2, 5)\cdot(1, 2) \\ (1, 3)\cdot(1, 2) \end{bmatrix}  = \begin{bmatrix} 12 \\ 7 \end{bmatrix}</script><h1 id="第二课-消元法"><a href="#第二课-消元法" class="headerlink" title="第二课 消元法"></a>第二课 消元法</h1><h2 id="消元法介绍"><a href="#消元法介绍" class="headerlink" title="消元法介绍"></a>消元法介绍</h2><p>$ 求解方程组: \left\{ \begin{aligned} x + 2y + z &amp;= 2 \\ 3x + 8y + z &amp;= 12 \\ 4y + z &amp;= 2  \end{aligned} \right.\\ $</p>
+<p>使用矩阵运算，将方程写为矩阵形式 Ax = b（系数矩阵为 A）：  </p>
+<script type="math/tex; mode=display">\begin{bmatrix} 1 & 2 & 1 \\ 3 & 8 & 1 \\ 0 & 4 & 1 \end{bmatrix} \begin{bmatrix} x \\ y \\ z\end{bmatrix} = \begin{bmatrix} 2 \\ 12 \\2 \end{bmatrix}</script><p><strong>增广矩阵 Augmented matrix</strong> 就是在系数矩阵的右边添上一列，即线性方程组的等号右边的值：</p>
+<script type="math/tex; mode=display">\left[ \begin{array}{ccc|c} 1 & 2 & 1 & 2 \\ 3 & 8 & 1 & 12 \\ 0 & 4 & 1 & 2 \end{array} \right] \to \left[ \begin{array}{ccc|c} 1 & 2 & 1 & 2 \\ 0 & 2 & -2 & 6 \\ 0 & 4 & 1 & 2 \end{array} \right] \to \left[ \begin{array}{ccc|c} 1 & 2 & 1 & 2 \\ 0 & 2 & -2 & 6 \\ 0 & 0 & 5 & -10 \end{array} \right]</script><p>消元后的矩阵就是：</p>
+<script type="math/tex; mode=display">\left\{ \begin{aligned} x + 2y + z &= 2 \\ 2y - 2z &= 6 \\ 5z &= -10  \end{aligned} \right.\\</script><p>然后就可以求解了，和解二元一次方程组的消元法一模一样。</p>
+<h2 id="消元矩阵"><a href="#消元矩阵" class="headerlink" title="消元矩阵"></a>消元矩阵</h2><p>①行向量与矩阵的乘法（这里先知道一下，之后会讲）</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 1 & 2 & 7 \end{bmatrix} \begin{bmatrix} ? & ? & ? \\ ? & ? & ? \\ ? & ? & ? \end{bmatrix}</script><p>上述公式可理解为 1 乘以第一行，2 乘以第二行，7 乘以第三行，解为行向量。而第一课的列向量是 x 乘以第一列，y 乘以第二列，z 乘以第三列，解为列向量。至于为什么一个在左侧和一个右侧，见后面，即<strong>矩阵运算不符合交换律 commutative law</strong>。</p>
+<p>②消元矩阵介绍（重点）</p>
+<p>首先先看<strong>单位矩阵 identity matrix</strong>：</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} 1 & 2 & 1 \\ 3 & 8 & 1 \\ 0 & 4 & 1 \end{bmatrix} = \begin{bmatrix} 1 & 2 & 1 \\ 3 & 8 & 1 \\ 0 & 4 & 1 \end{bmatrix}</script><p>把单位矩阵看成三行，即[1 0 0]，[0 1 0]，[0 0 1]。可以看作三个行向量与矩阵乘法，首先 [1 0 0]，1个第一行，0个第二行和第三行，结果为值为第一行的行向量。依此类推，得到原矩阵。</p>
+<p>所以上面消元法的矩阵可以写成：</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 1 & 0 & 0 \\ -3 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} 1 & 2 & 1 \\ 3 & 8 & 1 \\ 0 & 4 & 1 \end{bmatrix} = \begin{bmatrix} 1 & 2 & 1 \\ 0 & 2 & -2 \\ 0 & 4 & 1 \end{bmatrix}</script><p>可以算一下，结果矩阵的第二行，即 -3 个参数矩阵的第一行，1 个第二行和 0 个第三行组合而成。另外：若想得到结果矩阵的第二行第三列的数字，就需要第一个矩阵的第二行，第二个矩阵的第三列的数字。</p>
+<h2 id="置换矩阵-Permutation"><a href="#置换矩阵-Permutation" class="headerlink" title="置换矩阵 Permutation"></a>置换矩阵 Permutation</h2><p>左乘置换矩阵可以完成原矩阵的行变换：</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} \begin{bmatrix} a & b \\ c & d \end{bmatrix} = \begin{bmatrix} c & d \\ a & b \end{bmatrix}</script><p>右乘置换矩阵则为列变换：</p>
+<script type="math/tex; mode=display">\begin{bmatrix} a & b \\ c & d \end{bmatrix} \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} = \begin{bmatrix} b & a \\ d & c \end{bmatrix}</script><p>对于三阶矩阵，一共有 6 个置换矩阵：  </p>
+<script type="math/tex; mode=display">\begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} 0 & 1 & 0 \\ 1 & 0 & 0 \\ 0 & 0 & 1 \end{bmatrix} \begin{bmatrix} 1 & 0 & 0 \\ 0 & 0 & 1 \\ 0 & 1 & 0 \end{bmatrix} \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ 1 & 0 & 0 \end{bmatrix} \begin{bmatrix} 0 & 0 & 1 \\ 0 & 1 & 0 \\ 1 & 0 & 0 \end{bmatrix} \begin{bmatrix} 0 & 0 & 1 \\ 1 & 0 & 0 \\ 0 & 1 & 0 \end{bmatrix}</script><p>我们任取两个矩阵相乘，结果仍在这个 6 个矩阵中。</p>
+<h2 id="逆矩阵初探-Inverse"><a href="#逆矩阵初探-Inverse" class="headerlink" title="逆矩阵初探 Inverse"></a>逆矩阵初探 Inverse</h2><p>消元矩阵的逆矩阵的实施效果就是抵消原矩阵的消元操作。消元矩阵实现了对原矩阵 A 的操作，使第二行行向量 [3, 8, 1] 减掉了第一行 [1, 2, 1] 的3倍变为 [0, 2, -2]，则逆向操作就应该是把现在的第二行行向量 [0, 2, -2] 加上第一行 [1, 2, 1] 的3倍，从而变回原来的第二行 [3, 8, 1]。</p>
+<p>所以对于$ E = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ -3 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix} $，有 $ E^{-1} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 3 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix} $</p>
+<p>满足$ E^{-1}E = I $，即 $ \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 3 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix} \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ -3 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix} $</p>
+<h1 id="第三课-矩阵乘法和逆矩阵"><a href="#第三课-矩阵乘法和逆矩阵" class="headerlink" title="第三课 矩阵乘法和逆矩阵"></a>第三课 矩阵乘法和逆矩阵</h1><h2 id="矩阵乘法"><a href="#矩阵乘法" class="headerlink" title="矩阵乘法"></a>矩阵乘法</h2><p>①基础求解方法<br>假设 A、B、C 为矩阵，且 A * B = C。若要求解元素 $C_{ij}$，将 A 中 i 行的行向量与 B 中 j 列的列向量进行数量积，即为该元素的值：</p>
+<script type="math/tex; mode=display">C_{ij} = (A 中第 i 行向量)(B 中第 j 列向量) = \sum_{k=1}^n a_{ik} b_{kj}</script><p>根据上述，若要矩阵相乘，A 的列数必须与 B 的行数相同，结果 C 矩阵的规格为 A 的行数，B 的列数。即若 A 是 m 行 n 列，B 是 n 行 p 列，结果为：</p>
+<script type="math/tex; mode=display">\begin{array}{} A & \times & B & = & C \\ m * n & & n * p & & m * p \end{array}</script><p>②列组合方法：跟前一节课说得一样，把 B 矩阵当作很多个列向量的组合，将问题转化为矩阵与向量的乘法问题。也表明了矩阵 C 就是矩阵 A 中各列向量的线性组合，而 B 其实是在告诉我们，要以什么样的方式组合 A 中的列向量。</p>
+<p>③行组合方法：同理，将 A 矩阵当作很多个行向量的组合，将问题转化为矩阵与向量的乘法问题。所以是矩阵 B 各行的线性组合组成了 C 的各行。</p>
+<p>④列乘以行<br><em>若是行向量乘以列向量，得到的是某个位置的单一元素。</em>即 1 * n 矩阵和 n * 1 矩阵得到 1 * 1 矩阵。<br><em>若是列向量乘以行向量，得到的是一个矩阵。</em>即 m * 1 矩阵和 1 * p 矩阵得到 m * p 矩阵。<br>所以矩阵相乘使用列乘以行，得到数个矩阵，再将矩阵相加，就可以得到 C。</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 2 & 7 \\ 3 & 8 \\ 4 & 9 \end{bmatrix} \begin{bmatrix} 1 & 6 \\ 0 & 0 \end{bmatrix} = \begin{bmatrix} 2 \\ 3 \\ 4 \end{bmatrix} \begin{bmatrix} 1 & 6 \end{bmatrix} + \begin{bmatrix} 7 \\ 8 \\ 9 \end{bmatrix} \begin{bmatrix} 0 & 0 \end{bmatrix} = \begin{bmatrix} 2 & 12 \\ 3 & 18 \\ 4 & 24 \end{bmatrix}</script><p>⑤分块乘法<br>比如现在有一个 50*50 的矩阵与 50*50 矩阵相乘，一个一个进行运算很麻烦，尤其是如果矩阵在某一区域上有一定的性质，那么我们可以将其分块，如：  </p>
+<script type="math/tex; mode=display">\begin{bmatrix} A_1 & A_2 \\ A_3 & A_4 \end{bmatrix} \begin{bmatrix} B_1 & B_2 \\ B_3 & B_4 \end{bmatrix} = \begin{bmatrix} C_1 & C_2 \\ C_3 & C_4 \end{bmatrix}</script><p> 其中 $A_{1,2,3,4} $ 和 $B_{1,2,3,4} $ 都是划分之后的一块块矩阵，那么 $C_1 = A_1B_1 + A_2B_3 $ 。</p>
+<h2 id="逆矩阵"><a href="#逆矩阵" class="headerlink" title="逆矩阵"></a>逆矩阵</h2><p>①对于一个方阵（正方形矩阵）$A$，如果 $A$ 可逆，就有这样一个 $A^{−1}$，使：  </p>
+<script type="math/tex; mode=display">AA^{−1} = I = A^{−1}A</script><p>但是对于非方阵（长方形矩阵），左侧的$A^{−1}$与右侧的$A^{−1}$不可能相同。</p>
+<p>②不可逆矩阵<br>&emsp;&emsp; - 应行列式为 0，矩阵不可逆（见后面行列式）；<br>&emsp;&emsp; - 若存在非零向量 x，使得 Ax = 0，那么 A 就不可能有逆矩阵。因为如果 $A$ 有逆，在 $Ax = 0$ 这个等式两端同时乘上$A^{−1}$，就有：$A^{−1}Ax$ = $Ix$ = 零向量。自相矛盾。所以此时 A 没有逆矩阵。</p>
+<p>比如这个没有逆的矩阵 $\begin{bmatrix} 1 &amp; 3 \\ 2 &amp; 6 \end{bmatrix}$，它的行列式为零；矩阵中的两个列向量在同一直线上；非零向量[3, -1]可以使 Ax = 0。</p>
+<p>③逆矩阵求解<br>方法一：列向量</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 1 & 3 \\ 2 & 7 \end{bmatrix} \begin{bmatrix} a & b \\ c & d \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}</script><p>即，得到两个方程：</p>
+<script type="math/tex; mode=display">\begin{array}{} \begin{bmatrix} 1 & 3 \\ 2 & 7 \end{bmatrix} \begin{bmatrix} a \\ c \end{bmatrix} = \begin{bmatrix} 1 \\ 0 \end{bmatrix} & \begin{bmatrix} 1 & 3 \\ 2 & 7 \end{bmatrix} \begin{bmatrix} b \\ d \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \end{bmatrix} \end{array}</script><p>方法二：高斯－若尔当消元法 Gauss-Jordan Elimination<br>即使用增广矩阵联系两个方程增广矩阵，并进行消元行变换，将虚线左侧消为单位矩阵 I，此时右侧矩阵即为逆矩阵：</p>
+<script type="math/tex; mode=display">\left[ \begin{array}{cc|cc} 1 & 3 & 1 & 0 \\ 2 & 7 & 0 & 1 \end{array} \right] \to \left[ \begin{array}{cc|cc} 1 & 3 & 1 & 0 \\ 0 & 1 & -2 & 1 \end{array} \right] \to \left[ \begin{array}{cc|cc} 1 & 0 & 7 & -3 \\ 0 & 1 & -2 & 1 \end{array} \right]</script><p>上述公式，可以理解为对 [A I] 进行左乘消元处理（见上面消元矩阵），即 E [A I] = [I ?]，已知消元矩阵 E 乘以 A 等于 I，所以 E 本身就是逆矩阵，所以逆矩阵乘以 I 还是逆矩阵。</p>
+<p>④逆矩阵补充<br>AB 的逆矩阵：因为 $ABB^{−1}A^{−1} = I$，所以 $(AB)^{−1}= B^{−1}A^{−1}$。</p>
+<h1 id="第四课-矩阵-A-的-LU-分解"><a href="#第四课-矩阵-A-的-LU-分解" class="headerlink" title="第四课 矩阵 A 的 LU 分解"></a>第四课 矩阵 A 的 LU 分解</h1><p>将矩阵 A 分解为<strong>下三角矩阵 L（lower triangular matrix）</strong> 与<strong>上三角矩阵 U (upper triangular matrix)</strong>，$A=LU$。</p>
+<p>我们熟悉的的消元法都是直接使用行变换得来的。而由于消元矩阵的存在，说明用矩阵乘法也可以达与之到一样的消元效果，即对于 2 阶矩阵，消元矩阵 $E$ 左乘 $A$ 变为上三角矩阵 $U$， $E_{21}  A = U$，可以改写为 $A = (E_{21})^{−1} U$，这一形式即 $A = LU$ 形式。并且，每个消元矩阵都是下三角矩阵，它的逆依然是下三角矩阵。<strong>这个等式有更重大的意义，它是将矩阵分解为一个下三角矩阵乘一个上三角矩阵，一个方形系统等于两个三角系统。</strong></p>
+<p>关于矩阵的 LU 分解，下面的关键点值得注意：<br>①每个 $E_{ij}$ 都可逆，若其（i，j）元素是负的“乘数”，而 $E_{ij}^{-1}$ 的（i，j）元素就是正的乘数。比如：$ E_{21} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ -a &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix} $，那么 $E_{21}^{-1} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ a &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix} $。因为消元矩阵是减去某行的“乘数”倍，它的逆就是加上那行的“乘数”倍。<br>②不仅每个 $E_{ij}$ 都可逆，每个 $E_{ij}$ 的逆依然是下三角矩阵，并且对角线上的元素依然是1。<br>③$L$ 是一系列 $E_{ij}^{-1}$ 相乘的结果，但是 $E_{ij}^{-1}$ 相乘顺序和 $E_{ij}$ 相反。比如，$E_{32} E_{31} E_{21} A = U$，那么 $L = E_{21}^{-1} E_{31}^{-1} E_{32}^{-1}$。<br>④每个 $E_{ij}^{-1}$ 都是对角线为 1 的下三角矩阵，它们的乘积依然是对角线为 1 的下三角矩阵。<br>⑤关于 L 最重要的一个结论：L 中下三角部分（i，j）位置的元素 $L_{ij}$ 就等于“乘数”。<br>例如，$ E_{21} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ -a &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix} $ $ E_{31} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ -b &amp; 0 &amp; 1 \end{bmatrix} $ $ E_{32} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ 0 &amp; -c &amp; 1 \end{bmatrix} $<br>则 $ E = E_{32}E_{31}E_{21} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ 0 &amp; -c &amp; 1 \end{bmatrix}\begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ -b &amp; 0 &amp; 1 \end{bmatrix} \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ -a &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ -a &amp; 1 &amp; 0 \\ ac-b &amp; -c &amp; 1 \end{bmatrix} $<br>那么 $ L = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ a &amp; 1 &amp; 0 \\ b &amp; c &amp; 1 \end{bmatrix} $</p>
+<h1 id="第五课-转置、转换、向量空间"><a href="#第五课-转置、转换、向量空间" class="headerlink" title="第五课 转置、转换、向量空间"></a>第五课 转置、转换、向量空间</h1><h2 id="置换矩阵-Permutation-Matrix"><a href="#置换矩阵-Permutation-Matrix" class="headerlink" title="置换矩阵 Permutation Matrix"></a>置换矩阵 Permutation Matrix</h2><p>置换矩阵回顾：<br>①所谓的置换矩阵 P，就是用来完成行交换的矩阵。<br>②那么对于 n 阶矩阵来说，有 n! 个置换矩阵。<br>③置换矩阵另一个优点就是可逆的，并且对于置换矩阵 P 来说，有 $PP^T = I$，即 $P^{-1} = P^T$。<br>④置换矩阵是一种特殊的正交矩阵，正交矩阵未必是置换矩阵。</p>
+<h2 id="转置矩阵-Transposed-Matrix"><a href="#转置矩阵-Transposed-Matrix" class="headerlink" title="转置矩阵 Transposed Matrix"></a>转置矩阵 Transposed Matrix</h2><p>①转置矩阵回顾：转置矩阵将行元素与列元素交换，即 $A_{ij}^T = A_{ji}$。<br>②转置矩阵的运算规律：${(AB)}^T = B^TA^T$。<br>③<strong>对称矩阵 Symmetric matrix</strong>，即主对角线两侧元素对应相等的矩阵，即对于该矩阵来说 $A^T = A$。任意矩阵和它的转置矩阵相乘得到的方阵一定是对称矩阵，即 ${(A^TA)}^T = A^TA^{TT} = A^TA$，所以对于任何 $A^TA$，其转置仍然是本身，所以是对称矩阵。</p>
+<h2 id="向量空间-Vector-Space-与子空间"><a href="#向量空间-Vector-Space-与子空间" class="headerlink" title="向量空间 Vector Space 与子空间"></a>向量空间 Vector Space 与子空间</h2><h3 id="向量空间"><a href="#向量空间" class="headerlink" title="向量空间"></a>向量空间</h3><p>向量空间，又称线性空间，定义为带有加法和标量乘法的集合。在一个向量空间中，如果我们将任意向量相加或者乘以一个标量，也就是任意向量的线性组合，它们的结果仍然在这个向量空间中（向量空间必然包括原点，因为任意向量乘以一个标量也在向量空间，而这个标量可以为零）。向量空间 $R^n$ 由所有的 n 维向量 v 组成，向量中的每个元素都是实数 R。</p>
+<p>比如，$R^2$ 就是一个向量空间，即一个平面，其中的向量均为二维实向量。$R^3$ 这个三维空间也是向量空间。在三维空间中过原点的一个平面也是一个向量空间，这个向量空间和 $R^2$ 很像，但其中的每个向量都有三个元素。</p>
+<h3 id="子空间"><a href="#子空间" class="headerlink" title="子空间"></a>子空间</h3><p>一个向量空间的子空间是由一系列包含零向量的向量组成的，并且满足：如果是 v 和 w 是子空间的两个向量并且 c 是任意标量，那么有 (1) v + w 在子空间中， (2) cv 在子空间中。也就是说，所有向量的线性组合都仍然在这个子空间中，即子空间本身也是向量空间。</p>
+<p>对于 $R^3$ 三维空间来说，有 4 类子空间：<br>①$L$：所有过 (0, 0, 0) 的直线；<br>②$P$：所有过 (0, 0, 0) 的平面；<br>③$Z$：零向量 (0, 0, 0)；<br>④$R^3$：整个三维空间</p>
+<h3 id="列空间初探"><a href="#列空间初探" class="headerlink" title="列空间初探"></a>列空间初探</h3><p>矩阵 A 的列空间 $C(A)$ 是其列向量的所有线性组合所构成的空间（某个子空间）。比如：</p>
+<script type="math/tex; mode=display">A = \begin{bmatrix} 1 & 3 \\ 2 & 3 \\ 4 & 1 \end{bmatrix}</script><p>其 2 个列向量都属于 $R^3$ ，这两个向量组成一个平面，构成了 $R^3$ 的一个子空间。</p>
+<h1 id="第六课-列空间和零空间"><a href="#第六课-列空间和零空间" class="headerlink" title="第六课 列空间和零空间"></a>第六课 列空间和零空间</h1><h3 id="列空间回顾"><a href="#列空间回顾" class="headerlink" title="列空间回顾"></a>列空间回顾</h3><p>列空间的 Ax = b 解释(从 A 的角度)：<br>①子空间是和矩阵紧密联系的。当我们求解 Ax = b 时，Ax 的本质是对 A 的列向量进行线性组合。为了得到 b，我们用任何可能的 x 来求取 A 的列向量的所有可能的线性组合，这产生了一个 A 的列空间 $C(A)$ 。$C(A)$ 不仅仅包含的所有列向量，还包括他们的所有线性组合。<br>②只要 b 在 A 的列空间这个子空间中，那么就可以找到一种 A 列向量的线性组合来构成 b。也就是使得 Ax = b 有解。</p>
+<h3 id="零空间"><a href="#零空间" class="headerlink" title="零空间"></a>零空间</h3><p>①零向量介绍<br>即 Ax = 0 的所有解 x 所构成的一个空间。以下面 A 为例，其零空间就是下面这个方程的解构成的空间：</p>
+<script type="math/tex; mode=display">Ax = \begin{bmatrix} 1 & 1 & 2 \\ 2 & 1 & 3 \\ 3 & 1 & 4 \\ 4 & 1 & 5 \end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \\ x_3 \end{bmatrix} = 0</script><p>可以看到 x 有三个分量，所以其零空间是 $R^3$ 的子空间。假设向量 v 和 w 位于此零空间中，也就是 Av = 0 、Aw = 0，那就有 A(v + w) = 0、A(cv) = 0，即它们相加或者乘以一个标量后仍然在零空间中，因此零空间是一个向量空间。</p>
+<p>所以，对于 m*n 的矩阵来说，列空间是 $R^m$ 的子空间，零空间是 $R^n$ 的子空间。列空间关键在于列向量的维数，零空间的关键在于列向量的个数。</p>
+<p>对于上面的例子，可以看出 $ \begin{bmatrix} 1 \\ 1 \\ -1 \end{bmatrix} $ 是一个解，而其零空间即为：$ C \begin{bmatrix} 1 \\ 1 \\ -1 \end{bmatrix} $ (C 表示任意常数)。表现在图像上就是 $R^3$ 中的一条穿过原点的直线。</p>
+<p>②从 x 的角度看 Ax = b<br>如果上面构造零空间的方程右侧变为任意向量的话，其解集 x 还能构成向量空间吗？如下：</p>
+<script type="math/tex; mode=display">Ax = \begin{bmatrix} 1 & 1 & 2 \\ 2 & 1 & 3 \\ 3 & 1 & 4 \\ 4 & 1 & 5 \end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \\ x_3 \end{bmatrix} = \begin{bmatrix} 1 \\ 2 \\ 3 \\ 4 \end{bmatrix}</script><p>答案是不能，因为 x 的解集不包括零向量。本例中 x 的解集是一个不穿过原点的直线。</p>
+<h1 id="第七课-求解-Ax-0：主变量，特解"><a href="#第七课-求解-Ax-0：主变量，特解" class="headerlink" title="第七课  求解 Ax=0：主变量，特解"></a>第七课  求解 Ax=0：主变量，特解</h1><p>本课主要讲解出 Ax = 0 中的 x 构成的零空间的算法。</p>
+<h2 id="消元法求解零空间"><a href="#消元法求解零空间" class="headerlink" title="消元法求解零空间"></a>消元法求解零空间</h2><p>第一步：消元法确定主变量与自由变量（消元）</p>
+<p>假设 $ A = \begin{bmatrix} 1 &amp; 2 &amp; 2 &amp; 2 \\ 2 &amp; 4 &amp; 6 &amp; 8 \\ 3 &amp; 6 &amp; 8 &amp; 10 \end{bmatrix} $ ，求解由 Ax = 0 中的 x 构成的零空间。</p>
+<p>消元法并不会改变 x 的解，因为本质就是求方程式，只是会改变 A 的列空间。</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 1 & 2 & 2 & 2 \\ 2 & 4 & 6 & 8 \\ 3 & 6 & 8 & 10 \end{bmatrix} \to \begin{bmatrix} 1 & 2 & 2 & 2 \\ 0 & 0 & 2 & 4 \\ 0 & 0 & 2 & 4 \end{bmatrix}
+\to \begin{bmatrix} 1 & 2 & 2 & 2 \\ 0 & 0 & 2 & 4 \\ 0 & 0 & 0 & 0 \end{bmatrix}</script><p>A 矩阵消元之后只有两个主元：1 和 2，主元的个数被称为<strong>秩 Rank</strong>。矩阵中包含主元的列为<strong>主元列 pivot column</strong>，不包含主元的列称为<strong>自由列 free column</strong>。</p>
+<p>所谓自由列，就表示其对应的未知变量 $x_n$ (n 表示自由列是第 n 列)可以被任意分配值。所以这个 U 的主变量(主元)为 $x_1$ ，$x_3$，自由变量为 $x_2$，$x_4$。</p>
+<p>第二步：回代<br>首先给自由变量 $x_2$，$x_4$ 赋值为 1 和 0，带入到回代的方程式：</p>
+<script type="math/tex; mode=display">\left\{ \begin{aligned} x_1 + 2x_2 + 2x_3 + 2x_4 &= 0 \\ 2x_3 + 4x_4 &= 0 \end{aligned} \right.\\</script><p>得到解向量为：$ A = \begin{bmatrix} -2 \\ 1 \\ 0 \\ 0 \end{bmatrix} $</p>
+<p>再给自由变量 $x_2$，$x_4$ 赋值为 0 和 1，得到解向量为：$ A = \begin{bmatrix} 2 \\ 0 \\ -2 \\ 1 \end{bmatrix} $</p>
+<p>这两个解为<strong>特解 Special solutions</strong>，矩阵 A 的零空间就是这些特解向量的线性组合所构成的向量空间，即：  </p>
+<script type="math/tex; mode=display">x = c\begin{bmatrix} -2 \\ 1 \\ 0 \\ 0 \end{bmatrix} + d\begin{bmatrix} 2 \\ 0 \\ -2 \\ 1 \end{bmatrix}</script><p>若矩阵为 m*n 的矩阵，矩阵的秩 r 等于其主元列的数目，因此自由列的数目就等于 n-r，即列的数目减去主元列的数目。这个数值等于特解的数目和零空间的维数。主元列和自由列的一个重要区别就是，自由列可以表示为其左侧所有主元列的线性组合，而主元列则不可以。</p>
+<h2 id="行最简阶梯矩阵-Reduced-row-echelon-form-rref"><a href="#行最简阶梯矩阵-Reduced-row-echelon-form-rref" class="headerlink" title="行最简阶梯矩阵 Reduced row echelon form (rref)"></a>行最简阶梯矩阵 Reduced row echelon form (rref)</h2><p>通过继续消元我们可以将矩阵 U 转变为行最简阶梯矩阵形式 R，其中主元为 1，而主元列除主元外皆为 0：</p>
+<script type="math/tex; mode=display">U = \begin{bmatrix} 1 & 2 & 2 & 2 \\ 0 & 0 & 2 & 4 \\ 0 & 0 & 0 & 0 \end{bmatrix} \to \begin{bmatrix} 1 & 2 & 0 & -2 \\ 0 & 0 & 2 & 4 \\ 0 & 0 & 0 & 0 \end{bmatrix} \to \begin{bmatrix} 1 & 2 & 0 & -2 \\ 0 & 0 & 1 & 2 \\ 0 & 0 & 0 & 0 \end{bmatrix} = R</script><p>在矩阵中主元行和主元列的交汇处存在一个单位阵。通过列交换，可以将矩阵 R 中的主元列集中在左侧，从而在左上角形成这个单位阵，而将自由列集中在矩阵的右侧。如果矩阵 A 中的某些行是线性相关的，则在矩阵 R 的下半部分就会出现一些完全为 0 的行向量。即：</p>
+<script type="math/tex; mode=display">R = \begin{bmatrix} 1 & 0 & 2 & -2 \\ 0 & 1 & 0 & 2 \\ 0 & 0 & 0 & 0 \end{bmatrix}
+ = \begin{bmatrix} I & F \\ 0 & 0 \end{bmatrix}</script><p>这里的 I 是 rxr 的方阵，F 代表着自由列经过化简剩余的形式。</p>
+<p>将 Ax=0 的特解作为列向量写成一个矩阵 N ，即零空间矩阵。即：</p>
+<script type="math/tex; mode=display">Ax = Rx = \begin{bmatrix} I & F \\ 0 & 0 \end{bmatrix} \begin{bmatrix} x_{pivot} \\ x_{free} \end{bmatrix} = 0</script><p>根据矩阵分块乘法运算可得：</p>
+<script type="math/tex; mode=display">N = \begin{bmatrix} -F \\ I \end{bmatrix}</script><p>这里的 I 为一个 (n-r)x(n-r) 的矩阵。零空间矩阵满足 RN = 0，故零空间矩阵是一个 nx(n-r) 的矩阵。</p>
+<p>对于矩阵 R 而言，求零空间特解就变得非常简单，只需要将消元的到的 F 部分拼接上单位阵就可以得到所有的通解。注意如果在变换出 R 左上角的单位阵的过程中采用了列交换，则最后的解要行变换回去。即：</p>
+<script type="math/tex; mode=display">N = \begin{bmatrix} -2 & 2 \\ 0 & -2 \\ 1 & 0 \\ 0 & 1 \end{bmatrix} \to \begin{bmatrix} -2 & 2 \\ 1 & 0 \\ 0 & -2 \\ 0 & 1 \end{bmatrix}</script><h1 id="第八课-求解-Ax-b：可解性与结构"><a href="#第八课-求解-Ax-b：可解性与结构" class="headerlink" title="第八课 求解 Ax=b：可解性与结构"></a>第八课 求解 Ax=b：可解性与结构</h1><h2 id="Ax-b-的解"><a href="#Ax-b-的解" class="headerlink" title="Ax=b 的解"></a>Ax=b 的解</h2><h3 id="可解性"><a href="#可解性" class="headerlink" title="可解性"></a>可解性</h3><p>Ax = b，这个方程并不一定有解。我们通过一个例子来说明下这个问题：  </p>
+<script type="math/tex; mode=display">\begin{bmatrix} 1 & 2 & 2 & 2 \\ 2 & 4 & 6 & 8 \\ 3 & 6 & 8 & 10 \end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \\ x_3 \\ x_4 \end{bmatrix} = \begin{bmatrix} b_1 \\ b_2 \\ b_3 \end{bmatrix}</script><p>同上一课例子中的矩阵，第三行为第一行和第二行的和。因此 Ax=b 中 b 的第 3 个分量也要等于其第 1 和第 2 个分量的和。若 b 不满足 $b_3=b_1+b_2$ 则方程组无解。</p>
+<p>检验 Ax=b 是否可解的方法也可以使用增广矩阵进行消元。如果矩阵 A 的行被完全消去的话，则对应的 b 的分量也要得 0：</p>
+<script type="math/tex; mode=display">\left[ \begin{array}{cccc|c} 1 & 2 & 2 & 2 & b_1 \\ 2 & 4 & 6 & 8 & b_2 \\ 3 & 6 & 8 & 10 & b_3 \end{array} \right] \to \left[ \begin{array}{cccc|c} 1 & 2 & 2 & 2 & b_1 \\ 0 & 0 & 2 & 4 & b_2 - 2b_1 \\ 0 & 0 & 0 & 0 & b_3-b_2-b_1 \end{array} \right]</script><p>因此本方程的可解条件为 $b_3-b_2-b_1=0$ 。</p>
+<p>前几讲讨论过，只有当 b 处于矩阵的列空间 C(A) 之中时，方程才有解。本讲推导出矩阵 A 的行向量若经过线性组合成为了零向量，则对应的 b 经同样的线性组合后也要等于 0。因此看起来我们有了两条关于b的限制条件，但实际上这两点是等价的。</p>
+<h3 id="通解"><a href="#通解" class="headerlink" title="通解"></a>通解</h3><p>为求得 Ax=b 的所有解，我们首先检验方程是否可解，然后找到一个<strong>特解 particular solution</strong>。将特解和矩阵零空间的向量相加即为方程的<strong>通解 Complete solution</strong>。因为 $Ax_p = b$, $Ax_n = 0$，所以 $A(x_p+x_n) = b$。</p>
+<p>求 Ax=b 特解的方法是将自由变量均赋值为 0，求解其主变量。本例中，假设 b = [1, 5, 6]，令 $x_2=x_4=0$ 得到方程组：</p>
+<script type="math/tex; mode=display">\left\{ \begin{aligned} x_1 + 2x_3 &= 1 \\ 2x_3 &= 3 \end{aligned} \right.\\</script><p>得到特解：</p>
+<script type="math/tex; mode=display">x_p = \begin{bmatrix} -2 \\ 0 \\ 3/2 \\ 0 \end{bmatrix}</script><blockquote>
+<p>主元列和自由列的一个重要区别就是，自由列可以表示为其左侧所有主元列的线性组合，而主元列则不可以，主元列之间是线性无关的。我们将自由变量赋值为 0 就可以去掉自由列列向量的干扰，求得方程的特解。</p>
+</blockquote>
+<p>通过上一节的知识我们很容易求出 Ax = 0 的 x 零空间的解：</p>
+<script type="math/tex; mode=display">c_1\begin{bmatrix} -2 \\ 1 \\ 0 \\ 0 \end{bmatrix} + c_2\begin{bmatrix} 2 \\ 0 \\ -2 \\ 1 \end{bmatrix}</script><p>因此上述方程的通解为(式中 c1 和 c2 为任意实数)：  </p>
+<script type="math/tex; mode=display">x_{complete} = \begin{bmatrix} -2 \\ 0 \\ 3/2 \\ 0 \end{bmatrix} + c_1\begin{bmatrix} -2 \\ 1 \\ 0 \\ 0 \end{bmatrix} + c_2\begin{bmatrix} 2 \\ 0 \\ -2 \\ 1 \end{bmatrix}</script><p>矩阵的零空间 N(A) 是 $R^4$ 空间中的二维子空间，方程的解 Ax=b 构成了穿过 $x_p$ 点并且和矩阵零空间平行的二维平面。但该平面并不是 $R^4$ 空间的子空间，因为不包括零向量，不是向量空间。</p>
+<h2 id="m-n-的矩阵-A-的秩与解的关系"><a href="#m-n-的矩阵-A-的秩与解的关系" class="headerlink" title="m*n 的矩阵 A 的秩与解的关系"></a>m*n 的矩阵 A 的秩与解的关系</h2><p>矩阵的秩等于矩阵的主元数。如果 m x n 矩阵的秩为 r ，则必有 r &lt;= m 且 r &lt;= n。</p>
+<p>①列满秩：r = n &lt; m。每列都有主元，x 的每一个分量都是主变量，没有自由变量。零空间 N(A) 之内只有零向量。方程无解或者有唯一解 $x_p$ 。例如：</p>
+<script type="math/tex; mode=display">A = \begin{bmatrix} 1 & 3 \\ 2 & 1 \\ 6 & 1 \\ 5 & 1 \end{bmatrix} \to \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \\ 0 & 0 \end{bmatrix} = \begin{bmatrix} I \\ 0 \end{bmatrix}</script><p>②行满秩：r = m &lt; n。每行都有主元，无论 b 取何值，方程 Ax=b 都有无穷多个解。主变量 r 个，自由变量 n-r 个。例如：  </p>
+<script type="math/tex; mode=display">A = \begin{bmatrix} 1 & 2 & 6 & 5 \\ 3 & 1 & 1 & 1 \end{bmatrix} \to \begin{bmatrix} 1 & 0 & * & * \\ 0 & 1 & * & * \end{bmatrix} = \begin{bmatrix} I & F \end{bmatrix}</script><p>③满秩：r = m = n，矩阵可逆。零空间只有零向量，无论 b 取何值，方程 Ax=b 都有唯一解，因为自由变量个数为 0。只能得到一个全是主元的方程组。例如： </p>
+<script type="math/tex; mode=display">A = \begin{bmatrix} 1 & 2 \\ 3 & 1 \end{bmatrix} \to \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = I</script><p>④不满秩：r &lt; n, r &lt; m，此时 A 可化简为 $ \begin{bmatrix} I &amp; F \\ 0 &amp; 0 \end{bmatrix} $ 形式，最后化简结果中有 0 行。如本节课开头中的矩阵，b 的分量与零行牵扯出了可解条件的存在。所以这样的矩阵 A 所构成的 Ax = b 方程解有两种情况：不满足可解条件或无穷多个解。</p>
+<p>总结：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:left">r = m = n</th>
+<th style="text-align:left">r = n &lt; m</th>
+<th style="text-align:left">r = m &lt; n</th>
+<th style="text-align:left">r &lt; n, r &lt; m</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">$R=I$</td>
+<td style="text-align:left">$R=\begin{bmatrix} I \\ 0 \end{bmatrix}$</td>
+<td style="text-align:left">$R=\begin{bmatrix} I &amp; F \end{bmatrix}$</td>
+<td style="text-align:left">$ \begin{bmatrix} I &amp; F \\ 0 &amp; 0 \end{bmatrix} $</td>
+</tr>
+<tr>
+<td style="text-align:left">唯一解</td>
+<td style="text-align:left">无解或唯一解</td>
+<td style="text-align:left">无穷多解</td>
+<td style="text-align:left">无解或无穷多解</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>秩决定了方程组解的数量。mxn 给出了矩阵的尺寸，但是秩 r 给出的是矩阵的实际“大小”。关于这个随后会有讨论。</p>
+<p>如上表，①可解条件的产生是由于 A 消元之后的 0 行导致的：消元后有零行产生时，需要考虑方程是否满足可解条件；消元后没有零行时，方程不用考虑可解条件的影响。②自由变量总为（n-r）个，根据自由变量个数可以初步判断 Ax = b 的解的结构：n − r = 0 时，方程即为唯一解，否则为无穷解。</p>
+<h1 id="第九课-线性相关性，基和维数"><a href="#第九课-线性相关性，基和维数" class="headerlink" title="第九课 线性相关性，基和维数"></a>第九课 线性相关性，基和维数</h1><h2 id="线性无关-Independence-与线性相关-Dependence"><a href="#线性无关-Independence-与线性相关-Dependence" class="headerlink" title="线性无关 Independence 与线性相关 Dependence"></a>线性无关 Independence 与线性相关 Dependence</h2><p>一般来说，线性无关，线性相关是向量组内的关系。</p>
+<p>矩阵 A 为 m x n 矩阵，其中 m &lt; n。因此 Ax = b 中未知数个数多于方程数，未知数一共 n 个，方程一共 m 个，则 A 中具有至少一个自由变量，那么 Ax = 0 一定具有非零解。此时，由于 A 的列向量可以线性组合得到零向量，所以 A 的列向量必定是线性相关的。</p>
+<p>线性无关的定义：若 $c_1x_1 + c_2x_2 + \cdots + c_nx_n = 0$ 仅在 $c_1 = c_2 = \cdots = c_n = 0$ 时才成立，则称向量 $x_1, x_2 \cdots x_n$ 是线性无关的。即若这些向量作为列向量构成矩阵 A，则方程 Ax = 0 只有零解 x = 0，或称矩阵 A 的零空间只有零向量。换而言之，若存在非零向量 c，使得 Ac = 0，则这个矩阵 A 的列向量线性相关。</p>
+<blockquote>
+<p>注：如果一个向量组中有零向量存在，那么这个向量组一定是线性相关的。</p>
+</blockquote>
+<p>在 R2 空间中，两个向量只要不在一条直线上就是线性无关的。在 R3 中，三个向量线性无关的条件是它们不在一个平面上。若选定空间 R2 中的三个向量，则他们必然是线性相关的。例如，如下的三个向量 v1，v2 和 v3 是线性相关的。</p>
+<script type="math/tex; mode=display">A = \begin{bmatrix} v_1 & v_2 & v_3 \end{bmatrix} = \begin{bmatrix} 2 & 1 & 2.5 \\ 1 & 2 & -1 \end{bmatrix}</script><p>显然，A 矩阵是 n &gt; m 型的矩阵。Ac = 0 这个方程对应的零空间中，除了零向量肯定还有其他向量，也就是存在一种 c 不全为 0 的情况，使 A 各列线性组合后得到 0。也就是 A 各列的 v1，v2 和 v3 线性相关。</p>
+<h2 id="零空间和线性相关-无关"><a href="#零空间和线性相关-无关" class="headerlink" title="零空间和线性相关/无关"></a>零空间和线性相关/无关</h2><p>假设现有一 m x n 矩阵 A：<br>①如果 A 各列向量构成的向量组是线性无关的，那么矩阵 A 的零空间中只有零向量；线性无关对应向量组构成的矩阵，秩为 n，此时没有自由变量，零空间中只有零向量存在。<br>②如果 A 各列向量构成的向量组是线性相关的，那么矩阵 A 零空间中除零向量之外还一定有其他向量。线性相关对应向量组构成的矩阵，秩小于 n，有 n-r 个自由变量，零空间中有很多向量。</p>
+<h2 id="生成-张成-空间-Spanning-a-space"><a href="#生成-张成-空间-Spanning-a-space" class="headerlink" title="生成(张成)空间 Spanning a space"></a>生成(张成)空间 Spanning a space</h2><p>所谓生成空间，即为此空间由向量 $v_1,v_2,v_3 \cdots v_n$ 的线性组合构成，就称 $v_1,v_2,v_3 \cdots v_n$ 生成了一个空间。</p>
+<p>但是 $v_1,v_2,v_3 \cdots v_n$ 不一定是线性无关的，只是我们更关心线性无关的 $v_1,v_2,v_3 \cdots v_n$，因为它们可以表示出空间的特征，这就引出了“基”的概念。</p>
+<h2 id="基-Basis"><a href="#基-Basis" class="headerlink" title="基 Basis"></a>基 Basis</h2><p>基的定义：一组向量 $v_1,v_2,v_3 \cdots v_n$ ，具有两个性质：<br>①$v_1,v_2,v_3 \cdots v_n$ 线性无关；<br>②$v_1,v_2,v_3 \cdots v_n$ 生成整个空间。</p>
+<p>例如三维空间中的一组基：$\begin{bmatrix} 1 \\ 0 \\ 0 \end{bmatrix}$，$\begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix}$，$\begin{bmatrix} 0 \\ 0 \\ 1 \end{bmatrix}$。因为它们满足 $c_1, c_2, c_3$ 只有零解。</p>
+<p>而 $\begin{bmatrix} 1 \\ 1 \\ 2 \end{bmatrix}$，$\begin{bmatrix} 2 \\ 2 \\ 5 \end{bmatrix}$，$\begin{bmatrix} 3 \\ 3 \\ 8 \end{bmatrix}$ 则不能构成一组基，因为以它们为列向量组成的矩阵，有两个相同的行，消元肯定有自由列存在，因此这三个向量并非线性无关。</p>
+<p>从矩阵是否为可逆矩阵也可以判断是否为一组基：若以 R(n) 空间中的 n 个向量为列向量构成的矩阵为可逆矩阵，则这些向量可以构成 R(n) 空间中的一组基。</p>
+<p>但是可以发现：一个空间的不同基，其中向量的个数是一定的。如果 A 是 R(n) 空间的基，那么 A 中向量的个数就是 n 个。比如三维空间 R3，基一定是三个向量构成的向量组。这里给出一个性质：R(n) 中的 n 个向量构成基，则以这 n 个向量构成的 n × n 矩阵必须可逆。矩阵可逆就意味着任意两行，两列都线性无关，所以可以构成一组生成空间的基。 </p>
+<h2 id="维数-Dimension"><a href="#维数-Dimension" class="headerlink" title="维数 Dimension"></a>维数 Dimension</h2><p>R(n) 空间的基中向量的个数就是 n 个，这个 n 称之为维数。</p>
+<h2 id="总结举例"><a href="#总结举例" class="headerlink" title="总结举例"></a>总结举例</h2><p>假设列空间由矩阵 A 确定：</p>
+<script type="math/tex; mode=display">A = \begin{bmatrix} 1 & 2 & 3 & 1 \\ 1 & 1 & 2 & 1 \\ 1 & 2 & 3 & 1 \end{bmatrix}</script><p>讨论<strong>列空间</strong>：矩阵 A 的四个列向量生成了矩阵 A 的列空间，其中第 3 列和第 4 列与前两列线性相关，而前两个列向量线性无关。可以取前两列为主元列，他们组成了列空间C(A)的一组基。矩阵的秩为2。A 的列空间的维数也为 2。</p>
+<p>所以有：<strong>矩阵 A 的秩 = 矩阵 A 主列的个数 = A 列空间的维数</strong></p>
+<blockquote>
+<p>注意：矩阵具有秩 rank 而不是维数 dimension，而空间有维数而不是秩。</p>
+</blockquote>
+<p>当知道了列空间的维数，可以从矩阵列向量中随意选取足够数量的线性无关的向量，它们每一组都可以构成列空间的一组基。</p>
+<p>讨论<strong>零空间</strong>：所谓零空间维数，即是零空间基的个数，也是 Ax = 0 的特解的个数，还可以理解为：Ax = 0 的解中自由变量的个数。本例中矩阵的列向量不是线性无关的，因此其零空间 N(A) 不止包含零向量。</p>
+<p>经过消元，自由变量赋值，回代，可以得到两个特解：</p>
+<script type="math/tex; mode=display">\begin{bmatrix} -1 \\ -1 \\ 1 \\ 0 \end{bmatrix},\begin{bmatrix} -1 \\ 0 \\ 0 \\ 1\end{bmatrix}</script><p>所以此零空间的维数为 2，这两个特解就构成了零空间的一组基。所以有：<strong>m × n 矩阵中，主列个数为 r，秩为 r，则有：零空间维数 = n - r。</strong></p>
+<h1 id="第十课-四个基本子空间"><a href="#第十课-四个基本子空间" class="headerlink" title="第十课 四个基本子空间"></a>第十课 四个基本子空间</h1><h2 id="四个基本空间介绍"><a href="#四个基本空间介绍" class="headerlink" title="四个基本空间介绍"></a>四个基本空间介绍</h2><p>对于一个 m × n 矩阵 A 来说：<br>①<strong>列空间 $C(A)$</strong><br>列空间即是矩阵 A 的列向量线性组合构成的空间。对于 m × n  的矩阵 A 来说，每个列向量有 m 个分量，即列向量属于 $R^m$ 空间。所以列空间是 $R^m$ 的子空间。<br>②<strong>零空间 $N(A)$</strong><br>即由 Ax = 0 的解构成的空间。由于 x 本质是对 A 列向量的线性组合，A 一共有 n 个列向量，所以零空间是 $R^n$ 的子空间。<br>③<strong>行空间 $C(A^T)$</strong><br>行空间就是矩阵 A 各行线性组合构成的子空间。也可以理解为 A 转置的列空间，即 $C(A^T)$。A 的每个行向量都有 n 个分量，所以每个行向量都在 $R^n$ 中。也就是 A 的行空间是 $R^n$ 的子空间。<br>④<strong>左零空间 $N(A^T)$</strong><br>左零空间我们接下来会再介绍，先理解为 $A^T$ 的零空间就好。很明显，$A^T$ 是一个 n × m 的矩阵。联系零空间的介绍，$A^T$ 一共有 m 个列向量，所以左零空间是 $R^m$ 的子空间。</p>
+<h2 id="四个基本空间的维数与基"><a href="#四个基本空间的维数与基" class="headerlink" title="四个基本空间的维数与基"></a>四个基本空间的维数与基</h2><p>还是对于一个 m × n 矩阵 A 来说：<br>①<strong>列空间</strong><br>设矩阵 A 的秩为 r，则 A 有 r 个主列，这 r 个主列就是列空间 C(A) 的一组基，一组基里有 r 个向量，所以列空间维数为：r 。<br>②<strong>零空间</strong><br>矩阵 A 秩为 r 时，自由列为 n - r 列。这 n - r 列决定了 x 中的 n - r 个自由变元，赋值后就构成了零空间的 n - r 个基向量，故零空间维数为：n - r 。<br>③<strong>行空间</strong><br>A 的行空间可以化为 $A^T$ 的列空间。但我们这里使用的方法是直接对 A 的行向量进行变换（其实一样），最后行空间的维数也是秩数 r。  </p>
+<p>以下述矩阵为例：</p>
+<script type="math/tex; mode=display">A = \begin{bmatrix} 1 & 2 & 3 & 1 \\ 1 & 1 & 2 & 1 \\ 1 & 2 & 3 & 1 \end{bmatrix} \to \begin{bmatrix} 1 & 0 & 1 & 1 \\ 0 & 1 & 1 & 0 \\ 0 & 0 & 0 & 0 \end{bmatrix} = \begin{bmatrix} I & F \\ 0 & 0 \end{bmatrix} = R</script><p>显然，A 只有两行线性无关，所以 A 秩为 2，所以 A 行向量的基就是 R 的前两行。维数为 2。</p>
+<blockquote>
+<p>注：经过行变换，矩阵 A 的列空间显然改变了：C(A) ≠ C(R)。但是行变换并没有改变 A 的行空间，因为所谓行空间就是 A 行向量的线性组合，而我们进行的行变换就是取原来行向量的一些线性组合，并没有改变行空间。</p>
+</blockquote>
+<p>从上面这个例子中，可以得知，行空间会在行最简型 R 中以最佳形式表现出来。也就是说，将 A 化简为行最简型 R 后取前 r 行向量，即为 A 行空间的基。</p>
+<p>④<strong>左零空间</strong><br>左零空间，写成方程形式，即 $A^Ty = 0$，将方程两边同时转置，得到：$y^TA = 0$。我们看到，对于 A 矩阵本身来说，$y^T$ 左乘矩阵 A 得到零向量，所以我们称之为左零空间。然而，理解为 $A^T$ 的零空间更直接一点。因为 $A^T$ 是一个 n × m 的矩阵，所以以 $A^T$ 零空间维数为 m - r。</p>
+<p>为找到左零空间的基，我们应用高斯-若尔当消元法使用增广矩阵：$[A_{m \times n} \quad I_{m \times n}] \to [R_{m \times n} \quad E_{m \times n}]$，因为我们将 A 通过消元得到矩阵 R ，其消元矩阵记为 E ，即 EA = R。那么 A 变为 R 相当于左乘 E 矩阵，同样处理单位阵 I，得到的即是矩阵 E。</p>
+<p>还是上面的例子中的矩阵：</p>
+<script type="math/tex; mode=display">EA = \begin{bmatrix} -1 & 2 & 0 \\ 1 & -1 & 0 \\ -1 & 0 & 1 \end{bmatrix} \begin{bmatrix} 1 & 2 & 3 & 1 \\ 1 & 1 & 2 & 1 \\ 1 & 2 & 3 & 1 \end{bmatrix} = \begin{bmatrix} 1 & 0 & 1 & 1 \\ 0 & 1 & 1 & 0 \\ 0 & 0 & 0 & 0 \end{bmatrix} = R</script><p>以“行操作”的观点来看矩阵 E 和 A 的乘法，则矩阵 E 最下面的 m - r 个行向量使得矩阵 A 的行向量线性组合成为 0，也就是矩阵 R 最下面的 m - r 个零向量。本例中，m - r = 1。</p>
+<p>矩阵 E 的这 m - r 个行向量满足 $y^TA = 0$ ，它组成了矩阵 A 左零空间的一组基。</p>
+<h1 id="第十一课-矩阵空间、秩1矩阵和小世界图"><a href="#第十一课-矩阵空间、秩1矩阵和小世界图" class="headerlink" title="第十一课 矩阵空间、秩1矩阵和小世界图"></a>第十一课 矩阵空间、秩1矩阵和小世界图</h1><blockquote>
+<p>这节课和下节课和前面的课程有所区别，前面的课程偏向于介绍矩阵的基础知识，将矩阵运算和线性方程组结合了起来。这两节课程则偏向于线性方程组的扩展应用，它可以是线性关系抽象出来的方程，也可以是从微分方程或者从图论的角度建立起来的关系式。可以说前面的课程偏向于解方程，而这两节偏向于建模来解决实际问题。</p>
+</blockquote>
+<h2 id="矩阵空间"><a href="#矩阵空间" class="headerlink" title="矩阵空间"></a>矩阵空间</h2><p><strong>向量空间</strong>是指由一组向量构成的集合，满足一定的线性运算规则，如加法和数量乘法。<strong>矩阵空间</strong>则是指所有特定大小的矩阵组成的集合，同样满足线性运算规则。主要区别在于向量空间中的元素是向量，而矩阵空间中的元素是矩阵。</p>
+<p><strong>矩阵空间</strong>可以理解为一种新的对空间的定义，线性空间里的元素并不一定是实数组成的向量，可以将所有 3 * 3 的矩阵当成一个所谓“向量空间”中的向量，只要满足线性空间的八条规律，对线性运算封闭，就可以将其当做线性空间中的元素。</p>
+<blockquote>
+<p>拓展 - 线性空间八条运算法则：①加法交换律：对于任意两个向量 u 和 v，u + v = v + u；②加法结合律：对于任意三个向量 u、v 和 w，(u + v) + w = u + (v + w)；③零向量存在性：存在一个零向量 0，使得对于任意向量 u，u + 0 = u；④加法逆元存在性：对于任意向量 u，存在一个加法逆元 -u，使得 u + (-u) = 0；⑤数乘单位元存在性：对于任意向量 u，存在一个单位元 1，使得 1u = u；⑥数乘结合律：对于任意标量 k 和向量 u，k(au) = (ka)u；⑦数乘分配律 1：对于任意标量 k 和向量 u、v 的和，k(u + v) = ku + kv；⑧数乘分配律 2：对于任意两个标量 k 和 l 以及向量 u，(k + l)u = ku + lu。</p>
+</blockquote>
+<p>因为矩阵本身也满足线性空间的八条运算律，我们就可以将所有的 3 * 3 矩阵构成的集合看做一个线性空间，称之为 $\,M\,$。</p>
+<p>$\,M\,$ 的子空间包括：①所有的上三角矩阵，记为 $\,U\,$；②所有的对称矩阵，记为 $\,S\,$；③所有的对角矩阵，记为 $\,D\,$，它是前两个子空间的交集。</p>
+<h3 id="M-的基与维数"><a href="#M-的基与维数" class="headerlink" title="M 的基与维数"></a>M 的基与维数</h3><p>空间 $\,M\,$ 的维数为 9，与 $\,R^9\,$ 的向量空间类似，只不过这里的基是矩阵，不是向量：</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 1 & 0 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{bmatrix}, \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{bmatrix}, \begin{bmatrix} 0 & 0 & 1 \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{bmatrix} \cdots \begin{bmatrix} 0 & 0 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 1 \end{bmatrix}</script><p>对称矩阵构成的子空间 $\,S\,$ 维数为 6，它的一组基为：</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 1 & 0 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{bmatrix}, \begin{bmatrix} 0 & 1 & 0 \\ 1 & 0 & 0 \\ 0 & 0 & 0 \end{bmatrix}, \begin{bmatrix} 0 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 0 \end{bmatrix}, \begin{bmatrix} 0 & 0 & 1 \\ 0 & 0 & 0 \\ 1 & 0 & 0 \end{bmatrix}, \begin{bmatrix} 0 & 0 & 0 \\ 0 & 0 & 1 \\ 0 & 1 & 0 \end{bmatrix}, \begin{bmatrix} 0 & 0 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 1 \end{bmatrix}</script><p>上三角矩阵构成的子空间 $\,U\,$ 维数也为 6，它的一组基为：</p>
+<script type="math/tex; mode=display">\begin{bmatrix} 1 & 0 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{bmatrix}, \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{bmatrix}, \begin{bmatrix} 0 & 0 & 1 \\ 0 & 0 & 0 \\ 0 & 0 & 0 \end{bmatrix}, \begin{bmatrix} 0 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 0 \end{bmatrix}, \begin{bmatrix} 0 & 0 & 0 \\ 0 & 0 & 1 \\ 0 & 0 & 0 \end{bmatrix}, \begin{bmatrix} 0 & 0 & 0 \\ 0 & 0 & 0 \\ 0 & 0 & 1 \end{bmatrix}</script><p>对角矩阵构成的子空间 $\,D\,$ 维数为 3，可以选定 $\,S\,$ 和 $\,U\,$ 的基的交集为 $\,D\,$ 的基。</p>
+<p>$\,S\,$ 和 $\,U\,$ 的并集，即 3x3 矩阵中或为上三角阵或为对称阵的矩阵，却不构成 $\,M\,$ 的子空间。因为这就如同在 $\,R^2\,$ 空间中找出两条直线，询问它们的并集是否构成一个子空间。如果我们将 $\,S\,$ 和 $\,U\,$ 中所有元素可能构成的加和作为一个集合，即包含了它们两个的线性组合，可以称为和集 $\,S+U\,$，它是 $\,M\,$ 的一个子空间。实际上 $\,S+U\,$ 就是 $\,M\,$ 本身，其维数为 9。</p>
+<p>联系上面的所有维数，有这样一个等式：</p>
+<script type="math/tex; mode=display">\begin{align*} dim(S) + dim(U) &= dim( S \cap U ) + dim( S + U ) \\ \,\,\,\,\,\,\,\,6\,\,\,\,\,\,\,\, + \,\,\,\,\,\,\,\,6\,\,\,\,\,\,\,\,\, &= \,\,\,\,\,\,\,\,3\,\,\,\,\,\,\,\, + \,\,\,\,\,\,\,\,9\,\,\,\,\,\,\,\, \end{align*}</script><h2 id="微分方程-Differential-Equations"><a href="#微分方程-Differential-Equations" class="headerlink" title="微分方程 Differential Equations"></a>微分方程 Differential Equations</h2><p>同样的“空间”概念还适用于很多地方，这样的线性空间内元素不一定是向量，矩阵，还可以是方程的解。</p>
+<p>例如，解微分方程：  </p>
+<script type="math/tex; mode=display">\frac {d^2y} {dx^2} + y = 0</script><blockquote>
+<p>该公式就是 y 的二阶导加上其本身等于 0，即 $y’’ + y = 0$</p>
+</blockquote>
+<p>很明显这个微分方程有两个特解：$y = \sin x$ 和 $y = \cos x$。</p>
+<p>而所有的解就是这两个特解的线性组合：$y = c_1 \cos x + c_2 \sin x$。这类似于零空间，也就是说我们将这些解看做线性空间中的元素也可以。所以我们可以称其为解空间。其中的元素是解，满足线性运算封闭条件。那么从空间的角度出发，这个解空间两个基就是 cosx 与 sinx，其线性组合构成了解空间，所以解空间维数为 2。</p>
+<h2 id="轶一矩阵"><a href="#轶一矩阵" class="headerlink" title="轶一矩阵"></a>轶一矩阵</h2><p>矩阵 $A = \begin{bmatrix} 1 &amp; 4 &amp; 5 \\ 2 &amp; 8 &amp; 10 \end{bmatrix} = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \begin{bmatrix} 1 &amp; 4 &amp; 5 \end{bmatrix}$，矩阵的轶为 1。</p>
+<p>所有的秩一矩阵都可分解为 $A = UV^T$，其中 U 和 V 都是列向量。秩一矩阵的行列式和特征值都很简单，它可以被当作是构建其他矩阵的“积木”。其实我们在矩阵乘法的第四种形式里面见过它的作用。例如若存在一个 5x17 的矩阵 M，而其秩为 4，那么它可以由 4 个秩一矩阵组合而成。</p>
+<p>若矩阵空间 M 为所有的 5x17 矩阵，那么 M 中所有的秩为 4 的矩阵所构成的集合是一个子空间么？答案是否定的，即使加入零矩阵也无法构成子空间，对于两个矩阵的加和，秩为 4 的矩阵集合并不封闭：  </p>
+<script type="math/tex; mode=display">R(A + B) \le R(A) + R(B)</script><p>M 这个集合对加法不封闭。两个秩为 4 的矩阵相加，结果的秩可能大于 4。所以所有秩为 4 的矩阵集合并不能构成空间。同理，秩为 1 的矩阵集合也不能构成空间。</p>
+<h2 id="子空间的转换"><a href="#子空间的转换" class="headerlink" title="子空间的转换"></a>子空间的转换</h2><p>在 $\,R^4\,$ 空间中的向量都有 4 个分量，即 $ v = \begin{bmatrix} v_1 \\ v_2 \\ v_3 \\ v_4 \end{bmatrix}$，设 S 为一个集合，其中的向量都满足： $v_1 + v_2 + v_3 + v_4 = 0$ ，那么 S 是一个子空间吗？S 显然是一个子空间，$v_1 + v_2 + v_3 + v_4 = 0$ 这个特点，对加法和数乘都封闭。而且 S 中肯定有零向量，故 S 是一个子空间。</p>
+<p>假设有一矩阵 A，$A = \begin{bmatrix}1 &amp; 1 &amp; 1 &amp; 1\end{bmatrix}$，可以得到：  </p>
+<script type="math/tex; mode=display">AV = \begin{bmatrix}1 & 1 & 1 & 1\end{bmatrix} \begin{bmatrix} v_1 \\ v_2 \\ v_3 \\ v_4 \end{bmatrix} = v_1 + v_2 + v_3 + v_4 = 0</script><p>这样一来就构建了 Ax = 0 的方程，将 S 空间转化为了 A 的零空间。矩阵 A 的秩 r 为 1，列数 n = 4，主元只有一个，自由变元有三个。因此维度为 n - r = 3，S 的零空间是三维空间。其基为 Av = 0 的三个特解：</p>
+<script type="math/tex; mode=display">\begin{bmatrix} -1 \\ 1 \\ 0 \\ 0 \end{bmatrix}, \begin{bmatrix} -1 \\ 0 \\ 1 \\ 0 \end{bmatrix} \begin{bmatrix} -1 \\ 0 \\ 0 \\ 1 \end{bmatrix}</script><blockquote>
+<p>本例的一个意义就是寻找子空间维数的逆向思路，可以考虑它是不是某个方程的解空间，在这里它是矩阵 A 的零空间，我们可以从矩阵推出这个空间的维数。</p>
+</blockquote>
+<p>矩阵 A 的列空间为 $\,R^1\,$。左零空间仅包含零向量，维数为 0。</p>
+<h2 id="小世界图-Small-world-graphs"><a href="#小世界图-Small-world-graphs" class="headerlink" title="小世界图 Small world graphs"></a>小世界图 Small world graphs</h2><p>介绍小世界图主要是引出图论和线性代数的联系，对下一节“图与网络”的引出。</p>
+<div  align="center">  
+<img src="https://s2.loli.net/2024/02/10/BCOFH3rnegoVJPU.jpg" width = "40%" height = "40%" alt="图1- 图：结点和边的集合"/>
+</div>
+
+<p>在这里，图是结点和边的集合。上图包含 5 个结点和 6 条边，我们可以利用一个 5 x 6 矩阵完全描述它。</p>
+<p>另外，大家应该也听说过“六度分割理论”，任何两位素不相识的人之间，通过一定的联系方式，总能够产生必然联系或关系。这个概念即是将人抽象成点，将联系抽象为图。<strong>六度分割理论 six degrees of separation</strong> 猜想一个人和陌生人之间间隔的点不会超过六个。因此当陌生的两人聊起这种联系都会感叹：“世界真小啊！”这也是“小世界图”这个名字的由来。</p>
+<h1 id="第十二课-图、网络、关联矩阵"><a href="#第十二课-图、网络、关联矩阵" class="headerlink" title="第十二课 图、网络、关联矩阵"></a>第十二课 图、网络、关联矩阵</h1></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io">鸟布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io/2023/07/12/2023-07-12-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E5%9F%BA%E7%A1%80/">https://ybniaobu.github.io/2023/07/12/2023-07-12-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E5%9F%BA%E7%A1%80/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://ybniaobu.github.io" target="_blank">鸟布的博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a><a class="post-meta__tags" href="/tags/%E6%95%B0%E5%AD%A6/">数学</a></div><div class="post_share"><div class="social-share" data-image="https://s2.loli.net/2023/07/12/tAXf9jPcbOqzyDN.gif" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i> 打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/images/wechat.png" target="_blank"><img class="post-qr-code-img" src="/images/wechat.png" alt="微信"/></a><div class="post-qr-code-desc">微信</div></li><li class="reward-item"><a href="/images/alipay.png" target="_blank"><img class="post-qr-code-img" src="/images/alipay.png" alt="支付宝"/></a><div class="post-qr-code-desc">支付宝</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2023/07/12/2023-07-12-%E8%82%A1%E5%B8%82%E5%9F%BA%E7%A1%80%E5%90%8D%E8%AF%8D/" title="中国证券市场基础名词解释"><img class="cover" src="https://s2.loli.net/2023/07/12/vZIx2JB7on5kYNW.gif" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">中国证券市场基础名词解释</div></div></a></div><div class="next-post pull-right"><a href="/2023/07/09/2023-07-09-Unity%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E6%9D%82%E8%AE%B0/" title="Unity基础"><img class="cover" src="https://s2.loli.net/2023/09/19/zXfAWqLZlxQwdU1.gif" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Unity基础</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2023/07/09/2023-07-09-Unity%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E6%9D%82%E8%AE%B0/" title="Unity基础"><img class="cover" src="https://s2.loli.net/2023/09/19/zXfAWqLZlxQwdU1.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-07-09</div><div class="title">Unity基础</div></div></a></div><div><a href="/2023/09/15/2023-09-15-UnityShader1/" title="《Unity Shader入门精要》读书笔记（一）"><img class="cover" src="https://s2.loli.net/2023/09/19/cDvdURBPhjwkOsY.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-09-15</div><div class="title">《Unity Shader入门精要》读书笔记（一）</div></div></a></div><div><a href="/2023/10/13/2023-10-13-UnityShader2/" title="《Unity Shader入门精要》读书笔记（二）"><img class="cover" src="https://s2.loli.net/2023/10/15/RZftaNSscWoLH1u.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-10-13</div><div class="title">《Unity Shader入门精要》读书笔记（二）</div></div></a></div><div><a href="/2023/12/19/2023-12-19-UnityShader4/" title="《Unity Shader入门精要》读书笔记（四）"><img class="cover" src="https://s2.loli.net/2023/12/20/9Ah5ugiIpONK1cX.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-12-19</div><div class="title">《Unity Shader入门精要》读书笔记（四）</div></div></a></div><div><a href="/2023/12/30/2023-12-30-UnityShader5/" title="《Unity Shader入门精要》读书笔记（五）"><img class="cover" src="https://s2.loli.net/2023/12/30/hc2s7BS45l1wUdQ.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-12-30</div><div class="title">《Unity Shader入门精要》读书笔记（五）</div></div></a></div><div><a href="/2023/11/22/2023-11-22-UnityShader3/" title="《Unity Shader入门精要》读书笔记（三）"><img class="cover" src="https://s2.loli.net/2023/11/23/L3ts4WnThMlDN9d.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-11-22</div><div class="title">《Unity Shader入门精要》读书笔记（三）</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">鸟布</div><div class="author-info__description">教练，我想学技术</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">23</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">12</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">15</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://niaobu.notion.site/787824630ea6480e944c1ae5ae7f4792"><i class="fa-solid fa-book"></i><span>My Notion</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/ybniaobu/ybniaobu.github.io" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:niaobubob@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">为了蒂法！！！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E8%AF%BE-%E6%96%B9%E7%A8%8B%E7%BB%84%E7%9A%84%E5%87%A0%E4%BD%95%E8%A7%A3%E9%87%8A"><span class="toc-number">1.</span> <span class="toc-text">第一课 方程组的几何解释</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E8%AF%BE-%E6%B6%88%E5%85%83%E6%B3%95"><span class="toc-number">2.</span> <span class="toc-text">第二课 消元法</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B6%88%E5%85%83%E6%B3%95%E4%BB%8B%E7%BB%8D"><span class="toc-number">2.1.</span> <span class="toc-text">消元法介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B6%88%E5%85%83%E7%9F%A9%E9%98%B5"><span class="toc-number">2.2.</span> <span class="toc-text">消元矩阵</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BD%AE%E6%8D%A2%E7%9F%A9%E9%98%B5-Permutation"><span class="toc-number">2.3.</span> <span class="toc-text">置换矩阵 Permutation</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%86%E7%9F%A9%E9%98%B5%E5%88%9D%E6%8E%A2-Inverse"><span class="toc-number">2.4.</span> <span class="toc-text">逆矩阵初探 Inverse</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E4%B8%89%E8%AF%BE-%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95%E5%92%8C%E9%80%86%E7%9F%A9%E9%98%B5"><span class="toc-number">3.</span> <span class="toc-text">第三课 矩阵乘法和逆矩阵</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95"><span class="toc-number">3.1.</span> <span class="toc-text">矩阵乘法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%86%E7%9F%A9%E9%98%B5"><span class="toc-number">3.2.</span> <span class="toc-text">逆矩阵</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E5%9B%9B%E8%AF%BE-%E7%9F%A9%E9%98%B5-A-%E7%9A%84-LU-%E5%88%86%E8%A7%A3"><span class="toc-number">4.</span> <span class="toc-text">第四课 矩阵 A 的 LU 分解</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E4%BA%94%E8%AF%BE-%E8%BD%AC%E7%BD%AE%E3%80%81%E8%BD%AC%E6%8D%A2%E3%80%81%E5%90%91%E9%87%8F%E7%A9%BA%E9%97%B4"><span class="toc-number">5.</span> <span class="toc-text">第五课 转置、转换、向量空间</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BD%AE%E6%8D%A2%E7%9F%A9%E9%98%B5-Permutation-Matrix"><span class="toc-number">5.1.</span> <span class="toc-text">置换矩阵 Permutation Matrix</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BD%AC%E7%BD%AE%E7%9F%A9%E9%98%B5-Transposed-Matrix"><span class="toc-number">5.2.</span> <span class="toc-text">转置矩阵 Transposed Matrix</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%91%E9%87%8F%E7%A9%BA%E9%97%B4-Vector-Space-%E4%B8%8E%E5%AD%90%E7%A9%BA%E9%97%B4"><span class="toc-number">5.3.</span> <span class="toc-text">向量空间 Vector Space 与子空间</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%90%91%E9%87%8F%E7%A9%BA%E9%97%B4"><span class="toc-number">5.3.1.</span> <span class="toc-text">向量空间</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AD%90%E7%A9%BA%E9%97%B4"><span class="toc-number">5.3.2.</span> <span class="toc-text">子空间</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%97%E7%A9%BA%E9%97%B4%E5%88%9D%E6%8E%A2"><span class="toc-number">5.3.3.</span> <span class="toc-text">列空间初探</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E5%85%AD%E8%AF%BE-%E5%88%97%E7%A9%BA%E9%97%B4%E5%92%8C%E9%9B%B6%E7%A9%BA%E9%97%B4"><span class="toc-number">6.</span> <span class="toc-text">第六课 列空间和零空间</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%97%E7%A9%BA%E9%97%B4%E5%9B%9E%E9%A1%BE"><span class="toc-number">6.0.1.</span> <span class="toc-text">列空间回顾</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%9B%B6%E7%A9%BA%E9%97%B4"><span class="toc-number">6.0.2.</span> <span class="toc-text">零空间</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E4%B8%83%E8%AF%BE-%E6%B1%82%E8%A7%A3-Ax-0%EF%BC%9A%E4%B8%BB%E5%8F%98%E9%87%8F%EF%BC%8C%E7%89%B9%E8%A7%A3"><span class="toc-number">7.</span> <span class="toc-text">第七课  求解 Ax&#x3D;0：主变量，特解</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B6%88%E5%85%83%E6%B3%95%E6%B1%82%E8%A7%A3%E9%9B%B6%E7%A9%BA%E9%97%B4"><span class="toc-number">7.1.</span> <span class="toc-text">消元法求解零空间</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%A1%8C%E6%9C%80%E7%AE%80%E9%98%B6%E6%A2%AF%E7%9F%A9%E9%98%B5-Reduced-row-echelon-form-rref"><span class="toc-number">7.2.</span> <span class="toc-text">行最简阶梯矩阵 Reduced row echelon form (rref)</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E5%85%AB%E8%AF%BE-%E6%B1%82%E8%A7%A3-Ax-b%EF%BC%9A%E5%8F%AF%E8%A7%A3%E6%80%A7%E4%B8%8E%E7%BB%93%E6%9E%84"><span class="toc-number">8.</span> <span class="toc-text">第八课 求解 Ax&#x3D;b：可解性与结构</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Ax-b-%E7%9A%84%E8%A7%A3"><span class="toc-number">8.1.</span> <span class="toc-text">Ax&#x3D;b 的解</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%AF%E8%A7%A3%E6%80%A7"><span class="toc-number">8.1.1.</span> <span class="toc-text">可解性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%9A%E8%A7%A3"><span class="toc-number">8.1.2.</span> <span class="toc-text">通解</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#m-n-%E7%9A%84%E7%9F%A9%E9%98%B5-A-%E7%9A%84%E7%A7%A9%E4%B8%8E%E8%A7%A3%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">8.2.</span> <span class="toc-text">m*n 的矩阵 A 的秩与解的关系</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E4%B9%9D%E8%AF%BE-%E7%BA%BF%E6%80%A7%E7%9B%B8%E5%85%B3%E6%80%A7%EF%BC%8C%E5%9F%BA%E5%92%8C%E7%BB%B4%E6%95%B0"><span class="toc-number">9.</span> <span class="toc-text">第九课 线性相关性，基和维数</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BA%BF%E6%80%A7%E6%97%A0%E5%85%B3-Independence-%E4%B8%8E%E7%BA%BF%E6%80%A7%E7%9B%B8%E5%85%B3-Dependence"><span class="toc-number">9.1.</span> <span class="toc-text">线性无关 Independence 与线性相关 Dependence</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%9B%B6%E7%A9%BA%E9%97%B4%E5%92%8C%E7%BA%BF%E6%80%A7%E7%9B%B8%E5%85%B3-%E6%97%A0%E5%85%B3"><span class="toc-number">9.2.</span> <span class="toc-text">零空间和线性相关&#x2F;无关</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%9F%E6%88%90-%E5%BC%A0%E6%88%90-%E7%A9%BA%E9%97%B4-Spanning-a-space"><span class="toc-number">9.3.</span> <span class="toc-text">生成(张成)空间 Spanning a space</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%BA-Basis"><span class="toc-number">9.4.</span> <span class="toc-text">基 Basis</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%B4%E6%95%B0-Dimension"><span class="toc-number">9.5.</span> <span class="toc-text">维数 Dimension</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93%E4%B8%BE%E4%BE%8B"><span class="toc-number">9.6.</span> <span class="toc-text">总结举例</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E5%8D%81%E8%AF%BE-%E5%9B%9B%E4%B8%AA%E5%9F%BA%E6%9C%AC%E5%AD%90%E7%A9%BA%E9%97%B4"><span class="toc-number">10.</span> <span class="toc-text">第十课 四个基本子空间</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E4%B8%AA%E5%9F%BA%E6%9C%AC%E7%A9%BA%E9%97%B4%E4%BB%8B%E7%BB%8D"><span class="toc-number">10.1.</span> <span class="toc-text">四个基本空间介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E4%B8%AA%E5%9F%BA%E6%9C%AC%E7%A9%BA%E9%97%B4%E7%9A%84%E7%BB%B4%E6%95%B0%E4%B8%8E%E5%9F%BA"><span class="toc-number">10.2.</span> <span class="toc-text">四个基本空间的维数与基</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E5%8D%81%E4%B8%80%E8%AF%BE-%E7%9F%A9%E9%98%B5%E7%A9%BA%E9%97%B4%E3%80%81%E7%A7%A91%E7%9F%A9%E9%98%B5%E5%92%8C%E5%B0%8F%E4%B8%96%E7%95%8C%E5%9B%BE"><span class="toc-number">11.</span> <span class="toc-text">第十一课 矩阵空间、秩1矩阵和小世界图</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9F%A9%E9%98%B5%E7%A9%BA%E9%97%B4"><span class="toc-number">11.1.</span> <span class="toc-text">矩阵空间</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#M-%E7%9A%84%E5%9F%BA%E4%B8%8E%E7%BB%B4%E6%95%B0"><span class="toc-number">11.1.1.</span> <span class="toc-text">M 的基与维数</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BE%AE%E5%88%86%E6%96%B9%E7%A8%8B-Differential-Equations"><span class="toc-number">11.2.</span> <span class="toc-text">微分方程 Differential Equations</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%BD%B6%E4%B8%80%E7%9F%A9%E9%98%B5"><span class="toc-number">11.3.</span> <span class="toc-text">轶一矩阵</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AD%90%E7%A9%BA%E9%97%B4%E7%9A%84%E8%BD%AC%E6%8D%A2"><span class="toc-number">11.4.</span> <span class="toc-text">子空间的转换</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%8F%E4%B8%96%E7%95%8C%E5%9B%BE-Small-world-graphs"><span class="toc-number">11.5.</span> <span class="toc-text">小世界图 Small world graphs</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC%E5%8D%81%E4%BA%8C%E8%AF%BE-%E5%9B%BE%E3%80%81%E7%BD%91%E7%BB%9C%E3%80%81%E5%85%B3%E8%81%94%E7%9F%A9%E9%98%B5"><span class="toc-number">12.</span> <span class="toc-text">第十二课 图、网络、关联矩阵</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2023/12/30/2023-12-30-UnityShader5/" title="《Unity Shader入门精要》读书笔记（五）"><img src="https://s2.loli.net/2023/12/30/hc2s7BS45l1wUdQ.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（五）"/></a><div class="content"><a class="title" href="/2023/12/30/2023-12-30-UnityShader5/" title="《Unity Shader入门精要》读书笔记（五）">《Unity Shader入门精要》读书笔记（五）</a><time datetime="2023-12-30T08:05:42.000Z" title="发表于 2023-12-30 16:05:42">2023-12-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/12/19/2023-12-19-UnityShader4/" title="《Unity Shader入门精要》读书笔记（四）"><img src="https://s2.loli.net/2023/12/20/9Ah5ugiIpONK1cX.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（四）"/></a><div class="content"><a class="title" href="/2023/12/19/2023-12-19-UnityShader4/" title="《Unity Shader入门精要》读书笔记（四）">《Unity Shader入门精要》读书笔记（四）</a><time datetime="2023-12-19T11:35:53.000Z" title="发表于 2023-12-19 19:35:53">2023-12-19</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/11/22/2023-11-22-UnityShader3/" title="《Unity Shader入门精要》读书笔记（三）"><img src="https://s2.loli.net/2023/11/23/L3ts4WnThMlDN9d.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（三）"/></a><div class="content"><a class="title" href="/2023/11/22/2023-11-22-UnityShader3/" title="《Unity Shader入门精要》读书笔记（三）">《Unity Shader入门精要》读书笔记（三）</a><time datetime="2023-11-22T08:32:01.000Z" title="发表于 2023-11-22 16:32:01">2023-11-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/10/13/2023-10-13-UnityShader2/" title="《Unity Shader入门精要》读书笔记（二）"><img src="https://s2.loli.net/2023/10/15/RZftaNSscWoLH1u.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（二）"/></a><div class="content"><a class="title" href="/2023/10/13/2023-10-13-UnityShader2/" title="《Unity Shader入门精要》读书笔记（二）">《Unity Shader入门精要》读书笔记（二）</a><time datetime="2023-10-13T13:58:01.000Z" title="发表于 2023-10-13 21:58:01">2023-10-13</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/09/15/2023-09-15-UnityShader1/" title="《Unity Shader入门精要》读书笔记（一）"><img src="https://s2.loli.net/2023/09/19/cDvdURBPhjwkOsY.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（一）"/></a><div class="content"><a class="title" href="/2023/09/15/2023-09-15-UnityShader1/" title="《Unity Shader入门精要》读书笔记（一）">《Unity Shader入门精要》读书笔记（一）</a><time datetime="2023-09-15T04:03:32.000Z" title="发表于 2023-09-15 12:03:32">2023-09-15</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2022 - 2024 By 鸟布</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">Your time is limited, so don't waste it living someone else's life.</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>if (!window.MathJax) {
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      tags: 'ams'
+    },
+    chtml: {
+      scale: 1.1
+    },
+    options: {
+      renderActions: {
+        findScript: [10, doc => {
+          for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
+            const display = !!node.type.match(/; *mode=display/)
+            const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display)
+            const text = document.createTextNode('')
+            node.parentNode.replaceChild(text, node)
+            math.start = {node: text, delim: '', n: 0}
+            math.end = {node: text, delim: '', n: 0}
+            doc.math.push(math)
+          }
+        }, '']
+      }
+    }
+  }
+  
+  const script = document.createElement('script')
+  script.src = 'https://cdn.jsdelivr.net/npm/mathjax/es5/tex-mml-chtml.min.js'
+  script.id = 'MathJax-script'
+  script.async = true
+  document.head.appendChild(script)
+} else {
+  MathJax.startup.document.state(0)
+  MathJax.texReset()
+  MathJax.typesetPromise()
+}</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div class="no-result" id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>

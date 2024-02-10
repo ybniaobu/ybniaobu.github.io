@@ -1,0 +1,478 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>Unity基础 | 鸟布的博客</title><meta name="author" content="鸟布"><meta name="copyright" content="鸟布"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="本文章记录 Unity 建议了解的基础知识，主要内容包括脚本、三维数学基础、物理引擎、UGUI 以及 Unity 2D 相关基础知识，内容拓展详见其他文章。本文章主要参考达内教育祁天暄的 Unity 教程以及 Unity 官方文档。  脚本为了连接到 Unity 的内部架构，脚本需要实现一个类，此"><link rel="shortcut icon" href="https://s2.loli.net/2022/09/08/Ygib4lfw6z1khnr.png"><link rel="canonical" href="https://ybniaobu.github.io/2023/07/09/2023-07-09-Unity%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E6%9D%82%E8%AE%B0/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":50,"languages":{"author":"作者: 鸟布","link":"链接: ","source":"来源: 鸟布的博客","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: true,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Unity基础',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-09-19 11:05:08'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.2.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/images/wechat%20avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">23</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">12</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">15</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/images/black.jpg')"><nav id="nav"><span id="blog-info"><a href="/" title="鸟布的博客"><span class="site-name">鸟布的博客</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">Unity基础</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2023-07-09T07:48:32.000Z" title="发表于 2023-07-09 15:48:32">2023-07-09</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2023-09-19T03:05:08.276Z" title="更新于 2023-09-19 11:05:08">2023-09-19</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/unity/">unity</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/unity/unity%E5%9F%BA%E7%A1%80/">unity基础</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">15k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>50分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="Unity基础"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><blockquote>
+<p>本文章记录 Unity 建议了解的基础知识，主要内容包括脚本、三维数学基础、物理引擎、UGUI 以及 Unity 2D 相关基础知识，内容拓展详见其他文章。<br>本文章主要参考达内教育祁天暄的 Unity 教程以及 Unity 官方文档。</p>
+</blockquote>
+<h1 id="脚本"><a href="#脚本" class="headerlink" title="脚本"></a>脚本</h1><p>为了连接到 Unity 的内部架构，脚本需要实现一个类，此类从称为 <strong>MonoBehaviour</strong> 的内置类派生而来。可以将类视为一种蓝图，用于创建可附加到游戏对象的新组件类型。每次将脚本组件附加到游戏对象时，都会创建该蓝图定义的对象的新实例。类的名称取自创建文件时提供的名称。类名和文件名必须相同才能使脚本组件附加到游戏对象。</p>
+<blockquote>
+<p>如果在 Unity 里更改了 C# 文件的名称，脚本的类名不会一起改变，此时需要在脚本里改类名  </p>
+</blockquote>
+<h2 id="脚本的生命周期"><a href="#脚本的生命周期" class="headerlink" title="脚本的生命周期"></a>脚本的生命周期</h2><p>摘自 Unity 官方文档，方便查阅，引用版本：<a target="_blank" rel="noopener" href="https://docs.unity3d.com/2023.1/Documentation/Manual/ExecutionOrder.html">Unity 官方手册 ver. 2023.1</a></p>
+<p><img src="/images/Unity_ScriptLifecycle.svg" alt="脚本生命周期流程图"></p>
+<p>一、初始化阶段<br>场景开始时将调用以下函数（为场景中的每个对象调用一次）：<br>①<strong>Awake</strong>：当一个脚本实例被载入时 Awake 被调用，无论脚本是否可用，只要物体被加载就会调用，Awake 常用于在游戏开始之前初始化变量或游戏状态，可以判断当满足条件后执行此脚本。（<strong>只调用一次</strong>）<br>②<strong>OnEnable</strong>：（仅在对象处于可用或激活状态时调用）在启用对象后立即调用此函数。（<strong>可多次调用</strong>）<br>③<strong>Reset</strong>：在编辑模式时，当脚本被附上对象或用户点击检视面板的 Reset 按钮时，Reset 被调用。<br>④<strong>Start</strong>：当脚本实例处于可用或激活状态时，Start 在 Update 函数第一次被调用前（第一帧更新前）调用一次，且仅调用一次；Awake 总是在 Start 之前执行。（<strong>只调用一次</strong>）</p>
+<p>二、物理阶段<br>①<strong>FixedUpdate</strong>（固定间隔执行）<br>FixedUpdate 基于一个可靠的定时器被调用，独立于渲染帧率之外，所以在 FixedUpdate 内应用运动计算时，无需将值乘以 Time.deltaTime 。默认频率大概为 0.02s ，可在 Edit —&gt; Project Setting —&gt; Time —&gt; Fixed Timestep 中修改。如果 Fixed Timestep 小于实际的帧更新时间，那么每帧的物理循环可能会发生不止一次。如果帧率很高，可能在帧之间完全不调用该函数。</p>
+<p>处理物体的物理属性(Rigidbody、Force、Collider)或者输入事件时，需要用 FixedUpdate 代替 Update ，以使物体的物理表现更平滑。实际上，FixedUpdate 并不是真的按照现实时间间隔执行的，而是按照 Timer 时间间隔执行的，但 Timer 并不是真正意义上的现实时间，它的作用是在运行环境下创造一个与现实时间高度相近的变量来实现物理帧的逻辑稳定。因为 FixedUpdate 的这个特质，强烈建议在此环节只做物理相关的处理，不要把其他类型(如网络帧同步)的处理也放入此步骤。</p>
+<p>②<strong>OnTriggerXXX</strong>：触发器被触发时调用。<br>③<strong>OnCollisionXXX</strong>：产生碰撞事件时调用。</p>
+<p>三、输入事件阶段<br>鼠标、键盘、触屏、手柄等各类输入事件会在这个阶段触发，这个时间点物理更新已经执行（如果需要物理更新的话），而逻辑更新和渲染并未执行，要了解这个触发的时机，才能更好的掌握代码逻辑。</p>
+<p>四、游戏逻辑阶段<br>①<strong>Update</strong>（执行间隔不固定）<br>Update 是真正的每个渲染帧调用的，由于系统性能以及游戏体量的区别，每一帧的刷新频率也是不同的。<br>②<strong>LateUpdate</strong><br>每帧 Update 方法调用之后会调用本方法，适用于跟随逻辑。因为游戏开发过程中经常会有一个二次计算的情况，比如主角移动，相机跟着移动。如果相机也在主角移动时跟随，当有物体跟玩家之间产生了相位，就可能会出现抽搐抖动等情况（因为并没有在这一帧逻辑完全结束后调用跟随）。所以 LateUpdate 的出现能够使程序更加顺畅。</p>
+<p>五、渲染阶段<br>①<strong>OnWillRenderObject</strong>：当即将渲染物体时调用。<br>②<strong>OnPreCull</strong>：这个函数仅用于宿主为摄像机的脚本。当此摄像机剔除了某个渲染场景时候触发此消息。<br>③<strong>OnBecameVisable</strong>：当物体的 Mesh Renderer 在任何相机可见时调用。<br>④<strong>OnBecameInvisible</strong>：当物体的 Mesh Renderer 在任何相机不可见时调用。<br>⑤<strong>OnPreRender</strong>：这个函数仅用于宿主为摄像机的脚本。当此摄像机开始渲染某个场景时候触发此消息。<br>⑥<strong>OnRenderObject</strong>：这个函数仅用于宿主为摄像机的脚本。当使用 Graphics.DrawMeshNow 或者其他函数绘制自己建立的物体渲染完毕时触发。<br>⑦<strong>OnPostRender</strong>：这个函数仅用于宿主为摄像机的脚本。当此摄像机范围内所有渲染都完成时候触发此消息。<br>⑧<strong>OnRenderImage</strong>：当所有渲染完成 image 的 postprocessing effects（只有pro版支持）后触发。<br>⑨<strong>OnDrawGizmos</strong>（Gizmos 渲染）：Gizmos 一般是为开发者使用的，指的是开发时场景编辑器中所展示的那些相机、线框之类的物体。所以此方法里的内容一般不会需要发布到生产环境中。  </p>
+<p>六、暂停阶段<br>①<strong>OnApplicationPause</strong>：应用暂停时会调用此方法，取消暂停后会从 FixedUpdate 开始重新执行。</p>
+<p>七、退出阶段<br>①<strong>OnDisable</strong>：在对象变为不可用或附属游戏对象非激活状态时，调用此函数。<br>②<strong>OnDestroy</strong>：当物体被销毁时调用，一般用于清理内存。<br>③<strong>OnApplicationQuit</strong>：当应用退出时调用，但有时会失效，此方法为不稳定的方法，正常情况下可以用于保存退出前的信息，但最好使用更稳妥的方式，因为此方法有时不会被调用，比如 Android 环境。</p>
+<h2 id="调试"><a href="#调试" class="headerlink" title="调试"></a>调试</h2><p>一、Unity调试器调试<br>在脚本代码中用 <code>Debug.Log();</code> 或 <code>print();</code> 进行打印调试</p>
+<p>二、使用代码编辑器调试<br>在可能出错的行添加断点 —&gt; 启动调试 —&gt; 在 Unity 中 Play 场景 —&gt; 在编辑器中按 F11 逐条调试 —&gt; 调试完毕后退出调试</p>
+<p>也可以在调试时右键 —&gt; 快速监视，在快速监视面板便捷的调试和查看数据。还可以在即时窗口输入代码进行调试。</p>
+<p>因为 Update 和其他方法不同，它是逐帧运行的，所以在调试时需要单帧调试。步骤：启动调试 —&gt; 运行场景 —&gt; 暂停游戏 —&gt; 加断点 —&gt; 单帧执行 —&gt; 结束</p>
+<h2 id="常用-API"><a href="#常用-API" class="headerlink" title="常用 API"></a>常用 API</h2><div  align="center">  
+<img src="https://s2.loli.net/2023/07/31/uzlm2T9Zax7qNIo.png" width = "90%" height = "90%" alt="核心类"/>
+</div>
+
+<p>API 常用方法和属性不做记录，直接查阅<a target="_blank" rel="noopener" href="https://docs.unity3d.com/cn/2023.2/ScriptReference/index.html">官方文档 ver. 2023.2</a></p>
+<p>①<strong>GameObject</strong>：提供了修改 GameObject 状态相关的属性，查找、创建和销毁 GameObject 的功能（有些功能继承自 Object 类）。所有 GameObject 都在 Inspector 顶部共享一组与场景中 GameObject 状态相关的控件，这些控件可以通过 GameObject 的脚本 API 进行控制。<br>②<strong>Component</strong>：提供了添加、获取和移除组件的方法。<br>③<strong>Transform</strong>：提供多种方式来通过脚本处理游戏对象的位置、旋转和缩放，以及与父和子游戏对象的层级关系（查找父、根、子变换组件）。<br>④<strong>Vector2</strong>、<strong>Vector3</strong> 和 <strong>Vector4</strong> ：用于表达和操作 2D、3D 和 4D 点、线和方向的类。<br>⑤<strong>Quaternion</strong>描述从一个方向到另一个方向的相对旋转。<br>⑥<strong>Time</strong>：用于测量和控制时间，并管理项目的帧率。<br>⑦<strong>Mathf</strong>（Math Function）：提供了一组常见的数学函数，包括三角函数、对数函数以及游戏和应用开发中常用的其他函数。  </p>
+<h2 id="协程-coroutine"><a href="#协程-coroutine" class="headerlink" title="协程 coroutine"></a>协程 coroutine</h2><p>Unity 提供了一套协程的机制（不是多线程，协程在主线程上执行）。Unity 自己本身 UnityEngine API （即 Unity 脚本）是不能被多线程调用的，但是仍可使用多线程去执行其他需要大量计算的内容。Unity 2018 起开发了工作线程，可以使用 Job System 做一些耗时的事情，有需求额外了解。</p>
+<p>Unity 协程是一个返回类型为 <code>IEnumerator</code> 的包含 <code>yield return</code> 语句的方法（即迭代器，详见<a href="https://ybniaobu.github.io/2023/02/03/2023-02-03-Csharp%E5%9B%BE%E8%A7%A3%E6%95%99%E7%A8%8B3/#%E8%BF%AD%E4%BB%A3%E5%99%A8-Iterators">《C#图解教程》读书笔记（三）</a>）。若要启动一个协程任务，需要使用 <code>StartCoroutine()</code> 方法，并传递进创建的协程方法。<code>yield return</code> 语句所在的点是程序暂停并继续的位置，可以使用 <code>yield return new WaitForSeconds(1f);</code> 来等待一秒再执行。使用  <code>StopCoroutine()</code> 或 <code>StopAllCoroutines()</code> 停止协程任务。</p>
+<h2 id="脚本序列化-script-serialization"><a href="#脚本序列化-script-serialization" class="headerlink" title="脚本序列化 script serialization"></a>脚本序列化 script serialization</h2><p><strong>序列化 Serialization</strong> 是将对象的状态信息转换为可以存储或传输的形式的过程。在序列化期间，对象将其当前状态写入到临时或持久性存储区。以后，可以通过从存储区中读取或反序列化对象的状态，重新创建该对象。</p>
+<p>Unity 序列化是 Unity 将数据结构或对象转换为 Unity 存储的格式的一个自动化进程。Unity 的一些内置功能会使用序列化，比如保存和加载、Inspector 窗口、实例化和预制件等功能。</p>
+<p>①脚本中声明为 public 的字段都支持字段序列化；<br>②若要同时支持字段序列化以及私有化这些数据不让外部可以直接访问，可以使用特性：<code>[SerializeField]</code>，并使用 private 声明对象；<br>③如果 public 字段不想在面板显示，可以使用特性：<code>[HideInInspector]</code>；<br>④<code>[Serializable]</code>特性用于自定义的，非 abstract 的类或结构体等 , 使这类型也能序列化。</p>
+<h2 id="ScriptableObject"><a href="#ScriptableObject" class="headerlink" title="ScriptableObject"></a>ScriptableObject</h2><p><strong>ScriptableObject</strong> 是 Unity 提供的一个数据配置存储基类，它是一个可以用来保存大量数据的数据容器。ScriptableObject 的一个主要用途就是通过避免重复存储数据来减少项目的内存使用量。比如需要大量实例化的预制件，每个实例的数据脚本都会被拷贝，从而造成内存浪费。</p>
+<p>在 Unity 外部可以使用像 excel，Json，xml 等<strong>持久化数据存储</strong>的方法，结合 Unity 对准备好的数据文件进行数据读写。在 Unity 内部可以使用 ScriptableObject 来存储数据，然后通过预制件脚本中的实例引用访问数据。在编辑模式下修改继承 ScriptableObject 对象的数据文件内容，这些修改会被保留，即在编辑模式下具有数据持久化特点，但是在游戏发布运行时，不具有持久化特点，修改数据不会被保存。因此 ScriptableObject 不适合存储在游戏打包发布后的运行期间会改变的数据。</p>
+<h3 id="创建-ScriptableObject"><a href="#创建-ScriptableObject" class="headerlink" title="创建 ScriptableObject"></a>创建 ScriptableObject</h3><p>ScriptableObject 是一个基类，继承自 UnityEngine.Object 。要想创建它，需要我们写个脚本去继承 ScriptableObject 。继承自 SctiptableObject 的脚本无法挂载到游戏物体上，毕竟它不是继承自 MonoBehaviour。ScriptableObject 类的实例会被保存成资源文件（.asset文件），和预制体，材质球，音频文件等类似，都是一种资源文件，存放在 Assets 文件夹下，创建出来的实例也是唯一存在的。</p>
+<p><strong><em>方法一：使用<code>[CreateAssetMenu]</code>特性，在编辑器的菜单中创建资源文件</em></strong><br>①创建一个脚本继承自 ScriptableObject 类；<br>②添加 CreateAssetMenu 特性，如下代码，其中 fileName 表示文件名；menuName 表示在 Assets/Create 下的名字；order 表示在 Assets/Create 下的位置顺序；<br>③在 Project 下创建 ScriptableObject 文件。</p>
+<figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="keyword">using</span> UnityEngine;</span><br><span class="line"></span><br><span class="line">[<span class="meta">CreateAssetMenu(fileName = <span class="string">&quot;XXManagerSO&quot;</span>, menuName = <span class="string">&quot;ScriptableObjects/XXManagerSO&quot;</span>, order = 0)</span>]</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">XXManagerSO</span> : <span class="title">ScriptableObject</span></span><br><span class="line">&#123;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong><em>方法二：利用 ScriptableObject 的静态方法创建数据对象，然后将数据对象保存在工程目录下</em></strong><br>可以新建一个脚本（可以不用继承自 MonoBehavoiur，不用挂载到游戏物体上）：</p>
+<figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="keyword">using</span> UnityEngine;</span><br><span class="line"><span class="keyword">using</span> UnityEditor;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">ScriptableObjectTool</span> </span><br><span class="line">&#123;</span><br><span class="line">    [<span class="meta">MenuItem(<span class="string">&quot;ScritableObject/CreateXXManagerSO&quot;</span>)</span>]</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">CreateXXManagerSO</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">//创建数据资源文件</span></span><br><span class="line">        <span class="comment">//泛型是继承自 ScriptableObject 的类</span></span><br><span class="line">        XXManagerSO asset = ScriptableObject.CreateInstance&lt;XXManagerSO&gt;();</span><br><span class="line">        <span class="comment">//前一步创建的资源只是存在内存中，现在要把它保存到本地</span></span><br><span class="line">        <span class="comment">//通过编辑器API，创建一个数据资源文件，第二个参数为资源文件在Assets目录下的路径</span></span><br><span class="line">        AssetDatabase.CreateAsset(asset, <span class="string">&quot;Assets/Resources/ScriptableObject/XXManagerSO.asset&quot;</span>);</span><br><span class="line">        <span class="comment">//保存创建的资源</span></span><br><span class="line">        AssetDatabase.SaveAssets();</span><br><span class="line">        <span class="comment">//刷新界面</span></span><br><span class="line">        AssetDatabase.Refresh();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>刚刚创建的 ScriptableObjectTool 脚本需要放在 Assets 文件夹下任一位置的 Editor 文件夹下（这个文件夹放哪都行，看自己需求，只要在 Assets 文件夹或其子文件夹下就好）。因为我们引入了 UnityEditor 命名空间，这意味着这个脚本只在编辑模式下会用到，实际打包发布后是不会用到的。如果没放在 Editor 文件夹下，Unity 打包时会认为此脚本是会被一起打包，作用于游戏运行期间，与 Editor 命名空间的性质相矛盾，所以会报错。</p>
+<h3 id="使用-ScriptableObject"><a href="#使用-ScriptableObject" class="headerlink" title="使用 ScriptableObject"></a>使用 ScriptableObject</h3><p><strong><em>方法一：通过 Inspector 面板中的 public 变量进行关联</em></strong><br>在继承自 MonoBehaviour 类中声明数据容器类型的成员，在 Inspector 面板中进行关联：</p>
+<figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> XXManagerSO xxManagerSO;</span><br></pre></td></tr></table></figure>
+<p><strong><em>方法二：直接加载数据资源文件</em></strong><br>可以用 Resources，AddressBundle，Addressables 等方式加载数据资源文件。比如，使用 <code>Resources.Load&lt;T&gt;</code> 传入创建的 .asset 文件。</p>
+<h1 id="三维数学基础"><a href="#三维数学基础" class="headerlink" title="三维数学基础"></a>三维数学基础</h1><p>这里只记录简单的数学知识以及代码操作，复杂的详见线性代数、3D 数学基础等相关数学文章。</p>
+<h2 id="向量基础"><a href="#向量基础" class="headerlink" title="向量基础"></a>向量基础</h2><p>一、向量相关API<br><code>Vector3.magnitude</code> 返回向量长度（模长）；<code>Vector3.normalized</code> 返回单位向量（即向量除以向量长度）。向向量方向移动，可以使用 <code>Transform.Translate</code> ，也可以直接向量相加。</p>
+<p>二、向量<strong>点乘 dot product</strong><br>又称 <em>点积</em> 、 <em>内积</em> 或者 <em>数量积</em> ，点乘结果为<strong>标量 scalar</strong>，公式为：  </p>
+<script type="math/tex; mode=display">\vec a \cdot \vec b = a_1 b_1 + a_2 b_2 + \cdots + a_n b_n</script><p>或者（θ 为向量 a 和向量 b 之间的夹角）：  </p>
+<script type="math/tex; mode=display">\vec a \cdot \vec b = \left| a \right| \left| b \right| \cos( \theta )</script><p>三角形余弦定理：$c^2 = a^2 + b^2 - 2 \left| a \right| \left| b \right| \cos( \theta ) $，根据关系 $c = a - b$（a、b、c为三角形的三个边向量），可得：  </p>
+<script type="math/tex; mode=display">(a-b) \cdot (a-b) = a^2 + b^2 - 2 a \cdot b = a^2 + b^2 - 2 \left| a \right| \left| b \right| \cos( \theta )</script><p>故若向量 a，b 已知，可以得到夹角 θ：  </p>
+<script type="math/tex; mode=display">\theta = \arccos( \frac { \vec a \cdot \vec b } {\left| a \right| \left| b \right|} )</script><p>点乘的几何意义以及应用：<br>①向量 b 在 向量 a 上的投影的长度（模）和向量 a 的长度（模）的乘积；<br>②可以计算向量 a 和向量 b 之间的夹角，从而判断两个向量是否方向一致或者正交（垂直）：<br>&emsp;&emsp; - $a \cdot b \gt 0$：向量方向一致，夹角为 0° 到 90° 之间；<br>&emsp;&emsp; - $a \cdot b = 0$：向量正交，相互垂直；<br>&emsp;&emsp; - $a \cdot b \lt 0$：向量方向相反，夹角为 90° 到 180° 之间；  </p>
+<p><strong>Unity API：<code>Vector3.Dot(a, b)</code></strong>，可以直接利用单位向量来获取夹角余弦值：<code>Vector3.Dot(Vector3.normalized, Vector3.normalized)</code></p>
+<p>三、向量<strong>叉乘 cross product</strong><br>又称 <em>叉积</em> 、 <em>外积</em> 或者 <em>向量积</em> ，叉乘结果为<strong>向量 vector</strong>，并且结果向量（向量 c）与向量 a 和向量 b 组成的平面垂直，即<strong>法向量</strong>，在右手坐标系下方向遵守右手定则（四指从向量 a 旋转到向量 b，那么大拇指为向量 c 的方向）。由于 Unity 是左手坐标系，需要用左手确定方向。若 $\vec a = ( a_1, a_2, a_3 )$，$\vec b = ( b_1, b_2, b_3 )$，i、j、k 分别为X、Y、Z 轴方向的单位向量，公式为：  </p>
+<script type="math/tex; mode=display">\vec a \times \vec b = det {\begin{vmatrix} \vec i & \vec j & \vec k \\ a_1 & a_2 & a_3 \\ b_1 & b_2 & b_3 \end{vmatrix}} = (a_2b_3 - a_3b_2)\vec i - (a_1b_3 - a_3b_1)\vec j + (a_1b_2 - a_2b_1)\vec k</script><p>即，向量 c 为：  </p>
+<script type="math/tex; mode=display">\vec c = \vec a \times \vec b = (a_2b_3 - a_3b_2,\ -a_1b_3 + a_3b_1,\ a_1b_2 - a_2b_1)</script><p>向量 C 的模长可被定义为：  </p>
+<script type="math/tex; mode=display">\left| \vec c \right| = \left| \vec a \times \vec b \right| = \left| a \right| \left| b \right| \sin( \theta )</script><p>向量 c 的模长也就是向量 a 和 向量 b 构成的平行四边形的面积。据此可以得出<strong>混合积</strong>（三重积）的几何意义，x、y、z 为空间中三个向量：$ [x\ y\ z] = x \cdot (y \times z) = y \cdot (z \times x) = z \cdot (x \times y)$，其结果为三个向量定义的平行六面体的体积。</p>
+<p>叉乘的几何意义以及应用：<br>①求解向量 a 和向量 b 构成的平面的法线；<br>②计算点到线的距离，向量 a 的顶点到向量 b 的距离，即：  </p>
+<script type="math/tex; mode=display">\left| a \right| * \sin( \theta ) = \frac {\left| a \times b \right|} {\left| b \right|}</script><p>③利用平面方程（即三元一次方程），计算点到面的距离，假设点 p 为 $( x_0, y_0, z_0 )$，则点 p 到向量 a 和向量 b 构成的平面的距离求解顺序如下：<br>&emsp;&emsp; - 先求解向量 a 和向量 b 构成平面的法向量：$ \vec n = (A,\ B,\ C)$ ；<br>&emsp;&emsp; - 再求解平面方程为 $Ax + By + Cz + D = 0$（D 由向量 a 和 b 代入可得）；<br>&emsp;&emsp; - 点 p 到 $Ax + By + Cz + D = 0$ 平面的距离：  </p>
+<script type="math/tex; mode=display">d = \frac { \left| Ax_0 + By_0 + Cz_0 + D \right| } {\sqrt{A^2 + B^2 + C^2}}</script><p><strong>Unity API：<code>Vector3.Cross(a, b)</code></strong>，可以利用单位向量来获取夹角正弦值：<code>Vector3.Cross(Vector3.normalized, Vector3.normalized).magnitude</code>。根据叉乘方向可以判断，向量与向量的左右位置信息。</p>
+<h2 id="三角函数"><a href="#三角函数" class="headerlink" title="三角函数"></a>三角函数</h2><p>一、角度与弧度的转换<br>PI 弧度 = 180° 即 1弧度 = 180/PI 角度，1° = PI/180 弧度<br>=&gt; 角度到弧度（degree to radian）：<code>角度 * Mathf.Deg2Rad</code> 等同于 <code>角度 * Mathf.PI/180</code><br>=&gt; 弧度到角度（radian to degree）：<code>弧度 * Mathf.Rad2Deg</code> 等同于 <code>弧度 * 180/Mathf.PI</code></p>
+<p>二、正弦余弦正切<br><code>Mathf.Sin(float radian)</code>；<code>Mathf.Cos(float radian)</code>；<code>Mathf.Tan(float radian)</code><br><code>Mathf.ASin(float f)</code>；<code>Mathf.ACos(float f)</code>；<code>Mathf.ATan(float f)</code></p>
+<blockquote>
+<p>注意：反三角函数算出的是弧度，要在欧拉角或四元数里使用要转换为角度。</p>
+</blockquote>
+<h2 id="欧拉角-Euler-angle"><a href="#欧拉角-Euler-angle" class="headerlink" title="欧拉角 Euler angle"></a>欧拉角 Euler angle</h2><p>Unity 中的 Transform 面板里的 Rotaton 即表示<strong>欧拉角</strong>，即使用三个角度来描述物体在三维空间中的旋转。API 为<code>Vector3 eulerAngle = transform.eulerAngles</code>。注意，不是<code>transform.rotation</code>，rotation 是<strong>四元数 Quaternion</strong>。</p>
+<p>旋转的顺序不同会导致不同的结果。但是在面板中，无论你按照 XYZ、ZXY、ZYX 等任何顺序输入，你会看到模型的结果都是一样的，这是因为 Unity 中的欧拉角采用的是 YXZ 的层次关系（或者说是按 ZXY 顺序旋转而得，即 Z 轴层级最低，Y 轴层级最高）。也就是说，Inspector 面板上显示的并不是物体绕自身局部坐标轴旋转的度数，也不是绕全局坐标轴旋转的度数，而是隐藏的<strong>万向节 gimbal</strong> 旋转轴旋转的度数，Z 在最底层，X 是 Z 的父项，Y 是 X 的父项。当我们旋转万向节中的三个轴时，会有以下现象：Z 轴旋转时，另外两个轴不旋转；X 轴旋转时，Z 轴随 X 轴旋转而旋转（Z 与 X 保持相对静止），Y 轴不动；Y 轴旋转时，X、Z 都随 Y 轴旋转而旋转（保持相对静止）。</p>
+<blockquote>
+<p>区分万向节旋转轴、局部坐标系、全局坐标系的 X、Y、Z。刚开始初始状态下(0, 0, 0)，物体的万向节系统的三个轴不仅是和物体的全局坐标轴重合，也是和物体的局部坐标轴重合的。区别在于，物体绕局部坐标轴某个轴旋转，局部坐标系的另外两个轴也会旋转。物体绕全局坐标系某个轴旋转，物体局部坐标系的轴会旋转，全局坐标系不会跟着旋转。而物体根据欧拉角即面板调节，旋转情况如上面所示，这就会导致3个坐标系不统一的现象。  </p>
+<p>总结：欧拉角由三个旋转值组成，三个旋转值会根据万向节的规则确定。Unity 中 Inspector 面板上的 rotation 的三个值对应的是物体的欧拉角，即通过万向节规则确定的三个旋转值。当我们调节 Inspector 面板上的 rotation 的值时，Unity 根据万向节规则计算出物体当前的朝向。<strong>Unity 中的欧拉角采用 Y(Heading)—&gt; X(Pitch) —&gt; Z(Bank) 的欧拉角轴嵌套顺序</strong>。</p>
+</blockquote>
+<p>由于 Unity 是按照 ZXY 的顺序来旋转的，所以按照 Unity 的计算方式，总是最后再绕 Y 轴旋转。所以，当你滑动 Y ，连续改变欧拉角时，看来像是再绕着世界坐标系的 Y 轴旋转，而不是绕模型的局部坐标系的 Y 轴来旋转。所以你在 Unity 中，无论 XZ 的值时怎样的，只要你滑动 Y ，Unity 计算欧拉角的方式给你呈现的视觉效果就是像围绕世界坐标系的 Y 轴来旋转一样。</p>
+<p>而当你滑动 Z 时，由于 Unity 总是先旋转绕 Z 轴旋转的，所以给你呈现的视觉效果是滑动 Z 时在场景中看到模型真的在绕模型的局部坐标系的 Z 轴旋转。而有时你滑动 X 呢，你会发现模型既不绕世界坐标系的 X 轴旋转，也不绕模型的局部坐标系的 X 轴旋转。</p>
+<p><strong><em>欧拉角加深理解一：旋转1</em></strong><br><code>transform.Rotate(Vector3 eulers, Space relativeTo = Space.Self);</code>，Transform 的 Rotate 可以选择根据 Space.World，即世界坐标系，或根据 Space.Self，即自身局部坐标系，旋转：</p>
+<p>代码1：<code>transform.Rotate(new Vector3(60, 45, 90), Space.Self);</code><br>代码2：<code>transform.Rotate(new Vector3(0, 0, 90), Space.Self);</code>，<code>transform.Rotate(new Vector3(45, 0, 0), Space.Self);</code>，<code>transform.Rotate(new Vector3(0, 60, 0), Space.Self);</code></p>
+<p>这两者所得结果不同，在代码1中是按照物体的万向节轴向（Space.Self 可理解为万向节轴向和局部坐标系重合）先绕 Z 轴旋转 90°，再绕 X 轴旋转 45°，再绕 Y 轴旋转 60°。在代码2中，先按照物体的局部坐标系旋转 90°，此时物体的局部坐标系改变了；之后以改变了的局部坐标系再旋转，绕 X 轴旋转 45°，旋转后，物体的局部坐标系又改变了；最后，绕改变后的轴向的 Y 轴旋转 60°。</p>
+<p>代码3：<code>transform.Rotate(new Vector3(60, 45, 90), Space.World);</code></p>
+<p>代码3和代码1的结果是一致的，因为都是按照物体的万向节轴向先绕 Z 轴旋转 90°，再绕 X 轴旋转 45°，再绕 Y 轴旋转 60°，并且刚开始的局部坐标和全局坐标重合。可以尝试初始局部坐标和全局坐标不重合的情况下，使用代码3和代码1，结果不一致。</p>
+<p>代码4：<code>transform.Rotate(new Vector3(0, 0, 90), Space.World);</code>，<code>transform.Rotate(new Vector3(45, 0, 0), Space.World);</code>，<code>transform.Rotate(new Vector3(0, 60, 0), Space.World);</code></p>
+<p>代码3和代码4的结果一样，因为根据万向轴顺序，并且初始状态下万向节旋转轴、局部坐标系、全局坐标系相互重合，先 Z 轴另外两个轴不旋转等同于先绕全局坐标系 Z 轴旋转。此时，因为万向轴 Z 轴变动后，X、Y 仍然和全局坐标系重合，此时万向节 X 轴旋转等同于绕全局坐标系 X 轴旋转。Y 轴同理。</p>
+<blockquote>
+<p>注：代码4顺序变了，得到的结果也不一样的。旋转顺序不同会导致不同的结果，即使是跟着不变的全局坐标系旋转。这和矩阵变换没有交换律是一样的道理。</p>
+</blockquote>
+<p><strong><em>欧拉角加深理解二：万向节锁 gimbal lock</em></strong><br>万向节的特点是轴与轴之间存在父子关系，每个轴对另外两个轴的影响各不相同，也正是因为这个特点，导致出现了一些缺点。比如当我们将 X 轴旋转 90° 后，Z 轴和 Y 轴会变成平行状态，然后我们会发现旋转 Z 轴和 Y 轴的效果竟然是一模一样的。</p>
+<p><strong><em>欧拉角加深理解三：旋转2</em></strong><br>当我们在 Inspector 面板上按照 Z、X、Y 的顺序调整 rotation 的值时会发现，此时场景中物体的旋转效果是绕着物体的全局坐标轴进行旋转的。这是因为初始状态下(0, 0, 0)，物体的万向节系统的三个轴是和物体的全局坐标轴重合的，旋转 Z 轴不影响 X、Y 轴的位置和角度，所以旋转完 Z 轴后，X、Y 轴依然与惯性坐标轴重合。 </p>
+<p>当我们在 Inspector 面板上按照 Y、X、Z 的顺序调整 rotation 的值时会发现，此时场景中物体的旋转效果是绕着物体的局部坐标轴进行旋转的。这是因为初始状态下(0, 0, 0)，物体的万向节系统的三个轴不仅是和物体的全局坐标轴重合，也是和物体的局部坐标轴重合的。旋转 Y 轴时会带动 X 和 Z 轴旋转，三个轴保持相对静止，X、Z 轴和局部坐标轴重合。同理往下。</p>
+<p><strong><em>欧拉角优缺点</em></strong><br>①仅使用三个数字表达方位，占用空间小；<br>②三个角度（沿坐标轴旋转的单位）组成，直观，容易理解；<br>③可以进行从一个方向到另一个方向旋转大于180度的角度；<br>④存在万向节死锁问题；<br>⑤对于一个方位，存在多个欧拉角描述，因此无法判断多个欧拉角代表的角位移是否相同。比如（250，0，0）与（290，180，180）为同一个欧拉角；<br>⑥因为 Unity 的底层是通过四元数记录物体旋转的，并通过矩阵和四元数实现物体的旋转及插值。为了避免无穷种表示，Unity 引擎限制了角度范围，即沿 X 轴旋转限制在 -90 到 90 之间，沿 Y 与 Z 轴旋转限制在 0 到 360 之间（Inspector 面板显示为 -180 到 180），用脚本时会有这个限制，并且在万向节死锁的情况下，Z 轴旋转为 0（Inspector 面板显示 Y 轴为 0）。但在 Inspector 面板中直接调节没有这个限制，transfrom.eulerAngles 获取到的值，和在 Inspector 窗口的 Transfrom 组件中看到的旋转数值是不一样的，Unity 编辑器又经过了额外的封装，允许超限角度的显示输出和设定。</p>
+<h2 id="四元数-Quaternion"><a href="#四元数-Quaternion" class="headerlink" title="四元数 Quaternion"></a>四元数 Quaternion</h2><p>四元数可用于表示游戏对象的旋转，在 Unity 中表示为 x、y、z 和 w，(x、y、z) 代表一个三维向量，w 为一个标量，这些数字通常不需要直接访问它们。</p>
+<p>假设我们的旋转轴是 V 轴，旋转弧度为 θ ，那这四个数字分别是：x = sin(θ/2)*V.x ; y = sin(θ/2)*V.y ; z = sin(θ/2)*V.z ; w = cos(θ/2)。所以 x ，y， z， w 的取值范围是 -1 到 1 。</p>
+<p>API 为<code>Quaternion qt = transform.rotation</code></p>
+<figure class="highlight c#"><table><tr><td class="code"><pre><span class="line">Quaternion qt = <span class="keyword">new</span> Quaternion();</span><br><span class="line"><span class="comment">//假设旋转轴</span></span><br><span class="line">Vector3 axis = Vector3.up;</span><br><span class="line"><span class="comment">//假设旋转弧度</span></span><br><span class="line"><span class="built_in">float</span> rad = <span class="number">50</span> * Mathf.Deg2Rad;</span><br><span class="line"><span class="comment">//四元数的值：</span></span><br><span class="line">qt.x = Mathf.Sin(rad/<span class="number">2</span>) * axis.x;</span><br><span class="line">qt.y = Mathf.Sin(rad/<span class="number">2</span>) * axis.y;</span><br><span class="line">qt.z = Mathf.Sin(rad/<span class="number">2</span>) * axis.z;</span><br><span class="line">qt.w = Mathf.Cos(rad/<span class="number">2</span>);</span><br><span class="line"><span class="comment">//即沿y轴顺时针旋转50度</span></span><br><span class="line">transform.rotation = qt;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>若对四元数的数学感兴趣，可额外了解。基本上只需要知道四元数表示三维空间中的旋转，大多数情况下，你只需要获取和使用现有的旋转，或者用四元数来构造新的旋转（例如，在两次旋转之间平滑插入）。</p>
+</blockquote>
+<p><strong><em>四元数优缺点</em></strong><br>①四元旋转不存在万向节锁问题；<br>②四元数的数字表示不直观。</p>
+<p><strong><em>四元数的应用</em></strong><br>①欧拉角转换成四元数的 API ：<code>transform.rotation = Quaternion.Euler(0, 60, 0);</code><br>②两个四元数相乘可以组合旋转效果，如下：  </p>
+<figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="comment">// rotation01和rotation02效果相同，都表示旋转50度。</span></span><br><span class="line">Quaternion rotation01 = Quaternion.Euler(<span class="number">0</span>, <span class="number">30</span>, <span class="number">0</span>) * Quaternion.Euler(<span class="number">0</span>, <span class="number">20</span>, <span class="number">0</span>);</span><br><span class="line">Quaternion rotation02 = Quaternion.Euler(<span class="number">0</span>, <span class="number">50</span>, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+<p>③ <code>transform.Rotate</code> 的内部也是调用四元数实现的，以下代码作用相同：  </p>
+<figure class="highlight c#"><table><tr><td class="code"><pre><span class="line">transform.rotation *= Quaternion.Euler(<span class="number">2</span>, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">transform.Rotate(<span class="keyword">new</span> Vector3(<span class="number">2</span>, <span class="number">0</span>, <span class="number">0</span>));</span><br></pre></td></tr></table></figure>
+<p>④四元数<strong>左乘</strong>向量，表示将该向量按照四元数表示的角度旋转。当角度为正值时，表示顺时针；为负值时，表示逆时针。如下所示：</p>
+<figure class="highlight c#"><table><tr><td class="code"><pre><span class="line">Vector3 point = <span class="keyword">new</span> Vector3(<span class="number">0</span>, <span class="number">0</span>, <span class="number">6</span>);</span><br><span class="line"><span class="comment">// newPoint为将point点绕Y轴旋转30度，所得到的点</span></span><br><span class="line">Vector3 newPoint = Quaternion.Euler(<span class="number">0</span>, <span class="number">30</span>, <span class="number">0</span>) * point;</span><br></pre></td></tr></table></figure>
+<p>⑤轴角：将当前物体沿 y 轴旋转 60 度<br><code>this.transform.rotation = Quaternion.AngleAxis( 60, Vector3.up );</code><br>等效于：<code>Quaternion.Euler( 0,60,0 )</code><br>⑥注视旋转：z 轴指向一个方向(即第一个参数)，物体的 position 不变：<br><code>Quaternion qt03 = Quaternion.LookRotation( Vector3.up );</code><br>等效于：<code>transform.LookAt( Vector3.zero, Vector3.up );</code><br>⑦使用 Lerp 来控制旋转的速度：<br><code>Quaternion.Lerp( this.transform.rotation, Quaternion.Euler(0, 6, 0), 0.1f );</code><br>⑧匀速旋转：<br><code>Quaternion.RotateTowards( this.transform.rotation, Quaternion.Euler(0, 60, 0), 0.1f );</code><br>⑨x 轴注视旋转,让物体 x 轴始终指向：物体位置到 v1 所在的向量：<br><code>this.transform.right = v1 - this.transform.position;</code><br>等效于：<code>Quaternion.FromToRotation( transform.right, v1 - this.transform.position )</code></p>
+<h2 id="坐标系统"><a href="#坐标系统" class="headerlink" title="坐标系统"></a>坐标系统</h2><p><strong>World Space</strong> 全局（世界）坐标系：场景的固定坐标；<br><strong>Local Space</strong> 物体（局部）坐标系：原点为模型轴心点，随物体移动或旋转而改变；<br><strong>Screen Space</strong> 屏幕坐标系：以像素为单位，屏幕左下角为原点，右上角为（Screen.width , Screen.height），Z 为到相机的距离；<br><strong>Viewport Space</strong> 视口（摄像机）坐标系：屏幕左下角为原点(0, 0)，右上角为(1, 1)，Z 为到相机的距离。</p>
+<h3 id="坐标系转换"><a href="#坐标系转换" class="headerlink" title="坐标系转换"></a>坐标系转换</h3><p>1、Local Space -&gt; World Space<br>①<code>transform.forward</code>、<code>transform.right</code>、<code>transform.up</code> 在世界坐标系中表示物体正前、右、上方；<br>②<code>transform.TransformPoint(Vector3 position)</code>：转换点，受变换组件位置、旋转和缩放影响；<br>③<code>transform.TransformDirection(Vector3 direction)</code>：转换方向，受变换组件旋转影响；<br>④<code>transform.TransformVector(Vector3 vector)</code>：转换向量，受变换组件旋转和缩放影响；</p>
+<p>2、World Space -&gt; Local Space<br>①<code>transform.InverseTransformPoint(Vector3 position)</code>：转换点，受变换组件位置、旋转和缩放影响；<br>②<code>transform.InverseTransformDirection(Vector3 direction)</code>：转换方向，受变换组件旋转影响；<br>③<code>transform.InverseTransformVector(Vector3 vector)</code>：转换向量，受变换组件旋转和缩放影响；</p>
+<p>3、World Space &lt;-&gt; Screen Space<br>①<code>Camera.main.WorldToScreenPoint</code>：将点从世界坐标系转换到屏幕坐标系中；<br>②<code>Camera.main.ScreenToWorldPoint</code>：将点从屏幕坐标系转换到世界坐标系中；  </p>
+<p>4、World Space &lt;-&gt; Viewport Space<br>①<code>Camera.main.WorldToViewportPoint</code>：将点从世界坐标系转换到视口坐标系中；<br>②<code>Camera.main.ViewportToWorldPoint</code>：将点从视口坐标系转换到世界坐标系中；  </p>
+<h1 id="物理引擎"><a href="#物理引擎" class="headerlink" title="物理引擎"></a>物理引擎</h1><h2 id="刚体-Rigidbody"><a href="#刚体-Rigidbody" class="headerlink" title="刚体 Rigidbody"></a>刚体 Rigidbody</h2><p>在 Unity 中，若想要一个物体具有在现实世界中的物理效果，比如受重力影响，就要为其添加 Rigidbody 组件，该组件是让物体产生物理行为的组件。通过刚体组件可以给物体添加一些常见的物理属性，如质量、摩擦力、碰撞参数等。添加了刚体组件的游戏物体，可以在物体系统的控制下来运动，刚体可接受外力和扭矩力用来保证游戏对象像在真实世界中那样进行运动。</p>
+<p>在物理学中，刚体是一个理想模型，通常把在外力作用下，物体的形状和大小保持不变，而且内部各部分相对位置保持恒定的理想模型称为刚体。</p>
+<h3 id="刚体组件属性"><a href="#刚体组件属性" class="headerlink" title="刚体组件属性"></a>刚体组件属性</h3><p>①<strong>Mass</strong> 质量：质量单位是 KG ；<br>②<strong>Drag</strong> 阻力：默认为 0，则没有阻力。阻力的方向与物理运动方向相反，该参数数值越大，所受到的阻力也就越大，速度的衰减也就越快。阻力极大时物体将会立即停止运动；<br>③<strong>Angular Drag</strong> 角阻力：即角阻力（旋转阻力），与该物体的旋转方向相反。设置该值后，物体在任何方向上的旋转运动都将受到影响。若设置为 0，则物体一旦开始旋转就不会停止。该值越大，旋转衰减越快；<br>④<strong>Use Gravity</strong> 使用重力：设置该物体是否受重力影响；<br>⑤<strong>Is Kinematic</strong> 是否遵循动力学：勾选则表示该物体不受重力、速度、阻力、质量等物理模拟的影响，只受脚本和动画的影响而运动。勾选它能降低性能消耗，物理系统已经不会计算它了，其次它虽然不受物理模拟的影响，但是它依旧是可以影响其他物体的，比如移动通过脚本移动它的 transform，依旧可以撞击其他刚体；<br>⑥<strong>Interpolate</strong> 插值：该参数用于解决 Unity 中物理模拟和画面渲染不同步的问题，当不进行插值处理时，计算得到的物理数据是上一个物理模拟时间点的数据，而插值则是获取最近似当前渲染时间点数据的一种手段。当你发现刚体移动时会发生抖动，建议调整一下此选项。一共两个参数，Interpolate：根据前一帧来平滑变换；Extrapolate：根据下一帧来平滑变换。<br>⑦<strong>Collision Detection</strong> 碰撞检测：该属性用于控制避免高速运动的物体穿过其他对象而没有发生碰撞。一共四个参数，Discrete：离散碰撞检测（适用于大部分刚体，最省资源）；Continuous：连续碰撞检测；Continuous Dynamic：连续动态碰撞检测；Continuous Speculative：连续推测碰撞检测。<br>⑧<strong>Constraints</strong> 约束条件：约束物体在某一个方向上的运动和旋转，默认不约束。</p>
+<h3 id="刚体的休眠"><a href="#刚体的休眠" class="headerlink" title="刚体的休眠"></a>刚体的休眠</h3><p>刚体碰撞体会被物理引擎一直计算物理状态，为了解决耗费资源问题，若一个刚体的移动速度和旋转慢于定义的阈值（可以在 Project Setting 里的 Physics 里的 Sleep Threshold 修改），Unity 会将物体进入<strong>休眠</strong>状态，休眠状态中的刚体会被物理系统视而不见，所以自然就节约了运算资源，直到它被重新唤醒为止。当刚体进入休眠状态，是无法和碰撞体发生碰撞的，因为刚体进入休眠状态，其物理系统就已经不再计算了，自然也无法产生碰撞信息和触发碰撞事件。</p>
+<p>可以通过 <code>IsSleeping()</code> 函数来判断刚体是否正在休眠，或 <code>WakeUp()</code> 来强制唤醒一个刚体。</p>
+<h2 id="碰撞器-Collider"><a href="#碰撞器-Collider" class="headerlink" title="碰撞器 Collider"></a>碰撞器 Collider</h2><p>碰撞体 (Collider) 组件定义对象的形状以便用于物理碰撞。可将碰撞体添加到没有刚体组件的对象，从而创建场景的地板、墙壁和其他静止元素。这些被称为<strong>静态碰撞体</strong>。通常情况下，不应通过更改变换位置来重新定位静态碰撞体，因为这会极大地影响物理引擎的性能。具有刚体的对象上的碰撞体称为<strong>动态碰撞体</strong>。静态碰撞体可与动态碰撞体相互作用，但由于没有刚体，因此不会通过移动来响应碰撞。</p>
+<p>当满足碰撞条件时，会进入碰撞三阶段：<br>①当进入碰撞时执行：<code>void OnCollisionEnter(Collision other)</code>；<br>②当碰撞体与刚体接触时每帧执行：<code>void OnCollisionStay(Collision other)</code>；<br>③当停止碰撞时执行：<code>void OnCollisionExit(Collision other)</code></p>
+<h3 id="碰撞器组件属性"><a href="#碰撞器组件属性" class="headerlink" title="碰撞器组件属性"></a>碰撞器组件属性</h3><p>1、<strong>Is Trigger 触发器</strong>：碰撞体会默认阻挡刚体的运动，但是有些时候需要检测两个物体发生重叠但又不想引起物理上的碰撞，就需要勾选此选项，将碰撞体变成一个触发器。当勾选此项后，该物体就不会再阻挡刚体运动了，但会进入触发三阶段：<br>①当 Collider 碰撞体进入触发器时执行：<code>OnTriggerEnter(Collider other)</code>；<br>②当碰撞体与触发器接触时每帧执行：<code>OnTriggerStay(Collider other)</code>；<br>③当停止触发时执行：<code>OnTriggerExit(Collider other)</code>  </p>
+<p>2、<strong>Material 物理材质</strong>：即模拟物体表面的物理材质，对于地面而言，比如冰面、木板、水泥板这些。对于物体本身而言，比如物理自身的弹性，物理自身的平滑度之类的，都会直接影响到物理模拟的效果。</p>
+<p>创建物理材质和创建普通材质的方法是一样的，在 Assets 里右键菜单里面找到 Physic Material，物理材质参数包括 Dynamic Friction 运动摩擦力；Static Friction 静止摩擦力；Bounciness 弹性；Friction Combine 摩擦力混合：发生碰撞的两个碰撞体对象的摩擦力的混合方式；Bounce Combine 弹性混合：发生碰撞的两个碰撞体对象的摩擦力的混合方式  </p>
+<h2 id="发生碰撞或触发总结"><a href="#发生碰撞或触发总结" class="headerlink" title="发生碰撞或触发总结"></a>发生碰撞或触发总结</h2><h3 id="发生碰撞"><a href="#发生碰撞" class="headerlink" title="发生碰撞"></a>发生碰撞</h3><div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:left">&emsp;</th>
+<th style="text-align:left">静态碰撞体</th>
+<th style="text-align:left">动态碰撞体</th>
+<th style="text-align:left">运动学刚体碰撞体</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">静态碰撞体</td>
+<td style="text-align:left">&emsp;</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">&emsp;</td>
+</tr>
+<tr>
+<td style="text-align:left">动态碰撞体</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+</tr>
+<tr>
+<td style="text-align:left">运动学刚体碰撞体</td>
+<td style="text-align:left">&emsp;</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">&emsp;</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>当发生碰撞，双方都会触发 <code>OnCollision()</code> 事件，当不发生碰撞，则双方都不会触发事件。</p>
+<h3 id="触发-OnTrigger-的情形"><a href="#触发-OnTrigger-的情形" class="headerlink" title="触发 OnTrigger 的情形"></a>触发 OnTrigger 的情形</h3><p>当碰撞体勾选了 Is Trigger 之后才可能触发 <code>OnTrigger()</code> 事件，若不勾选，那只能触发 <code>OnCollision()</code> 事件。</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:left">&emsp;</th>
+<th style="text-align:left"><font size=2>静态碰撞体</font></th>
+<th style="text-align:left"><font size=2>动态碰撞体</th>
+<th style="text-align:left"><font size=2>运动学刚体碰撞体</th>
+<th style="text-align:left"><font size=2>静态碰撞体 <br> Is Trigger</font></th>
+<th style="text-align:left"><font size=2>动态碰撞体 <br> Is Trigger</font></th>
+<th style="text-align:left"><font size=2>运动学刚体碰撞体 <br> Is Trigger</font></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><font size=2>静态碰撞体</font></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+</tr>
+<tr>
+<td style="text-align:left"><font size=2>动态碰撞体</font></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+</tr>
+<tr>
+<td style="text-align:left"><font size=2>运动学刚体碰撞体</font></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+</tr>
+<tr>
+<td style="text-align:left"><font size=2>静态碰撞体 <br> Is Trigger</font></td>
+<td style="text-align:left"></td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left"></td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+</tr>
+<tr>
+<td style="text-align:left"><font size=2>动态碰撞体 <br> Is Trigger</font></td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+</tr>
+<tr>
+<td style="text-align:left"><font size=2>运动学刚体碰撞体 <br> Is Trigger</font></td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+<td style="text-align:left">√</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>注意：如果在表格中打勾，这就说明，双方必定都会触发 OnTrigger 事件。上一个图也一样，若表格打勾，则双方必定都会触发 OnCollision 事件。除非给物体套上两个碰撞器，一个 Is Trigger，一个不是，这样即可以触发 OnTrigger 事件，也可以触发 OnCollision 事件。</p>
+<h1 id="UGUI"><a href="#UGUI" class="headerlink" title="UGUI"></a>UGUI</h1><h2 id="Canvas-画布"><a href="#Canvas-画布" class="headerlink" title="Canvas 画布"></a>Canvas 画布</h2><p>Canvas 即画布，UI 界面所在的区域。Canvas 是一个带有 Canvas 组件的游戏对象，所有 UI 元素都必须是此类 Canvas 的子元素。UI 元素的绘制顺序依赖于层次面板中的顺序。和 Canvas 一同创建的还有一个 EventSystem ，其是一个基于 Input 的事件系统，可以对键盘、触摸、鼠标、自定义输入进行处理。</p>
+<p>一创建 Canvas 画布，对象上就依附着 RectTransform、Canvas 组件、Canvas Scaler 以及 Graphic Raycaster 四个组件。</p>
+<h3 id="Canvas-组件"><a href="#Canvas-组件" class="headerlink" title="Canvas 组件"></a>Canvas 组件</h3><p><strong>Render Mode</strong>：<br><strong>①Screen Space - Overlay</strong> 覆盖模式：让 UI 元素绘制在其他元素之前，且绘制过程独立于场景元素和摄像机设置，画布尺寸由屏幕大小和分辨率决定，不能调整 RectTransform 组件参数属性；<br>&emsp;&emsp; · Pixel Perfect 完美像素：开启可以锐化屏幕显示效果；<br>&emsp;&emsp; · Sort Order 渲染顺序：在多个 Canvas 中，值越大越渲染到最上层；<br><strong>②Screen Space - Camera</strong>：选择一个相机后，按照和相机的距离前后显示物体和 UI。相机移动或参数改变，画布也会跟着变化。不能调整 RectTransform 组件参数属性；<br>&emsp;&emsp; · Plane Distance：画布与摄像机的距离；<br>&emsp;&emsp; · Sorting Layer：通过 Tags &amp; Layers 调整画布的渲染顺序；<br><strong>③World Space</strong>：画布渲染于世界空间，与场景中其他 3D 物体一样。可以调整 RectTransform 组件参数属性。</p>
+<h3 id="Rect-Transform"><a href="#Rect-Transform" class="headerlink" title="Rect Transform"></a>Rect Transform</h3><p>RectTransform 继承于 Transform，具有 Transform 的所有特征，通过 RectTransform 能够实现基本的布局和层次控制。</p>
+<p>组件属性：<br>Pos X, Pos Y ：Pivot 与 Anchor 的距离<br>Width &amp; Height ：宽与高<br>Left, Top, Right, Bottom：当锚点分开时显示<br>Pivot ：UI 元素的轴心点<br>Anchor ：锚点（当分辨率发生改变，方便 UI 元素自适应变化）  </p>
+<h3 id="Canvas-Scaler"><a href="#Canvas-Scaler" class="headerlink" title="Canvas Scaler"></a>Canvas Scaler</h3><p><strong>UI Scale Mode</strong>：<br><strong>①Constant Pixel Size</strong>：在该模式下的UI控件不会自适应，而是会永远保持 UI 像素大小<br>&emsp;&emsp; - Scale Factor：缩放系数，按此系数缩放画布中的所有 UI 元素，相当于是在控制画布的 RectTransform 中的 Scale 属性；<br>&emsp;&emsp; - Reference Pixels Per Unit：UI 大小 = 图片像素 Pixels / Pixels Per Unit * Reference Pixels Per Unit；<br><strong>②Scale With Screen Size</strong>：UI 尺寸会根据屏幕尺寸进行缩放，Screen Match Mode 分为三个模式：<br>&emsp;&emsp; - Expand：将 Canvas 大小进行相对于 ReferenceResolution 扩大，Canvas Size = Screen Size / Scale Factor，<code>Scale Factor = Mathf.Min(screenSize.x / m_ReferenceResolution.x, screenSize.y / m_ReferenceResolution.y);</code><br>&emsp;&emsp; - Shrink：将 Canvas 大小进行相对于 ReferenceResolution 收缩，Canvas Size = Screen Size / Scale Factor，<code>Scale Factor = Mathf.Max(screenSize.x / m_ReferenceResolution.x, screenSize.y / m_ReferenceResolution.y);</code><br>&emsp;&emsp; - Match Width or Height：根据 Width 或 Height 或者二者的对数平均进行混合缩放，计算公式不摘抄。当 Match == 0 时，适配宽度：将宽度设置为屏幕宽度，并保持默认尺寸比例不变。如果此时高度超过屏幕高度，超出部分将会被裁切掉。当 Match == 1 时，适配高度。将高度设置为屏幕高度，并保持默认尺寸比例不变。如果此时宽度超过屏幕宽度，超出部分将会被裁切掉。<br><strong>③Constant Physical Size</strong>：无论屏幕大小和分辨率如何，UI 元素都保持相同的物理大小<br>&emsp;&emsp; - Physical Unit：单位之间换算关系为  </p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th style="text-align:left">单位种类</th>
+<th style="text-align:left">和 1 inch 的比例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Centimeters</td>
+<td style="text-align:left">2.54</td>
+</tr>
+<tr>
+<td style="text-align:left">Millimeters</td>
+<td style="text-align:left">25.4</td>
+</tr>
+<tr>
+<td style="text-align:left">Inches</td>
+<td style="text-align:left">1</td>
+</tr>
+<tr>
+<td style="text-align:left">Points</td>
+<td style="text-align:left">72</td>
+</tr>
+<tr>
+<td style="text-align:left">Picas 皮卡</td>
+<td style="text-align:left">6</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>&emsp;&emsp; - Fallback Screen DPI：备用 Dpi，当找不到设备 Dpi 时，使用此值；<br>&emsp;&emsp; - Default Sprite DPI：默认图片 DPI。<br>&emsp;&emsp; - 计算公式：Scale =  Screen DPI / 换算比例；新的 Reference Pixels Per Unit = Reference Pixels Per Unit * Physical Unit / Default Sprite DPI；UI 大小 = 原图大小 Pixels / Pixels Per Unit * 新的 Reference Pixels Per Unit<br><strong>④World</strong>：此模式不能手动调出，当我们将 Canvas 的渲染模式调为 World Space 时 CanvasScaler 会强制改为此模式<br>&emsp;&emsp; - Dynamic Pixels Per Unit：UI 中动态创建的位图中的像素密度，值越高 UI 就越清楚。</p>
+<h3 id="Graphic-Raycaster"><a href="#Graphic-Raycaster" class="headerlink" title="Graphic Raycaster"></a>Graphic Raycaster</h3><p>图形射线投射器，它适用于检测 UI 输入事件的射线发射器，其主要责任是通过射线检测玩家和 UI 元素的交互，判断是否点击到了 UI 元素。<br>①Ignore Reversed Graphic：是否忽略反转图形，绕 X 和 Y 轴可以使得反面朝前；<br>②Blocking Objects：设定射线被哪些类型的碰撞器阻挡，在 UI 元素前创建一个 3D 物体或一个 2D 物体，物体会阻挡按钮对点击事件的响应。注意：此项在 overlay 渲染模式下无效；<br>③Blocking Mask：设定射线被哪些层级的碰撞器阻挡，注意：此项在 overlay 渲染模式下无效。</p>
+<h2 id="EventSystem"><a href="#EventSystem" class="headerlink" title="EventSystem"></a>EventSystem</h2><p>Event System 默认挂载两个组件：Event System、Standalone Input Module</p>
+<p>使用 UGUI 制作界面时，EventSystem 的作用就像是为 UGUI 设计好的消息中心，它管理着所有能参与消息处理的 UGUI 元素，比如 Panel、Image、Button等。EventSytem 组件，是消息机制的核心。StandaloneInputModule，是负责产生输入的组件。StandaloneInputModule 继承自 BaseInputModule 实现类，类似的实现类 Unity 中还有另外几个，用户也可以自定义一个实现类用于事件处理。</p>
+<h3 id="Event-System-组件"><a href="#Event-System-组件" class="headerlink" title="Event System 组件"></a>Event System 组件</h3><p>Event System 组件中轮询查询检测并做出相应的执行，它类似于一个中转站，和许多模块一起共同协作。如果没有它，所有的点击、拖曳等等行为都不会被响应。<br>①First Selected：默认第一个被选中的 UI 对象，此项常与 UI 导航事件一同使用。例如：选择为 InputField (输入框) 后 ，按下 Play 后就会将游标 Force 在 InputField 上；<br>②Send Navigation Events：是否允许导航事件（移动/按下/取消）；<br>③Drag Threshold：拖曳操作的阈值（移动多少像素系统会判断现在正在拖曳）。</p>
+<h3 id="Standalone-Input-Module"><a href="#Standalone-Input-Module" class="headerlink" title="Standalone Input Module"></a>Standalone Input Module</h3><p>Standalone Input Module 是 Unity 的独立输入模块，它主要针对处理鼠标/键盘/控制器/触屏的输入，输入的事件通过 Event System 进行分发，它依赖于 Event System 组件，他们两者缺一不可。<br>①Horizontal Axis：水平轴按键对应的热键名（该名字对应 InputManager ）；<br>②Vertical Axis：垂直轴按键对应的热键名（该名字对应 InputManager ）；<br>③Submit Button：提交按钮对应的热键名（该名字对应 InputManager ）；<br>④Cancel Button：取消按键对应的热键名（该名字对应 InputManager ）；<br>⑤Input Actions Per Second：每秒允许键盘/控制器输入的数量；<br>⑥Repeat Delay：每秒输入操作重复率生效前的延迟时间。</p>
+<h1 id="Unity-2D"><a href="#Unity-2D" class="headerlink" title="Unity 2D"></a>Unity 2D</h1><h2 id="Sprite"><a href="#Sprite" class="headerlink" title="Sprite"></a>Sprite</h2><p>Sprite 是 Unity 的 2D 图形对象，本质上也是纹理。Sprite 的工具主要包括：Sprite Editor、Sprite Renderer、Sprite Atlas。</p>
+<p>导入 Project 的图像资源可以通过 Inspector 来更改属性，即 Sprite Import Settings。如果项目模式设置为 2D，则导入的图像将自动设置为精灵 Sprite。但是，如果项目模式设置为 3D，则图像将设置为纹理，因此需要更改资源的纹理类型为 Sprite (2D and UI)。</p>
+<h3 id="Sprite-Import-Settings"><a href="#Sprite-Import-Settings" class="headerlink" title="Sprite Import Settings"></a>Sprite Import Settings</h3><p><strong>①Texture Type</strong><br>&emsp;&emsp; - Default：通用纹理类型；<br>&emsp;&emsp; - Normal map：选择此选项可将颜色通道转换为适合实时法线贴图的格式；<br>&emsp;&emsp; - Editor GUI and Legacy GUI :如果要在任何 HUD 或 GUI 控件上使用纹理，请选择此选项；<br>&emsp;&emsp; - Sprite (2D and UI)：2D 游戏中使用该纹理作为精灵，开发 UI 界面的时候一般都是选择的这个选项；<br>&emsp;&emsp; - Cursor：将纹理用作自定义游标；<br>&emsp;&emsp; - Cookie：光源的 Cookie 可以理解为一层 Mask，在光源前放一个遮罩，可以使得射出的光线形成某种图案(像是对光线的一种”过滤”)，Unity 中 Light 的 Cookie 是用纹理表示的；<br>&emsp;&emsp; - Lightmap：光照贴图；<br>&emsp;&emsp; - Single Channel：适用于在纹理中只需要一个通道的情况。<br><strong>②Sprite Mode</strong><br>包括 Single 、Multiple、Polygon。选择 Multiple，可以通过 Sprite Editor 进行分割；选择 Polygon 可根据 Sprite Editor 的 Sprite Custom Outline 中定义的网格来剪辑精灵纹理。<br><strong>③Pixels Per Unit</strong><br>修改 Pixels Per Unit 的值后，只有选中图片产生变化，场景界面中的网格不会产生变化。如果一个图片的大小是 16*16 像素，将 Pixels Per Unit 调整为 16 后，那么这张图片就会正好覆盖一个单元格。同理，如果一个图片的大小是 64*64 像素，此时还是将 Pixels Per Unit 设置为 16 的话，该图片就会正好覆盖 4 格单元格。<br><strong>④Mesh Type</strong><br>包括 Full Rect 和 Tight 模式，Full Rect 模式把一个 Sprite 渲染为一个带有透明区域的完整四边形。弊端就是可能会有很大一部分透明区域被渲染而造成性能浪费。建议选择 Tight。<br><strong>⑤Advanced - Alpha Source</strong><br>&emsp;&emsp; - None：无论输入纹理是否有 Alpha 通道，导入的纹理都没有 Alpha 通道；<br>&emsp;&emsp; - Input Texture Alpha ：如果提供了纹理，则使用输入纹理中的 Alpha；<br>&emsp;&emsp; - From Gray Scale: 从输入纹理 RGB 值的平均值生成 Alpha。即 alpha = (R + G + B) / 3。<br><strong>⑥Alpha Is Transparency</strong><br>用于解决多图片叠加纹理混合，插值的出来的 RGBA 产生不期望的颜色的问题，达到减少纹理过滤瑕疵的目的。建议勾选。<br><strong>⑦Wrap Mode</strong><br>Repeat：在区块中重复纹理；Clamp：拉伸纹理的边缘；Mirror: 在每个整数边界上镜像纹理以创建重复图案；Mirror Once：镜像纹理一次，然后将其钳制到边缘像素；Per-axis：单独控制 Unity 如何在 U 轴和 V 轴上包裹纹理。<br><strong>⑧Filter Mode</strong><br>纹理过滤(平滑)方式。若要不影响像素风格，建议选择 Point。Bilinear 和 Trilinear 会让纹理显得相对模糊一点。有兴趣可以了解一下 Bilinear、Trilinear 以及 Anistropic Filtering。<br><strong>⑨纹理压缩</strong><br>有解决性能需求可以去了解，不在本篇文章阐述。</p>
+<h3 id="Sprite-Editor"><a href="#Sprite-Editor" class="headerlink" title="Sprite Editor"></a>Sprite Editor</h3><p>Sprite Editor 可以对 Multiple 模式下的纹理进行裁切，对 polygon 进行改变形状操作。</p>
+<p>Sprite Editor也有很多模式：<br>①Custom Outline：用于编辑网格形状。默认情况下，Unity 渲染精灵网格为一个矩形，可以在该模式下减少网格的透明部分，增加游戏性能；<br>②Custom Physics Shape：用于编辑精灵的物理碰撞形状；可以手动修改，也可以让 Unity 根据 Outline Tolerance 自动生成；<br>③Secondary Textures：用于结合额外的纹理；<br>④Skinning Editor：用于骨骼绑定。</p>
+<h3 id="Sprite-Renderer"><a href="#Sprite-Renderer" class="headerlink" title="Sprite Renderer"></a>Sprite Renderer</h3><p>一个 Sprite 游戏对象，至少拥有两个组件，Transform 组件和 Sprite Renderer 组件。其中 Sprite Renderer 组件就是用来在 Scene 中渲染显示出图像。</p>
+<p><strong>①Draw Mode</strong><br>&emsp;&emsp; - Simple：拉伸；<br>&emsp;&emsp; - Sliced：九宫格缩放，原理就是把图片分成九宫格那样的区域，四个边角不变，只改变中间的区域，中间的横和中间的竖。这样缩放之后，再把四个边角贴上去，整体形状就不会改变；<br>&emsp;&emsp; - Tiled：将九宫格图片中间部分像砖块一样平铺。包含 Continuous 和 Adaptive 模式，Continuous 就是均匀平铺不拉伸，Adaptive 自适应拉伸。<br><strong>②Mask Interaction</strong><br>遮罩交互，有三种模式，分别是 None 默认、Visible Inside Mask 面罩内可见 、Visible Outside Mask 面罩外可见，需搭配 Sprite Mask 组件使用。<br><strong>③Material</strong><br>可以选择 Sprite-Lit-Default 或 Sprite-Unlit-Default，前面的材质受到光源系统的影响，后面的不受影响。可以在通用渲染管线 URP 里的 2D Renderer Data 资源修改默认的材质类型。</p>
+<h3 id="Sprite-Atlas-图集"><a href="#Sprite-Atlas-图集" class="headerlink" title="Sprite Atlas 图集"></a>Sprite Atlas 图集</h3><p>Unity 通常会为场景中的每个纹理发出一个绘制调用 DrawCall；但是，在具有许多纹理的项目中，过多的绘制调用会占用大量资源，并会对项目的性能产生负面影响。为了降低性能消耗，我们可以使用精灵图集 Sprite Atlas 技术，它能够将多个纹理合并成一个大纹理，当访问图集中的多个纹理时，也只需要调用一次 DrawCall。</p>
+<p>创建图集在 Assets -&gt; Create -&gt; 2D -&gt; Sprite Atlas，图集属性如下： </p>
+<p><strong>①Type</strong><br>包括 Master 和 Variant，变体图集是主图集的副本，变体图集的主要目的是创建与主图集不同分辨率的图集，主图集中 Sprite 的分辨率 * Scale 缩放因子得到的结果就是变体图集中 Sprite 的分辨率，它自身不包含 Objects for Packing 属性，因此变体图集中的内容都是主图集的副本。</p>
+<p>当项目中既有主图集，又有该主图集的变体图集时，可以使用这两个图集中任意一个的 Sprite 。如果要自动从变体图集而不是主图集中加载 Sprite，那就仅在变体图集启用 Include in Build 选项，并关闭主图集的这个选项。<br><strong>②Include in Build</strong><br>Unity 在打包的项目中会包含图集，并且在运行时自动加载它们。如果禁用 Include in Build，Unity 仍会将图集打包到项目 Assets 文件夹中的 .spriteatlas 文件中，只是运行的时候不会加载到内存中。因此，当精灵引用已禁用的图集中的纹理，由于引用纹理 not available or loaded，该纹理将无法被找到，引用它的图片将显示为空白。此时要加载精灵图集，必须使用脚本通过后期绑定 Late Binding 执行此操作。<br><strong>③Allow rotation</strong><br>允许打包时旋转精灵，最大限度地提高 Sprite 的密度。若用于 UI 元素建议关闭，因为在图集中旋转过的精灵在场景中也会旋转。<br><strong>④Tight Packing</strong><br>根据精灵轮廓而非精灵外部矩形的轮廓来打包，提高 Sprite 的密度。<br><strong>⑤Padding</strong><br>定义图集里精灵的像素间距，默认为4；<br><strong>⑥Read/Write</strong><br>是否要读写，一般都设置为 false，否则 CPU 会多一份内存。当我们创建纹理的时候 Unity 会将纹理数据上传到 GPU 层，CPU 层的数据就没用了，就删掉了，但是如果我们要修改或者处理纹理数据的时候就需要再 CPU 层保留这部分数据。那么此时 CPU 和 GPU 层就有了2份数据。<br><strong>⑦Generate Mip Maps</strong><br>是否生成 mipmap,生成 mipmap 后会让纵深场景的纹理显示效果更加平滑，效果更好，但同时内存也会增加三分之一。Mipmap 是以空间换时间形式的性能优化，建议额外了解。<br><strong>⑧sRGB</strong><br>gamma0.45 色彩空间，建议额外了解。场景的 Abedo (Base Color) 贴图、特效贴图、UI 贴图建议勾选 sRGB；通道贴图、Alpha 贴图不勾选 sRGB；法线贴图、光照贴图、环境贴图不需要关注是否勾选 sRGB。<br><strong>⑨filter mode</strong><br>之前有提到。对于 2d 游戏和 UI，可以选择 point 提升采样效率。<br><strong>⑩Use Crunch Compression</strong><br>建议勾选，默认质量50，更少的磁盘占用。虽然会使打包变慢，但会使包体更小，不影响压缩。</p>
+<h2 id="Tilemaps"><a href="#Tilemaps" class="headerlink" title="Tilemaps"></a>Tilemaps</h2><p>Tilemap 即瓦片地图，主要用于快速编辑 2D 游戏中的场景，通过复用资源的形式提升地图多样性。默认情况下，Tilemap package 不包括在编辑器里面，需要从 Package Manager 安装。创建 Tilemaps 资源并使用有以下四步：<br>①先在 Assets -&gt; Create -&gt; 2D -&gt; Tile Palette 里根据需要创建瓦片调色板 Tile Palette。这里创建的一个预制件文件；<br>②在 Window -&gt; 2D -&gt; Tile Palette 打开调色板窗口；<br>③将图片资源拖入到窗口中，然后选择要保存的路径，也就是精灵保存为瓦片；<br>④在 Hierarchy 窗口中右键选择 2D Project —&gt; Tilemap 创建，此时 Scene 窗口中将出现网格 Grid，用选取器选中调色板中的图片，直接在 Scene 窗口中单击创建即可。可以创建多个 Tilemap，将其层级排序；<br>⑤根据需求添加 Tilemap Collider 2D 组件。</p>
+<h3 id="Grid-组件相关参数"><a href="#Grid-组件相关参数" class="headerlink" title="Grid 组件相关参数"></a>Grid 组件相关参数</h3><p>①Layout：瓦片的网格布局包括 Rectangle、Hexagon、Isometric 等距、Isometric Z as Y。Isometric 通常就是 2D 游戏中经常说的 2.5D 或者斜 45 度的游戏类型；Isometric Z as Y 就是在Tile Palette 窗口中，可以调节瓦片的 Z 轴高度（需要取消对 lock z position 的勾选），在 Isometric Z as Y 类型的 Tilemap 中 Z 轴会被转换为 Y 轴的位置，从而实现瓦片堆叠的视觉效果；<br>②Cell Size：根据选择的布局会自动产生网格大小的数据，比如 Isometric 是（1，0.5，1），表示网格的宽度为 1 个 Unity 单位，宽为 0.5 个 Unity 单位。如果你所用到图片资源的宽度、高度都是固定大小，比如 72*36 等，使用 Unity 单位长度便于理解和管理资源。比如将导入的 Sprite 的 Pixels Per Unit 属性统一设置为 72 ，则（1，0.5，1）表示宽 72 像素、高 72 * 0.5 = 36 个像素；<br>③Cell Swizzle：Unity 将根据此选择，将现有 XYZ 坐标转换为选择的坐标。</p>
+<h3 id="Grid-下的-Tilemap-的-Tilemap-组件相关参数"><a href="#Grid-下的-Tilemap-的-Tilemap-组件相关参数" class="headerlink" title="Grid 下的 Tilemap 的 Tilemap 组件相关参数"></a>Grid 下的 Tilemap 的 Tilemap 组件相关参数</h3><p>Grid 下的 Tilemap 是我们实际要“画” Tile 的对象层。可以根据需要在 Grid 下创建多层 Tilemap 用来作为地面层、建筑层、空中层、碰撞层等等。<br>①Animation Frame Rate：播放瓦片动画的速率，相当于倍速；<br>②Tile Anchor：即后面需要用到的 Tile 的锚点。与之对应的是图片 Sprite 的 Pivot 属性；<br>③Orientation：瓦片地图上瓦片的方向，相当于 2D 平面使用的是 Unity 中的哪两个轴。</p>
+<h3 id="Grid-下的-Tilemap-的-Tilemap-Renderer-组件相关参数"><a href="#Grid-下的-Tilemap-的-Tilemap-Renderer-组件相关参数" class="headerlink" title="Grid 下的 Tilemap 的 Tilemap Renderer 组件相关参数"></a>Grid 下的 Tilemap 的 Tilemap Renderer 组件相关参数</h3><p>①Sort Order：设置所选瓦片地图上的瓦片排序方向；<br>②Mode：渲染器的渲染模式<br>&emsp;&emsp; - Chunk：按位置对瓦片进行分组，并将瓦片精灵一起批处理进行渲染，性能较好；<br>&emsp;&emsp; - Individual：单独渲染每个瓦片，会考虑他们的位置和排序顺序。会让瓦片精灵和场景中其他渲染器或自定义排序轴进行交互。等距瓦片一般选择此项；<br>③Detect Chunk Culling：渲染器如何剔除瓦片地图的边界<br>&emsp;&emsp; - Auto：自动检测；<br>&emsp;&emsp; - Manual：手动设置拓展边界。<br>④Mask Interaction：遮罩交互<br>&emsp;&emsp; - None：不与场景中任何精灵遮罩交互；<br>&emsp;&emsp; - Visible Inside mask：精灵遮罩覆盖的地方可见，而遮罩外部不可见；<br>&emsp;&emsp; - Visible Outside mask：精灵遮罩外部的地方可见，而遮罩覆盖处不可见。 </p>
+<h3 id="关于瓦片的其他需了解的"><a href="#关于瓦片的其他需了解的" class="headerlink" title="关于瓦片的其他需了解的"></a>关于瓦片的其他需了解的</h3><p>可创建的瓦片类型：<br>①规则瓦片 Rule Tile：定义不同方向是否存在连接图片的规则，让我们更加快捷的进行地图编辑；<br>②动画瓦片 Animated Tile：可以指定序列帧，产生可以播放序列帧动画的瓦片；  </p>
+<p>上述瓦片类型可以帮助我们更加快捷、方便的编辑 2D 场景，建议额外了解。除了不同的瓦片类型，还可以自定义笔刷。</p>
+<h1 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h1><h2 id="持久化数据"><a href="#持久化数据" class="headerlink" title="持久化数据"></a>持久化数据</h2><p>游戏中持久化数据一般可分为两种：第一张是静态数据，例如 Excel 数据表，其特点是运行期间游戏程序只需要读取，不需要修改；另一种是游戏存档，其特点是运行期间游戏程序既需要读取，也需要修改。</p>
+<p>可以使用 JSON、XML、YAML 进行序列化和反序列化。建议了解一下 C# Newtonsoft.Json。</p>
+<h2 id="Prefab"><a href="#Prefab" class="headerlink" title="Prefab"></a>Prefab</h2><p>Unity 的<strong>预制件 Prefab</strong> 系统允许创建、配置和存储游戏对象及其所有组件、属性值和子游戏对象作为可重用资源。预制件资源充当模板，在此模板的基础之上可以在场景中创建新的预制件实例。</p>
+<h2 id="版本管理"><a href="#版本管理" class="headerlink" title="版本管理"></a>版本管理</h2><p>对项目的版本管理，通常将整个项目上传 SVN 或者 Git。然而资源在导入 Unity 时，会自动产生很多中间资源，这些资源是不需要上传的，只需将 Assets、ProjectSetting 文件夹下的所有文件以及 .meta 文件上传即可。</p>
+<p><strong>.meta 文件</strong>是 Unity 自动生成的。每个游戏资源都会有一个对应的 .meta 文件，它会标记资源的一些设置信息，可以在资源视图面板中重新设置这些资源的参数。每个 .meta 文件都会记录 guid 这个重要信息，guid 就是用来关联资源与游戏对象的引用的。</p>
+<h2 id="游戏打包"><a href="#游戏打包" class="headerlink" title="游戏打包"></a>游戏打包</h2><p>打包时，不是所有编辑模式下的资源都需要打包在发布的游戏包中的，Unity 会自动删除没有引用的资源，只会保留 Resources 目录以及 StreamingAssets 目录下的资源。</p>
+<h3 id="Resources"><a href="#Resources" class="headerlink" title="Resources"></a>Resources</h3><p><strong>Resources 文件夹</strong>是 Unity 中标志性的目录，这个目录下的资源无论是否有引用关系，都会被强制打在游戏包中。Resources 文件夹可以是顶层目录，也可以是某个文件夹的子目录。Resources 目录下的资源尽量不要直接引用在场景中，不然这个资源会被场景和 Resources 打成两份。</p>
+<h3 id="AssetBundle"><a href="#AssetBundle" class="headerlink" title="AssetBundle"></a>AssetBundle</h3><p>在网络游戏中，可能需要在运行时下载并更新资源，而 Unity 提供了 AssetBundle 组件，可以将指定的一部分资源构建成 AssetsBundle 文件，并将这些文件上传到 CDN 上以供下载。AssetBundle 可以理解为一种包文件，它可以将特定平台的非代码资源（模型、纹理、预制体、音频等）包含在内，并在运行时由 Unity 加载。通过 AssetBundle 技术，可以在游戏中实现资源的热更新。可以将文件保存在 StreamingAssets 目录下。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io">鸟布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io/2023/07/09/2023-07-09-Unity%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E6%9D%82%E8%AE%B0/">https://ybniaobu.github.io/2023/07/09/2023-07-09-Unity%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E6%9D%82%E8%AE%B0/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://ybniaobu.github.io" target="_blank">鸟布的博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a><a class="post-meta__tags" href="/tags/unity/">unity</a></div><div class="post_share"><div class="social-share" data-image="https://s2.loli.net/2023/09/19/zXfAWqLZlxQwdU1.gif" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i> 打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/images/wechat.png" target="_blank"><img class="post-qr-code-img" src="/images/wechat.png" alt="微信"/></a><div class="post-qr-code-desc">微信</div></li><li class="reward-item"><a href="/images/alipay.png" target="_blank"><img class="post-qr-code-img" src="/images/alipay.png" alt="支付宝"/></a><div class="post-qr-code-desc">支付宝</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2023/07/12/2023-07-12-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E5%9F%BA%E7%A1%80/" title="MIT 线性代数公开课笔记（一）"><img class="cover" src="https://s2.loli.net/2023/07/12/tAXf9jPcbOqzyDN.gif" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">MIT 线性代数公开课笔记（一）</div></div></a></div><div class="next-post pull-right"><a href="/2023/07/07/2023-07-07-Csharp%E5%9B%BE%E8%A7%A3%E6%95%99%E7%A8%8B5/" title="《C#图解教程》读书笔记（五）"><img class="cover" src="https://s2.loli.net/2022/12/15/TYXrac2oJnPlM1E.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">《C#图解教程》读书笔记（五）</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2023/09/15/2023-09-15-UnityShader1/" title="《Unity Shader入门精要》读书笔记（一）"><img class="cover" src="https://s2.loli.net/2023/09/19/cDvdURBPhjwkOsY.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-09-15</div><div class="title">《Unity Shader入门精要》读书笔记（一）</div></div></a></div><div><a href="/2023/10/13/2023-10-13-UnityShader2/" title="《Unity Shader入门精要》读书笔记（二）"><img class="cover" src="https://s2.loli.net/2023/10/15/RZftaNSscWoLH1u.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-10-13</div><div class="title">《Unity Shader入门精要》读书笔记（二）</div></div></a></div><div><a href="/2023/12/19/2023-12-19-UnityShader4/" title="《Unity Shader入门精要》读书笔记（四）"><img class="cover" src="https://s2.loli.net/2023/12/20/9Ah5ugiIpONK1cX.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-12-19</div><div class="title">《Unity Shader入门精要》读书笔记（四）</div></div></a></div><div><a href="/2023/12/30/2023-12-30-UnityShader5/" title="《Unity Shader入门精要》读书笔记（五）"><img class="cover" src="https://s2.loli.net/2023/12/30/hc2s7BS45l1wUdQ.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-12-30</div><div class="title">《Unity Shader入门精要》读书笔记（五）</div></div></a></div><div><a href="/2023/11/22/2023-11-22-UnityShader3/" title="《Unity Shader入门精要》读书笔记（三）"><img class="cover" src="https://s2.loli.net/2023/11/23/L3ts4WnThMlDN9d.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-11-22</div><div class="title">《Unity Shader入门精要》读书笔记（三）</div></div></a></div><div><a href="/2023/07/12/2023-07-12-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E5%9F%BA%E7%A1%80/" title="MIT 线性代数公开课笔记（一）"><img class="cover" src="https://s2.loli.net/2023/07/12/tAXf9jPcbOqzyDN.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-07-12</div><div class="title">MIT 线性代数公开课笔记（一）</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">鸟布</div><div class="author-info__description">教练，我想学技术</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">23</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">12</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">15</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://niaobu.notion.site/787824630ea6480e944c1ae5ae7f4792"><i class="fa-solid fa-book"></i><span>My Notion</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/ybniaobu/ybniaobu.github.io" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:niaobubob@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">为了蒂法！！！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E8%84%9A%E6%9C%AC"><span class="toc-number">1.</span> <span class="toc-text">脚本</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%84%9A%E6%9C%AC%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F"><span class="toc-number">1.1.</span> <span class="toc-text">脚本的生命周期</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B0%83%E8%AF%95"><span class="toc-number">1.2.</span> <span class="toc-text">调试</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8-API"><span class="toc-number">1.3.</span> <span class="toc-text">常用 API</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%8F%E7%A8%8B-coroutine"><span class="toc-number">1.4.</span> <span class="toc-text">协程 coroutine</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%84%9A%E6%9C%AC%E5%BA%8F%E5%88%97%E5%8C%96-script-serialization"><span class="toc-number">1.5.</span> <span class="toc-text">脚本序列化 script serialization</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ScriptableObject"><span class="toc-number">1.6.</span> <span class="toc-text">ScriptableObject</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%9B%E5%BB%BA-ScriptableObject"><span class="toc-number">1.6.1.</span> <span class="toc-text">创建 ScriptableObject</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8-ScriptableObject"><span class="toc-number">1.6.2.</span> <span class="toc-text">使用 ScriptableObject</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%89%E7%BB%B4%E6%95%B0%E5%AD%A6%E5%9F%BA%E7%A1%80"><span class="toc-number">2.</span> <span class="toc-text">三维数学基础</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%91%E9%87%8F%E5%9F%BA%E7%A1%80"><span class="toc-number">2.1.</span> <span class="toc-text">向量基础</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E8%A7%92%E5%87%BD%E6%95%B0"><span class="toc-number">2.2.</span> <span class="toc-text">三角函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%AC%A7%E6%8B%89%E8%A7%92-Euler-angle"><span class="toc-number">2.3.</span> <span class="toc-text">欧拉角 Euler angle</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E5%85%83%E6%95%B0-Quaternion"><span class="toc-number">2.4.</span> <span class="toc-text">四元数 Quaternion</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9D%90%E6%A0%87%E7%B3%BB%E7%BB%9F"><span class="toc-number">2.5.</span> <span class="toc-text">坐标系统</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9D%90%E6%A0%87%E7%B3%BB%E8%BD%AC%E6%8D%A2"><span class="toc-number">2.5.1.</span> <span class="toc-text">坐标系转换</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%89%A9%E7%90%86%E5%BC%95%E6%93%8E"><span class="toc-number">3.</span> <span class="toc-text">物理引擎</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%9A%E4%BD%93-Rigidbody"><span class="toc-number">3.1.</span> <span class="toc-text">刚体 Rigidbody</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%9A%E4%BD%93%E7%BB%84%E4%BB%B6%E5%B1%9E%E6%80%A7"><span class="toc-number">3.1.1.</span> <span class="toc-text">刚体组件属性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%9A%E4%BD%93%E7%9A%84%E4%BC%91%E7%9C%A0"><span class="toc-number">3.1.2.</span> <span class="toc-text">刚体的休眠</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%A2%B0%E6%92%9E%E5%99%A8-Collider"><span class="toc-number">3.2.</span> <span class="toc-text">碰撞器 Collider</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A2%B0%E6%92%9E%E5%99%A8%E7%BB%84%E4%BB%B6%E5%B1%9E%E6%80%A7"><span class="toc-number">3.2.1.</span> <span class="toc-text">碰撞器组件属性</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%91%E7%94%9F%E7%A2%B0%E6%92%9E%E6%88%96%E8%A7%A6%E5%8F%91%E6%80%BB%E7%BB%93"><span class="toc-number">3.3.</span> <span class="toc-text">发生碰撞或触发总结</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%91%E7%94%9F%E7%A2%B0%E6%92%9E"><span class="toc-number">3.3.1.</span> <span class="toc-text">发生碰撞</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%A6%E5%8F%91-OnTrigger-%E7%9A%84%E6%83%85%E5%BD%A2"><span class="toc-number">3.3.2.</span> <span class="toc-text">触发 OnTrigger 的情形</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#UGUI"><span class="toc-number">4.</span> <span class="toc-text">UGUI</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Canvas-%E7%94%BB%E5%B8%83"><span class="toc-number">4.1.</span> <span class="toc-text">Canvas 画布</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Canvas-%E7%BB%84%E4%BB%B6"><span class="toc-number">4.1.1.</span> <span class="toc-text">Canvas 组件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Rect-Transform"><span class="toc-number">4.1.2.</span> <span class="toc-text">Rect Transform</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Canvas-Scaler"><span class="toc-number">4.1.3.</span> <span class="toc-text">Canvas Scaler</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Graphic-Raycaster"><span class="toc-number">4.1.4.</span> <span class="toc-text">Graphic Raycaster</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#EventSystem"><span class="toc-number">4.2.</span> <span class="toc-text">EventSystem</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Event-System-%E7%BB%84%E4%BB%B6"><span class="toc-number">4.2.1.</span> <span class="toc-text">Event System 组件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Standalone-Input-Module"><span class="toc-number">4.2.2.</span> <span class="toc-text">Standalone Input Module</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Unity-2D"><span class="toc-number">5.</span> <span class="toc-text">Unity 2D</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Sprite"><span class="toc-number">5.1.</span> <span class="toc-text">Sprite</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Sprite-Import-Settings"><span class="toc-number">5.1.1.</span> <span class="toc-text">Sprite Import Settings</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Sprite-Editor"><span class="toc-number">5.1.2.</span> <span class="toc-text">Sprite Editor</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Sprite-Renderer"><span class="toc-number">5.1.3.</span> <span class="toc-text">Sprite Renderer</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Sprite-Atlas-%E5%9B%BE%E9%9B%86"><span class="toc-number">5.1.4.</span> <span class="toc-text">Sprite Atlas 图集</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Tilemaps"><span class="toc-number">5.2.</span> <span class="toc-text">Tilemaps</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Grid-%E7%BB%84%E4%BB%B6%E7%9B%B8%E5%85%B3%E5%8F%82%E6%95%B0"><span class="toc-number">5.2.1.</span> <span class="toc-text">Grid 组件相关参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Grid-%E4%B8%8B%E7%9A%84-Tilemap-%E7%9A%84-Tilemap-%E7%BB%84%E4%BB%B6%E7%9B%B8%E5%85%B3%E5%8F%82%E6%95%B0"><span class="toc-number">5.2.2.</span> <span class="toc-text">Grid 下的 Tilemap 的 Tilemap 组件相关参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Grid-%E4%B8%8B%E7%9A%84-Tilemap-%E7%9A%84-Tilemap-Renderer-%E7%BB%84%E4%BB%B6%E7%9B%B8%E5%85%B3%E5%8F%82%E6%95%B0"><span class="toc-number">5.2.3.</span> <span class="toc-text">Grid 下的 Tilemap 的 Tilemap Renderer 组件相关参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B3%E4%BA%8E%E7%93%A6%E7%89%87%E7%9A%84%E5%85%B6%E4%BB%96%E9%9C%80%E4%BA%86%E8%A7%A3%E7%9A%84"><span class="toc-number">5.2.4.</span> <span class="toc-text">关于瓦片的其他需了解的</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%B6%E4%BB%96"><span class="toc-number">6.</span> <span class="toc-text">其他</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8C%81%E4%B9%85%E5%8C%96%E6%95%B0%E6%8D%AE"><span class="toc-number">6.1.</span> <span class="toc-text">持久化数据</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Prefab"><span class="toc-number">6.2.</span> <span class="toc-text">Prefab</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%89%88%E6%9C%AC%E7%AE%A1%E7%90%86"><span class="toc-number">6.3.</span> <span class="toc-text">版本管理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B8%B8%E6%88%8F%E6%89%93%E5%8C%85"><span class="toc-number">6.4.</span> <span class="toc-text">游戏打包</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Resources"><span class="toc-number">6.4.1.</span> <span class="toc-text">Resources</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#AssetBundle"><span class="toc-number">6.4.2.</span> <span class="toc-text">AssetBundle</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2023/12/30/2023-12-30-UnityShader5/" title="《Unity Shader入门精要》读书笔记（五）"><img src="https://s2.loli.net/2023/12/30/hc2s7BS45l1wUdQ.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（五）"/></a><div class="content"><a class="title" href="/2023/12/30/2023-12-30-UnityShader5/" title="《Unity Shader入门精要》读书笔记（五）">《Unity Shader入门精要》读书笔记（五）</a><time datetime="2023-12-30T08:05:42.000Z" title="发表于 2023-12-30 16:05:42">2023-12-30</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/12/19/2023-12-19-UnityShader4/" title="《Unity Shader入门精要》读书笔记（四）"><img src="https://s2.loli.net/2023/12/20/9Ah5ugiIpONK1cX.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（四）"/></a><div class="content"><a class="title" href="/2023/12/19/2023-12-19-UnityShader4/" title="《Unity Shader入门精要》读书笔记（四）">《Unity Shader入门精要》读书笔记（四）</a><time datetime="2023-12-19T11:35:53.000Z" title="发表于 2023-12-19 19:35:53">2023-12-19</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/11/22/2023-11-22-UnityShader3/" title="《Unity Shader入门精要》读书笔记（三）"><img src="https://s2.loli.net/2023/11/23/L3ts4WnThMlDN9d.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（三）"/></a><div class="content"><a class="title" href="/2023/11/22/2023-11-22-UnityShader3/" title="《Unity Shader入门精要》读书笔记（三）">《Unity Shader入门精要》读书笔记（三）</a><time datetime="2023-11-22T08:32:01.000Z" title="发表于 2023-11-22 16:32:01">2023-11-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/10/13/2023-10-13-UnityShader2/" title="《Unity Shader入门精要》读书笔记（二）"><img src="https://s2.loli.net/2023/10/15/RZftaNSscWoLH1u.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（二）"/></a><div class="content"><a class="title" href="/2023/10/13/2023-10-13-UnityShader2/" title="《Unity Shader入门精要》读书笔记（二）">《Unity Shader入门精要》读书笔记（二）</a><time datetime="2023-10-13T13:58:01.000Z" title="发表于 2023-10-13 21:58:01">2023-10-13</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2023/09/15/2023-09-15-UnityShader1/" title="《Unity Shader入门精要》读书笔记（一）"><img src="https://s2.loli.net/2023/09/19/cDvdURBPhjwkOsY.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="《Unity Shader入门精要》读书笔记（一）"/></a><div class="content"><a class="title" href="/2023/09/15/2023-09-15-UnityShader1/" title="《Unity Shader入门精要》读书笔记（一）">《Unity Shader入门精要》读书笔记（一）</a><time datetime="2023-09-15T04:03:32.000Z" title="发表于 2023-09-15 12:03:32">2023-09-15</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2022 - 2024 By 鸟布</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">Your time is limited, so don't waste it living someone else's life.</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>if (!window.MathJax) {
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      tags: 'ams'
+    },
+    chtml: {
+      scale: 1.1
+    },
+    options: {
+      renderActions: {
+        findScript: [10, doc => {
+          for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
+            const display = !!node.type.match(/; *mode=display/)
+            const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display)
+            const text = document.createTextNode('')
+            node.parentNode.replaceChild(text, node)
+            math.start = {node: text, delim: '', n: 0}
+            math.end = {node: text, delim: '', n: 0}
+            doc.math.push(math)
+          }
+        }, '']
+      }
+    }
+  }
+  
+  const script = document.createElement('script')
+  script.src = 'https://cdn.jsdelivr.net/npm/mathjax/es5/tex-mml-chtml.min.js'
+  script.id = 'MathJax-script'
+  script.async = true
+  document.head.appendChild(script)
+} else {
+  MathJax.startup.document.state(0)
+  MathJax.texReset()
+  MathJax.typesetPromise()
+}</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div class="no-result" id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>
