@@ -1,0 +1,203 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>基于星穹铁道的卡通渲染 | 鸟布的博客</title><meta name="author" content="鸟布"><meta name="copyright" content="鸟布"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="本文以米哈游的崩坏星穹铁道的卡通人物渲染来切入 NPR (Non-Photorealistic Rendering) ，从而对卡通渲染有个初步的了解，并加深对渲染的理解，为做出自己的风格化渲染打下基础。"><link rel="shortcut icon" href="https://s2.loli.net/2022/09/08/Ygib4lfw6z1khnr.png"><link rel="canonical" href="https://ybniaobu.github.io/2024/03/20/2024-03-20-NPR_StarRail/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":50,"languages":{"author":"作者: 鸟布","link":"链接: ","source":"来源: 鸟布的博客","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: true,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '基于星穹铁道的卡通渲染',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2024-03-20 22:09:06'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.2.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/images/wechat%20avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">27</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">14</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">16</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/images/black.jpg')"><nav id="nav"><span id="blog-info"><a href="/" title="鸟布的博客"><span class="site-name">鸟布的博客</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">基于星穹铁道的卡通渲染</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2024-03-20T05:25:53.000Z" title="发表于 2024-03-20 13:25:53">2024-03-20</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2024-03-20T14:09:06.679Z" title="更新于 2024-03-20 22:09:06">2024-03-20</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/unity/">unity</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/unity/unity-shader/">unity shader</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">1.2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>3分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="基于星穹铁道的卡通渲染"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><blockquote>
+<p>本文主要借鉴了 b 站 up 主给我柠檬养乐多你会跟我玩吗的视频，bv 号：BV1CN411C7qx。</p>
+</blockquote>
+<h1 id="模型处理"><a href="#模型处理" class="headerlink" title="模型处理"></a>模型处理</h1><h2 id="Blender-模型预处理"><a href="#Blender-模型预处理" class="headerlink" title="Blender 模型预处理"></a>Blender 模型预处理</h2><p>米哈游的模型都公布在模之屋 (<a target="_blank" rel="noopener" href="https://www.aplaybox.com/">https://www.aplaybox.com/</a>) ，由于公布的模型都是 MMD 软件的 pmx 格式，我们需要使用 Blender 软件的插件 MMD_Tools (<a target="_blank" rel="noopener" href="https://github.com/UuuNyaa/blender_mmd_tools">https://github.com/UuuNyaa/blender_mmd_tools</a>) 转换为 FBX 格式，方便导入到 Unity。笔者使用的 blender 版本为 3.6.8 LTS，当前 MMD_Tools 插件只支持到 3.6 LTS。</p>
+<p>具体的模型处理操作这里不进行图文说明了，依据本文开头说的视频中描述，步骤大致如下：<br>①导入模型后，先把 joints 和 rigidbodies 删除；<br>②进入编辑模式，将除了脸以外的使用同一张贴图的材质进行合并，脸不合并是因为我们只需要对脸进行描边，而不需要对眼睛、眉毛、牙齿舌头嘴巴进行描边。（视频里最后剩下了以下材质：上衣、下衣、头发、牙舌口、目、眉毛、眼睛1、脸、表情）；<br>③把带内侧二字的材质删除，该材质使用的模型顶点区域是和外侧共用的，而且视频中使用的布洛妮娅的模型的裙内侧贴图是纯蓝色，可以直接在 Shader 中渲染背面时将基础颜色设置为蓝色（我觉得对于内侧贴图有图画的可以保留，不重复描边即可<font color=Red>【待实验】</font>）；<br>④为了在 Unity 中减少渲染的纹理消耗，将形态键分离（模型中自带一些表情相关<strong>形态键 Shape Keys</strong>，Unity 中叫<strong>混合形状 BlendShapes</strong>，也有叫<strong>变形目标 Morph Target</strong> 的），选择跟脸相关材质对应的模型顶点（视频中选择了脸、眉毛、牙舌口、目、眼睛1、表情），并进行分离，也就是脸对应一个 mesh，身体对应一个 mesh，然后删除身体的 mesh 里的所有的形态键，并删除脸 mesh 和身体 mesh 中不属于该 mesh 的多余的材质；</p>
+<h2 id="导出-FBX"><a href="#导出-FBX" class="headerlink" title="导出 FBX"></a>导出 FBX</h2><p>随后导出 FBX 格式，在 Blender 的导出设置中 <strong>Apply Scalings</strong> 选择 <strong>FBX Units Scale</strong> 可以解决导入 Unity 时缩放为 100 的问题。<strong>Forward</strong> 选择导出物体在 Blender 中的我们想要的面朝方向，<strong>Up</strong> 选择导出物体在 Blender 中我们想要的向上的方向，并在 Unity FBX 导入界面勾选 <strong>Bake Axis Conversion</strong>，这样可以解决旋转出错的问题。比如 Blender 的猴头，默认是面朝 Blender 的 -Y 轴，向上方向为 Z 轴，故导出时 Forward 选择 -Y Forward，Up 选择 Z Up，勾选 Bake Axis Conversion 后，清除物体的方向，就可以发现猴头在 Unity 面朝 Z 方向，上方为 Y 方向，符合 Unity 默认方向。</p>
+<h1 id="贴图"><a href="#贴图" class="headerlink" title="贴图"></a>贴图</h1><h2 id="贴图预处理"><a href="#贴图预处理" class="headerlink" title="贴图预处理"></a>贴图预处理</h2><blockquote>
+<p>有些贴图模之屋的文件中并不包含，比如光照贴图、渐变纹理以及面部的 SDF 贴图（<strong>Signed Distance Field</strong> 建议去额外了解该项技术），需要自己去获取。我贴图是在 <a target="_blank" rel="noopener" href="https://github.com/umaichanuwu/GenshinLinks">https://github.com/umaichanuwu/GenshinLinks</a> 中下载的。</p>
+</blockquote>
+<p>在 Unity 导入贴图后，首先对所有贴图关闭压缩，即 Compression 选择 None；所有的光照贴图 LightMap 关闭 <strong>sRGB（Color Texture）</strong>，原因见下面。【书签】</p>
+<h2 id="伽马校正"><a href="#伽马校正" class="headerlink" title="伽马校正"></a>伽马校正</h2><p>在 Unity 中，若选择了<strong>线性空间</strong>渲染，对于 sRGB 方式存储的贴图（比如<strong>存储颜色的贴图</strong>），需要勾选 sRGB（Color Texture），这样这些经过 Gamma 0.45 处理的贴图在 Shader 的计算输入时（采样时）会自动进行一个 Gamma 2.2 处理变换到线性空间，这样 Shader 在线性空间中计算会更加准确，Unity URP 在渲染的最后会调用一个 Pass 再进行一次<strong>伽马校正</strong>（<strong>伽马编码</strong>），即 Gamma 0.45，这样显示器输出 Gamma 2.2 平衡后颜色才会正确。但是对于<strong>法线贴图</strong>、<strong>光照贴图</strong>等这些直接按线性方式存储的贴图，需要取消勾选 sRGB（Color Texture），这样 Unity 就不会自动<strong>去除伽马校正 Remove Gamma Correction</strong>，即 Gamma 2.2 处理，保证在 Shader 的计算中是线性的，同样 Unity 会自动进行伽马校正，从而正确地在显示器显示。如下图：</p>
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/20/B8XVCEP1TpvLNjc.png" width = "70%" height = "70%" alt="图1 - 线性空间"/>
+</div>
+
+<p>除了纹理，在线性空间模式下，ShaderLab 的颜色属性也会被认为是 sRGB 颜色，会自动进行 Remove Gamma Correction。但是对于材质的 Float 或 Vector 属性，不会自动进行色彩空间转换，因此对于一些跟色彩相关的 Float 或 Vector 属性，比如金属度，需要把它们指定到 sRGB 空间，此时可以添加 <code>[Gamma]</code> 特性。另外要注意，Alpha 通道是不受 Gamma 校正的影响的。</p>
+<h2 id="贴图作用分析"><a href="#贴图作用分析" class="headerlink" title="贴图作用分析"></a>贴图作用分析</h2></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io">鸟布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io/2024/03/20/2024-03-20-NPR_StarRail/">https://ybniaobu.github.io/2024/03/20/2024-03-20-NPR_StarRail/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://ybniaobu.github.io" target="_blank">鸟布的博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a><a class="post-meta__tags" href="/tags/unity/">unity</a><a class="post-meta__tags" href="/tags/%E5%9B%BE%E5%BD%A2%E5%AD%A6/">图形学</a><a class="post-meta__tags" href="/tags/NPR/">NPR</a></div><div class="post_share"><div class="social-share" data-image="https://s2.loli.net/2024/03/20/w9by4joTmI1McSC.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i> 打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/images/wechat.png" target="_blank"><img class="post-qr-code-img" src="/images/wechat.png" alt="微信"/></a><div class="post-qr-code-desc">微信</div></li><li class="reward-item"><a href="/images/alipay.png" target="_blank"><img class="post-qr-code-img" src="/images/alipay.png" alt="支付宝"/></a><div class="post-qr-code-desc">支付宝</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2024/02/23/2024-02-23-URP%E5%9F%BA%E7%A1%80/" title="Unity URP 基础"><img class="cover" src="https://s2.loli.net/2024/02/18/pMAzYioaFZEkS8I.gif" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Unity URP 基础</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2023/09/15/2023-09-15-UnityShader1/" title="《Unity Shader入门精要》读书笔记（一）"><img class="cover" src="https://s2.loli.net/2023/09/19/cDvdURBPhjwkOsY.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-09-15</div><div class="title">《Unity Shader入门精要》读书笔记（一）</div></div></a></div><div><a href="/2023/10/13/2023-10-13-UnityShader2/" title="《Unity Shader入门精要》读书笔记（二）"><img class="cover" src="https://s2.loli.net/2023/10/15/RZftaNSscWoLH1u.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-10-13</div><div class="title">《Unity Shader入门精要》读书笔记（二）</div></div></a></div><div><a href="/2023/11/22/2023-11-22-UnityShader3/" title="《Unity Shader入门精要》读书笔记（三）"><img class="cover" src="https://s2.loli.net/2023/11/23/L3ts4WnThMlDN9d.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-11-22</div><div class="title">《Unity Shader入门精要》读书笔记（三）</div></div></a></div><div><a href="/2024/02/23/2024-02-23-URP%E5%9F%BA%E7%A1%80/" title="Unity URP 基础"><img class="cover" src="https://s2.loli.net/2024/02/18/pMAzYioaFZEkS8I.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2024-02-23</div><div class="title">Unity URP 基础</div></div></a></div><div><a href="/2023/12/19/2023-12-19-UnityShader4/" title="《Unity Shader入门精要》读书笔记（四）"><img class="cover" src="https://s2.loli.net/2023/12/20/9Ah5ugiIpONK1cX.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-12-19</div><div class="title">《Unity Shader入门精要》读书笔记（四）</div></div></a></div><div><a href="/2023/12/30/2023-12-30-UnityShader5/" title="《Unity Shader入门精要》读书笔记（五）"><img class="cover" src="https://s2.loli.net/2023/12/30/hc2s7BS45l1wUdQ.gif" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-12-30</div><div class="title">《Unity Shader入门精要》读书笔记（五）</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">鸟布</div><div class="author-info__description">教练，我想学技术</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">27</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">14</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">16</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://niaobu.notion.site/787824630ea6480e944c1ae5ae7f4792"><i class="fa-solid fa-book"></i><span>My Notion</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/ybniaobu/ybniaobu.github.io" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:niaobubob@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">为了蒂法！！！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%A8%A1%E5%9E%8B%E5%A4%84%E7%90%86"><span class="toc-number">1.</span> <span class="toc-text">模型处理</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Blender-%E6%A8%A1%E5%9E%8B%E9%A2%84%E5%A4%84%E7%90%86"><span class="toc-number">1.1.</span> <span class="toc-text">Blender 模型预处理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AF%BC%E5%87%BA-FBX"><span class="toc-number">1.2.</span> <span class="toc-text">导出 FBX</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E8%B4%B4%E5%9B%BE"><span class="toc-number">2.</span> <span class="toc-text">贴图</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B4%B4%E5%9B%BE%E9%A2%84%E5%A4%84%E7%90%86"><span class="toc-number">2.1.</span> <span class="toc-text">贴图预处理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BC%BD%E9%A9%AC%E6%A0%A1%E6%AD%A3"><span class="toc-number">2.2.</span> <span class="toc-text">伽马校正</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%B4%B4%E5%9B%BE%E4%BD%9C%E7%94%A8%E5%88%86%E6%9E%90"><span class="toc-number">2.3.</span> <span class="toc-text">贴图作用分析</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2024/03/20/2024-03-20-NPR_StarRail/" title="基于星穹铁道的卡通渲染"><img src="https://s2.loli.net/2024/03/20/w9by4joTmI1McSC.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="基于星穹铁道的卡通渲染"/></a><div class="content"><a class="title" href="/2024/03/20/2024-03-20-NPR_StarRail/" title="基于星穹铁道的卡通渲染">基于星穹铁道的卡通渲染</a><time datetime="2024-03-20T05:25:53.000Z" title="发表于 2024-03-20 13:25:53">2024-03-20</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/02/23/2024-02-23-URP%E5%9F%BA%E7%A1%80/" title="Unity URP 基础"><img src="https://s2.loli.net/2024/02/18/pMAzYioaFZEkS8I.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Unity URP 基础"/></a><div class="content"><a class="title" href="/2024/02/23/2024-02-23-URP%E5%9F%BA%E7%A1%80/" title="Unity URP 基础">Unity URP 基础</a><time datetime="2024-02-23T06:03:56.000Z" title="发表于 2024-02-23 14:03:56">2024-02-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/02/22/2024-02-22-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E5%9F%BA%E7%A1%803/" title="MIT 线性代数公开课笔记（三）"><img src="https://s2.loli.net/2024/02/18/NjAQJ5diwBHTKzc.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="MIT 线性代数公开课笔记（三）"/></a><div class="content"><a class="title" href="/2024/02/22/2024-02-22-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E5%9F%BA%E7%A1%803/" title="MIT 线性代数公开课笔记（三）">MIT 线性代数公开课笔记（三）</a><time datetime="2024-02-22T05:56:08.000Z" title="发表于 2024-02-22 13:56:08">2024-02-22</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/02/18/2024-02-18-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E5%9F%BA%E7%A1%802/" title="MIT 线性代数公开课笔记（二）"><img src="https://s2.loli.net/2024/02/18/6rKVn5pm3sXlxS8.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="MIT 线性代数公开课笔记（二）"/></a><div class="content"><a class="title" href="/2024/02/18/2024-02-18-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E5%9F%BA%E7%A1%802/" title="MIT 线性代数公开课笔记（二）">MIT 线性代数公开课笔记（二）</a><time datetime="2024-02-18T05:52:33.000Z" title="发表于 2024-02-18 13:52:33">2024-02-18</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2024/02/05/2024-02-05-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E5%9F%BA%E7%A1%801/" title="MIT 线性代数公开课笔记（一）"><img src="https://s2.loli.net/2024/03/20/wpVnygJlIjor2Rb.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="MIT 线性代数公开课笔记（一）"/></a><div class="content"><a class="title" href="/2024/02/05/2024-02-05-%E7%BA%BF%E6%80%A7%E4%BB%A3%E6%95%B0%E5%9F%BA%E7%A1%801/" title="MIT 线性代数公开课笔记（一）">MIT 线性代数公开课笔记（一）</a><time datetime="2024-02-05T11:07:45.000Z" title="发表于 2024-02-05 19:07:45">2024-02-05</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2022 - 2024 By 鸟布</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">Your time is limited, so don't waste it living someone else's life.</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>if (!window.MathJax) {
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      tags: 'ams'
+    },
+    chtml: {
+      scale: 1.1
+    },
+    options: {
+      renderActions: {
+        findScript: [10, doc => {
+          for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
+            const display = !!node.type.match(/; *mode=display/)
+            const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display)
+            const text = document.createTextNode('')
+            node.parentNode.replaceChild(text, node)
+            math.start = {node: text, delim: '', n: 0}
+            math.end = {node: text, delim: '', n: 0}
+            doc.math.push(math)
+          }
+        }, '']
+      }
+    }
+  }
+  
+  const script = document.createElement('script')
+  script.src = 'https://cdn.jsdelivr.net/npm/mathjax/es5/tex-mml-chtml.min.js'
+  script.id = 'MathJax-script'
+  script.async = true
+  document.head.appendChild(script)
+} else {
+  MathJax.startup.document.state(0)
+  MathJax.texReset()
+  MathJax.typesetPromise()
+}</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div class="no-result" id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>
