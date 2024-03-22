@@ -391,5 +391,313 @@ shader "Custom/StarRailToon"
 ```
 
 ## ToonInput.hlsl
+该文件声明 Shader 变量，视频里在 CBuffer 里使用了 #if 指令，但官方不建议在 CBuffer 里使用 #if 或 #ifdef ，因为这样 SRP batcher 就会不兼容，可以把 CBuffer 里的 #if 都去掉，但本文章展示中就不去除了。代码如下：  
+
+``` C
+#ifndef CUSTOM_TOON_INPUT_INCLUDED
+#define CUSTOM_TOON_INPUT_INCLUDED
+
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
+
+CBUFFER_START(UnityPerMaterial)
+float3 _HeadForward;
+float3 _HeadRight;
+float4 _BaseMap_ST;
+
+float3 _FrontFaceTintColor;
+float3 _BackFaceTintColor;
+float _Alpha;
+float _AlphaClip;
+
+float _IndirectLightFlattenNormal;
+float _IndirectLightUsage;
+float _IndirectLightOcclusionUsage;
+float _IndirectLightMixBaseColor;
+
+float _MainLightColorUsage;
+float _ShadowThresholdCenter;
+float _ShadowThresholdSoftness;
+float _ShadowRampOffset;
+
+#if _AREA_FACE
+    float _FaceShadowOffset;
+    float _FaceShadowTransitionSoftness;
+#endif
+
+#if _AREA_HAIR || _AREA_UPPERBODY || _AREA_LOWERBODY
+    float _SpecularExponent;
+    float _SpecularKsNonMetal;
+    float _SpecularKsMetal;
+    float _SpecularBrightness;
+#endif
+
+#if _AREA_UPPERBODY || _AREA_LOWERBODY
+    float3 _StockingsDarkColor;
+    float3 _StockingsLightColor;
+    float3 _StockingsTransitionColor;
+    float _StockingsTransitionThreshold;
+    float _StockingsTransitionPower;
+    float _StockingsTransitionHardness;
+    float _StockingsTextureUsage;
+#endif
+
+float _RimLightWidth;
+float _RimLightThreshold;
+float _RimLightFadeout;
+float3 _RimLightTintColor;
+float _RimLightBrightness;
+float _RimLightMixAlbedo;
+
+#if _EMISSION_ON
+    float _EmissionMixBaseColor;
+    float3 _EmissionTintColor;
+    float _EmissionIntensity;
+#endif
+
+#if _OUTLINE_ON
+    float _OutlineWidth;
+    float _OutlineGamma;
+#endif
+
+CBUFFER_END
+
+TEXTURE2D(_BaseMap);
+SAMPLER(sampler_BaseMap);
+
+#if _AREA_FACE
+    TEXTURE2D(_FaceColorMap);
+    SAMPLER(sampler_FaceColorMap);
+#elif _AREA_HAIR
+    TEXTURE2D(_HairColorMap);
+    SAMPLER(sampler_HairColorMap);
+#elif _AREA_UPPERBODY
+    TEXTURE2D(_UpperBodyColorMap);
+    SAMPLER(sampler_UpperBodyColorMap);
+#elif _AREA_LOWERBODY
+    TEXTURE2D(_LowerBodyColorMap);
+    SAMPLER(sampler_LowerBodyColorMap);
+#endif
+
+#if _AREA_HAIR
+    TEXTURE2D(_HairLightMap);
+    SAMPLER(sampler_HairLightMap);
+#elif _AREA_UPPERBODY
+    TEXTURE2D(_UpperBodyLightMap);
+    SAMPLER(sampler_UpperBodyLightMap);
+#elif _AREA_LOWERBODY
+    TEXTURE2D(_LowerBodyLightMap);
+    SAMPLER(sampler_LowerBodyLightMap);
+#endif
+
+#if _AREA_HAIR
+    TEXTURE2D(_HairCoolRamp);
+    SAMPLER(sampler_HairCoolRamp);
+    TEXTURE2D(_HairWarmRamp);
+    SAMPLER(sampler_HairWarmRamp);
+#elif _AREA_FACE || _AREA_UPPERBODY || _AREA_LOWERBODY
+    TEXTURE2D(_BodyCoolRamp);
+    SAMPLER(sampler_BodyCoolRamp);
+    TEXTURE2D(_BodyWarmRamp);
+    SAMPLER(sampler_BodyWarmRamp);
+#endif
+
+#if _AREA_FACE
+    TEXTURE2D(_FaceMap);
+    SAMPLER(sampler_FaceMap);
+#endif
+
+#if _AREA_UPPERBODY
+    TEXTURE2D(_UpperBodyStockings);
+    SAMPLER(sampler_UpperBodyStockings);
+#elif _AREA_LOWERBODY
+    TEXTURE2D(_LowerBodyStockings);
+    SAMPLER(sampler_LowerBodyStockings);
+#endif
+
+#endif
+```
 
 ## ToonForwardPass.hlsl
+准备好输出输入结构，把顶点着色器和片元着色器的基础代码先填写好：
+
+``` C
+#ifndef CUSTOM_TOON_FORWARD_PASS_INCLUDED
+#define CUSTOM_TOON_FORWARD_PASS_INCLUDED
+
+struct Attributes
+{
+    float3 positionOS   : POSITION;
+    float3 normalOS      : NORMAL;
+    float4 tangentOS     : TANGENT;
+    float2 uv           : TEXCOORD0;
+};
+
+struct Varyings
+{
+    float2 uv                       : TEXCOORD0;
+    float4 positionWSAndFogFactor   : TEXCOORD1; //w: vertex fog factor
+    float3 normalWS                 : TEXCOORD2;
+    float3 viewDirectionWS          : TEXCOORD3;
+    float3 SH                       : TEXCOORD4;
+    float4 positionCS               : SV_POSITION;
+};
+
+Varyings ToonForwardVert(Attributes input)
+{
+    Varyings output;
+
+    VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS);
+    VertexNormalInputs vertexNormalInput = GetVertexNormalInputs(input.normalOS, input.tangentOS);
+
+    output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
+    output.positionCS = vertexInput.positionCS;
+
+    return output;
+}
+
+float4 ToonForwardFrag(Varyings input, bool isFrontFace : SV_IsFrontFace) : SV_TARGET
+{
+    float3 baseColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).rgb;
+    
+    float3 albedo = 0;
+
+    float4 color = float4(albedo, 1);
+    return color;
+}
+
+#endif
+```
+
+
+# 正式编写 Shader
+## 颜色贴图区分部位
+首先根据 Keyword 区分不同部位使用不同的贴图：
+
+``` C
+float4 areaMap = 0;
+
+#if _AREA_FACE
+    areaMap = SAMPLE_TEXTURE2D(_FaceColorMap, sampler_FaceColorMap, input.uv);
+#elif _AREA_HAIR
+    areaMap = SAMPLE_TEXTURE2D(_HairColorMap, sampler_HairColorMap, input.uv);
+#elif _AREA_UPPERBODY
+    areaMap = SAMPLE_TEXTURE2D(_UpperBodyColorMap, sampler_UpperBodyColorMap, input.uv);
+#elif _AREA_LOWERBODY
+    areaMap = SAMPLE_TEXTURE2D(_LowerBodyColorMap, sampler_LowerBodyColorMap, input.uv);
+#endif
+
+baseColor = areaMap.rgb;
+```
+
+此时模型的眼睛和裙子内侧都没有渲染出来，因为我们没有增加对应的基础颜色，所以我们需要乘上基础颜色 tint color。根据渲染的正反面，使用 `lerp()` 函数充当 if 语句的功能，片元着色器函数的参数 `SV_IsFrontFace` 是 HLSL 的内置参数，判断当前 fragment 是正面还是反面：
+
+    baseColor *= lerp(_BackFaceTintColor, _FrontFaceTintColor, isFrontFace);
+
+然后把眼睛 1 （目透明）材质的 Front face tint color 材质参数调整为黑色；把下衣材质的 Surface Options 中的 Cull 改为 Off，也就是关闭背面剔除，同时 Back face tint color 材质参数调整为蓝色（#1643A3）。
+
+此时眼睛 1 是全黑色，我们希望得到透明效果，更改代码如下：  
+
+    float alpha = _Alpha;
+    float4 color = float4(albedo, alpha);
+
+然后眼睛 1 材质的 Alpha 参数改为 0.66，渲染队列改为 Transparent，即 3000；Surface Options 中 Blend Mode 改为 SrcAlpha 和 OneMinusSrcAlpha。这下就可以看到正确的眼睛了。
+
+## 光照图准备
+还是根据 Keyword 区分不同部位使用不同的 lightMap 和 faceMap：  
+
+``` C
+float4 lightMap = 0;
+
+#if _AREA_HAIR
+    lightMap = SAMPLE_TEXTURE2D(_HairLightMap, sampler_HairLightMap, input.uv);
+#elif _AREA_UPPERBODY
+    lightMap = SAMPLE_TEXTURE2D(_UpperBodyLightMap, sampler_UpperBodyLightMap, input.uv);
+#elif _AREA_LOWERBODY
+    lightMap = SAMPLE_TEXTURE2D(_LowerBodyLightMap, sampler_LowerBodyLightMap, input.uv);
+#endif
+
+float4 faceMap = 0;
+    
+#if _AREA_FACE
+    faceMap = SAMPLE_TEXTURE2D(_FaceMap, sampler_FaceMap, input.uv);
+#endif
+```
+
+## 准备光照需要的参数
+在顶点着色器内增加如下代码，获取模型世界坐标、法线方向世界坐标、视角方向世界坐标：  
+
+``` C
+output.positionWSAndFogFactor = float4(vertexInput.positionWS, ComputeFogFactor(vertexInput.positionCS.z));
+output.normalWS = vertexNormalInput.normalWS;
+output.viewDirectionWS = unity_OrthoParams.w == 0 ? GetCameraPositionWS() - vertexInput.positionWS : GetWorldToViewMatrix()[2].xyz;
+```
+
+URP 自带雾效支持，可以在 Window -> Rendering -> Lighting 修改雾效相关设置。若要让 Shader 支持这些雾效，就需要计算雾效因子，最后和输出颜色混合，这里不详细展开，详见百度。
+
+在 viewDirectionWS 的计算中，`unity_OrthoParams` 为 Unity 内置的全局变量，在 UnityInput.hlsl 中定义，它的 w 值为 1 时相机是正交投影 orthographic projection，为 0 是透视投影 perspective projection。透视投影时视角方向为物体指向摄像机的方向，正如代码所示。而正交投影时视角方向就是相机前方的反方向（指向相机），取世界到观察空间变换矩阵第 3 行为该方向，数学逻辑如下：<font color="#727bff">观察空间是右手坐标系，所以在观察空间中，摄像机的前方为 -z 轴方向；而世界空间到观察空间的变换矩阵就是观察空间（对于摄像机来说就是它自己的模型空间）到世界空间的变换矩阵的逆矩阵，所以我们要得到世界空间下的 viewDirection，就需要把它从观察空间转换到世界空间，也就是需要世界空间到观察空间的变换矩阵 WorldToViewMatrix 的逆矩阵。因为我们无需关心缩放和平移，只需要关心旋转，而旋转矩阵是正交矩阵，也就是说 WorldToViewMatrix 的前三行前三列的转置矩阵就是它的逆矩阵。我们将观察空间指向摄像机的向量，即 (0, 0, 1)，乘上 WorldToViewMatrix 的转置矩阵，就相对于取 WorldToViewMatrix 的第三行，得到了 viewDirection 的世界坐标。</font>
+
+> 视频中的 viewDirectionWS 的获取的方式其实 Unity URP 已经用一个函数帮我们封装好了，我们直接使用 `GetWorldSpaceViewDir(positionWS)` 函数即可。
+
+接着在片元着色器获取阴影坐标和主光源信息，并对需要使用的向量统一进行归一化处理：
+
+``` C
+float3 positionWS = input.positionWSAndFogFactor.xyz;
+float4 shadowCoord = TransformWorldToShadowCoord(positionWS);
+Light mainLight = GetMainLight(shadowCoord);
+float3 lightDirectionWS = normalize(mainLight.direction);
+
+float3 normalWS = normalize(input.normalWS);
+float3 viewDirectionWS = normalize(input.viewDirectionWS);
+```
+
+## 环境光（间接光）
+视频中对环境光模拟使用**球谐函数 Spherical harmonics**，**SH**，球谐函数从数学公式上来理解有些难度，反正我是看不懂。我们只需要知道该函数想表达什么，对环境光的模拟有什么帮助就行了。
+
+球谐函数是傅里叶级数的高维类比，由一组表示球体表面的基函数构成。对于任意的周期函数，傅里叶基函数的线性组合都能够用来对函数进行拟合，类似的，对于任意曲面函数，球谐函数的线性组合可以用来对曲面函数进行拟合。和傅里叶基函数类似，基函数（阶数）越多，还原准确度越高。
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/22/1iZpQvR79XHohcS.png" width = "70%" height = "70%" alt="图7 - 球谐函数"/>
+</div>
+
+**球谐光照**是基于预计算辐射度传输理论实现的一种实时渲染技术。预计算辐射度传输技术能够实时重现在区域面光源照射下的全局照明效果。这种技术通过在运行前对场景中光线的相互作用进行预计算，计算每个场景中每个物体表面点的光照信息，然后用球谐函数对这些预计算的光照信息数据进行编码，在运行时读取数据进行解码，重现光照效果。
+
+对于空间上的一点，受到的光照在各个方向上是不同的，也即各向异性，所以空间上一点如果要完全还原光照情况，那就需要记录周围球面上所有方向的光照。如果环境光照可以用简单函数表示，那直接求点周围球面上的积分就可以了。但是通常光照不会那么简单，并且用函数表示光照也不方便，所以经常用的方法是使用环境光贴图，比如 cubemap。假如我想知道这个点各个方向的光照情况，那么就必须在 cubemap 对应的各个方向进行采样。对于一个大的场景来说，每个位置点的环境光都有可能不同，如果把每个点的环境光贴图储存起来，并且每次获取光照都从相应的贴图里面采样，可想而知这样的方法是非常昂贵的。
+
+利用球谐函数就可以很好的解决这个问题，由于球谐基函数阶数是无限的，所以只能取前面几组基来近似，一般在光照中大都取 3 阶，也即 9 个球谐系数，其中每组系数需要 3 个参数，总结 27 个参数。Unity 将这些光照信息编码为 unity_SHAr、unity_SHAg、unity_SHAb、unity_SHBr、unity_SHBg、unity_SHBb、unity_SHC 等参数，然后采样的时候，通过一定的算法对参数进行解码。对球谐函数采样可以在顶点着色器、片元着色器中进行或者混合模式（L0L1 在 fragment 里完成，vertex 中完成 L2）。其实 Unity URP 都把这些封装好了，我们直接使用就行。
+
+> 这里不对球谐函数源码进行分析了，有空可以额外了解。以后应该会写关于 URP 源码的文章。
+
+视频中选择在顶点着色器中进行采样，我们直接使用 URP 内置的 `SampleSH(normalWS)` 函数即可，采样得到的就是颜色。在顶点着色器添加如下代码：
+
+    output.SH = SampleSH(lerp(vertexNormalInput.normalWS, float3(0, 0, 0), _IndirectLightFlattenNormal));
+
+`_IndirectLightFlattenNormal` 参数默认为 0，可以控制它把法线压短来降低高阶项的影响。该参数为 0 时，即法线较强时，模型具有较多细节；该参数为 1 时，即法线为 0 时，反映在模型上就是纯色。因为我们是卡通渲染不需要这么多法线细节，所以所有的材质中将该参数都改为 1。
+
+之后在片元着色器中计算环境光照，使用 `_IndirectLightUsage` 控制环境光使用量，增加的代码如下：
+
+    float3 indirectLightColor = input.SH.rgb * _IndirectLightUsage;
+    ...
+    albedo += indirectLightColor;
+
+## 使用光照图进行环境光遮罩
+LightMap 的 R 通道包含了 AO 细节，即一些**静态阴影**，不受光照变化而变化的阴影。我们使用 Keyword 来区分上衣、下衣和头发以及脸部，毕竟脸部使用的是 FaceMap。  
+①对于上衣、下衣和头发，将 indirectLightColor 乘上 LightMap 的 R 通道，并使用  `_IndirectLightOcclusionUsage` 参数来控制 R 通道的使用量，该值默认为 0.5；  
+②对于脸部，相对复杂点，我们同时看脸部颜色贴图和 FaceMap 的 R 通道，R 通道的上面的白色长方形区域对应牙舌口的区域，黑色区块就是 SDF 区域遮罩，下面是眼睛睫毛眉毛。而 FaceMap 的 G 通道只有下面那块是亮的，也就是眼睛睫毛眉毛区域，而牙舌口的区域是黑色的，因为牙舌口常处于阴影中。利用这些信息做脸部 AO，我们要把去掉 SDF 动态阴影的部分，所以使用 `step()` 函数，当 faceMap.r > 0.5 返回 0（灰色部分也是大于 0.5 的，rgb 大概在 160，160，160），这时候使用 faceMap.g 中的阴影信息；当 faceMap.r <= 0.5 时，step 函数返回 1，也就是黑色动态 SDF 区域，lerp 函数直接返回 1，不使用 faceMap 的 G 通道。同时再套一个 lerp() 函数，同样使用 `_IndirectLightOcclusionUsage` 参数来控制阴影程度，该值默认为 0.5。
+
+最后使用 `_IndirectLightMixBaseColor` 参数控制与 baseColor，也就是颜色贴图，的混合程度，该参数默认值为 1。
+
+``` C
+#if _AREA_HAIR || _AREA_UPPERBODY || _AREA_LOWERBODY
+indirectLightColor *= lerp(1, lightMap.r, _IndirectLightOcclusionUsage);
+#else
+indirectLightColor *= lerp(1, lerp(faceMap.g, 1, step(faceMap.r, 0.5)), _IndirectLightOcclusionUsage);
+#endif
+
+indirectLightColor *= lerp(1, baseColor, _IndirectLightMixBaseColor);
+```
+
+上衣、下衣和头发的静态阴影效果如下图：  
+
+脸部静态阴影效果如下图：
