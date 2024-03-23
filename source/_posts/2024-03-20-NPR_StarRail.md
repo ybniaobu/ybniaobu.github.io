@@ -67,8 +67,8 @@ FBX 文件在 Unity 中右边箭头展开，可以直接把材质复制出来，
 <img src="https://s2.loli.net/2024/03/21/wtqnl5RJEW63Lo9.png" width = "100%" height = "100%" alt="图4 - 上衣、下衣和头发的 LightMap"/>
 </div>
 
-- **R 通道**：环境光遮罩 AO；  
-- **G 通道**：阴影遮罩 ShadowMask，黑色区域的地方永远处于阴影中；  
+- **R 通道**：环境光遮罩 AO，静态阴影区域；  
+- **G 通道**：阴影阈值图，动态阴影区域，阴影阈值控制阴影何时产生，黑色区域的地方永远处于阴影中；  
 - **B 通道**：高光强度遮罩 SpecularIntensityMask，控制高光范围和强度；  
 - **A 通道**：Ramp 贴图索引信息，根据颜色数值对 Ramp 贴图采样。
 
@@ -698,6 +698,91 @@ indirectLightColor *= lerp(1, lerp(faceMap.g, 1, step(faceMap.r, 0.5)), _Indirec
 indirectLightColor *= lerp(1, baseColor, _IndirectLightMixBaseColor);
 ```
 
-上衣、下衣和头发的静态阴影效果如下图：  
+静态阴影效果如下图（三月七头发光照图 R 通道无信息）：
 
-脸部静态阴影效果如下图：
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/23/Yv9zRS4wlo2iGCa.jpg" width = "100%" height = "100%" alt="图8 - 静态阴影"/>
+</div>
+
+整体间接光照效果如下图：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/23/SAReVMj17r4wgc3.jpg" width = "100%" height = "100%" alt="图9 - 间接光照"/>
+</div>
+
+## 主光源（直接光）
+首先使用兰伯特来控制阴影，添加如下代码：  
+
+``` C
+float mainLightShadow = 1;
+
+#if _AREA_HAIR || _AREA_UPPERBODY || _AREA_LOWERBODY
+{
+    float NdotL = dot(normalWS, lightDirectionWS);
+    // mainLightShadow = step(0, NdotL); //常用的 NPR 硬阴影
+}
+#elif _AREA_FACE
+#endif
+```
+
+代码注释部分是常用的卡通风格的硬阴影，即把兰伯特**二值化**，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/23/ElvA8a2TOILnWPy.jpg" width = "100%" height = "100%" alt="图10 - 兰伯特二值化的硬阴影"/>
+</div>
+
+此时的阴影的细节肯定是不够的，就需要用到 LightMap 的 G 通道了，该通道代表了阴影的阈值，用这个阈值跟重映射后的 NdotL 进行比较，从而判断阴影区域。先将 NdotL 重映射到 0 到 1：
+
+    float remappedNdotL = NdotL * 0.5 + 0.5;
+
+LightMap 的 G 通道的灰度值越大，即该区域越容易被照亮，所以我们使用 `mainLightShadow = step(lightMap.g, remappedNdotL);` 就不太对，因为这样 lightMap.g 值越大，返回 0 的可能就越大，就意味着该区域属于阴影的可能越大，和我们的设想相反。所以使用如下代码：  
+
+    mainLightShadow = step(1 - lightMap.g, remappedNdotL);
+
+这样 lightMap.g 越大，返回 1 的可能就越大，该区域就越容易被照亮，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/23/5kvWSq7oNZfH8uE.jpg" width = "100%" height = "100%" alt="图11 - 使用光照图的动态阴影"/>
+</div>
+
+可以看到阴影细节多出来了非常多，可以转动太阳光，就可以看到动态的阴影变化了。但是用 `step()` 函数的结果阴影边缘会很硬，可以改用 `smoothstep()` 函数。
+
+> **smoothstep(min, max, x)** 函数：如果 x 在 (min，max) 范围内，就返回介于 (0，1) 之间的平滑的**埃尔米特 Hermite 插值** ，它从开始逐渐加速，在接近结束时减慢速度。
+
+同时使用 `_ShadowThresholdCenter` 和 `_ShadowThresholdSoftness` 参数来控制，修改后的代码如下：  
+
+    mainLightShadow = smoothstep(1 - lightMap.g + _ShadowThresholdCenter - _ShadowThresholdSoftness, 1 - lightMap.g + _ShadowThresholdCenter + _ShadowThresholdSoftness, remappedNdotL);
+
+看代码就知道，`_ShadowThresholdCenter` 控制的是开始产生阴影区域的位置，默认为 0；`_ShadowThresholdSoftness` 控制的是阴影边缘羽化的程度（宽度），默认为 0.1。可以自己改变参数看看效果，默认值的效果如下：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/23/jrT7nYVkucyCHWF.jpg" width = "100%" height = "100%" alt="图12 - 使用 smoothstep 后的“软”阴影效果"/>
+</div>
+
+将阴影值再乘上 LightMap 的 R 通道，也就是静态阴影区域：  
+
+    mainLightShadow *= lightMap.r;
+
+---
+
+接下来是脸部阴影，也就是使用 FaceMap 的 A 通道，即 **SDF 有向距离场**图（SDF 可以看作一种矢量的渲染方式，这门技术建议额外去了解学习，这里就只讲如何使用了）。使用这张图很简单，就是用光照和角色方向的夹角跟贴图的值比较，从而产生阴影。注意对于计算面部阴影，是根据面部的朝向和光照的方向的差值去产生阴影，而不是面部的法线方向。所以我们需要一个头部的面朝方向，这个值用 C# 脚本去获取。首先在 Shader 先拿到头部的前向量和右向量，然后叉乘出上向量，注意左手坐标系下的叉乘顺序，增加的代码如下（在 `#elif _AREA_FACE` 下增加）：  
+
+    float3 headForward = normalize(_HeadForward);
+    float3 headRight = normalize(_HeadRight);
+    float3 headUp = cross(headForward, headRight);
+
+因为对于计算面部阴影，y 轴的值是不需要的，我们只需要看 x、z 两个轴就可以了。所以我们要把光向量投影到头坐标系下的水平面（前右组成的平面），从而方便和头部方向计算。首先计算 lightDirectionWS 和 headUp 的 cos 值，因为这两个都是单位向量，所以无需归一化，直接点乘。然后乘上垂直于水平面的上向量，得到光向量在水平面垂直方向上的投影，用光向量减去该值，得到光向量投影在水平面上指向光源的向量，最后归一化：
+
+    float3 fixedLightDirectionWS = normalize(lightDirectionWS - dot(lightDirectionWS, headUp) * headUp);
+
+然后用该光向量点乘右向量，这样光照到右脸为 1 到 0，照至左脸为 0 到 -1。使用 `sign()` 函数，这样光照到右脸就为 1，光照到左脸为 -1。但是 SDF 贴图右脸是黑的，左脸是白的，与我们方向相反，再取个负值。把这些都乘到 uv 的 u 上。这样光照从右脸到左脸，uv 就会水平翻转。然后根据该 uv 对 FaceMap 进行采样，代码如下：  
+
+    float2 sdfUV = float2(sign(dot(fixedLightDirectionWS, headRight)), 1) * input.uv * float2(-1, 1);
+    float sdfValue = SAMPLE_TEXTURE2D(_FaceMap, sampler_FaceMap, sdfUV).a;
+
+效果如下，可以尝试改变光线看看：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/23/PB4DOTIg1tbJRNe.jpg" width = "100%" height = "100%" alt="图13 - SDF 面部阴影效果"/>
+</div>
+
