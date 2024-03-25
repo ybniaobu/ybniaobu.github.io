@@ -1,5 +1,5 @@
 ---
-title: 基于星穹铁道的卡通渲染
+title: 基于星穹铁道的卡通渲染（一）
 date: 2024-03-20 13:25:53
 categories: 
   - [unity, unity shader]
@@ -571,7 +571,7 @@ float4 ToonForwardFrag(Varyings input, bool isFrontFace : SV_IsFrontFace) : SV_T
 ```
 
 
-# 正式编写 Shader
+# 正式编写 Shader（光照）
 ## 颜色贴图区分部位
 首先根据 Keyword 区分不同部位使用不同的贴图：
 
@@ -655,7 +655,7 @@ float3 viewDirectionWS = normalize(input.viewDirectionWS);
 ## 环境光（间接光）
 视频中对环境光模拟使用**球谐函数 Spherical harmonics**，**SH**，球谐函数从数学公式上来理解有些难度，反正我是看不懂。我们只需要知道该函数想表达什么，对环境光的模拟有什么帮助就行了。
 
-球谐函数是傅里叶级数的高维类比，由一组表示球体表面的基函数构成。对于任意的周期函数，傅里叶基函数的线性组合都能够用来对函数进行拟合，类似的，对于任意曲面函数，球谐函数的线性组合可以用来对曲面函数进行拟合。和傅里叶基函数类似，基函数（阶数）越多，还原准确度越高。
+球谐函数是傅里叶级数的高维类比，由一组表示球体表面的基函数构成。对于任意的周期函数，傅里叶基函数的线性组合都能够用来对函数进行拟合，类似的，对于任意球面函数，球谐函数的线性组合可以用来对球面函数进行拟合。和傅里叶基函数类似，基函数（阶数）越多，还原准确度越高。
 
 <div  align="center">  
 <img src="https://s2.loli.net/2024/03/22/1iZpQvR79XHohcS.png" width = "70%" height = "70%" alt="图7 - 球谐函数"/>
@@ -765,13 +765,13 @@ LightMap 的 G 通道的灰度值越大，即该区域越容易被照亮，所�
 
 ---
 
-接下来是脸部阴影，也就是使用 FaceMap 的 A 通道，即 **SDF 有向距离场**图（SDF 可以看作一种矢量的渲染方式，这门技术建议额外去了解学习，这里就只讲如何使用了）。使用这张图很简单，就是用光照和角色方向的夹角跟贴图的值比较，从而产生阴影。注意对于计算面部阴影，是根据面部的朝向和光照的方向的差值去产生阴影，而不是面部的法线方向。所以我们需要一个头部的面朝方向，这个值用 C# 脚本去获取。首先在 Shader 先拿到头部的前向量和右向量，然后叉乘出上向量，注意左手坐标系下的叉乘顺序，增加的代码如下（在 `#elif _AREA_FACE` 下增加）：  
+接下来是脸部阴影，也就是使用 FaceMap 的 A 通道，即 **SDF 有向距离场**图（SDF 可以看作一种矢量的渲染方式，这门技术建议额外去了解学习，这里就只讲如何使用了）。使用这张图很简单，就是用光照和角色方向的夹角跟贴图的值比较，从而产生阴影。注意对于计算面部阴影，是根据面部的朝向和光照的方向的差值去产生阴影，而不是面部的法线方向。所以我们需要一个头部的面朝方向，这个值用 C# 脚本去获取。首先在 Shader 先拿到头部的前向量和右向量，然后叉乘出上向量，注意左手坐标系下的叉乘顺序，增加的代码如下（在 `#elif _AREA_FACE` 下增加），别忘了归一化：  
 
     float3 headForward = normalize(_HeadForward);
     float3 headRight = normalize(_HeadRight);
     float3 headUp = cross(headForward, headRight);
 
-因为对于计算面部阴影，y 轴的值是不需要的，我们只需要看 x、z 两个轴就可以了。所以我们要把光向量投影到头坐标系下的水平面（前右组成的平面），从而方便和头部方向计算。首先计算 lightDirectionWS 和 headUp 的 cos 值，因为这两个都是单位向量，所以无需归一化，直接点乘。然后乘上垂直于水平面的上向量，得到光向量在水平面垂直方向上的投影，用光向量减去该值，得到光向量投影在水平面上指向光源的向量，最后归一化：
+因为对于计算面部阴影，y 轴的值是不需要的，我们只需要看 x、z 两个轴就可以了。所以我们要把光向量投影到头坐标系下的水平面（前右组成的平面），从而方便和头部方向计算。首先计算 lightDirectionWS 和 headUp 的 cos 值，因为这两个都归一化过，所以无需再次归一化，直接点乘。然后乘上垂直于水平面的上向量，得到光向量在水平面垂直方向上的投影，用光向量减去该值，得到光向量投影在水平面上指向光源的向量，最后归一化：
 
     float3 fixedLightDirectionWS = normalize(lightDirectionWS - dot(lightDirectionWS, headUp) * headUp);
 
@@ -783,6 +783,230 @@ LightMap 的 G 通道的灰度值越大，即该区域越容易被照亮，所�
 效果如下，可以尝试改变光线看看：  
 
 <div  align="center">  
-<img src="https://s2.loli.net/2024/03/23/PB4DOTIg1tbJRNe.jpg" width = "100%" height = "100%" alt="图13 - SDF 面部阴影效果"/>
+<img src="https://s2.loli.net/2024/03/23/PB4DOTIg1tbJRNe.jpg" width = "100%" height = "100%" alt="图13 - SDF 左脸右脸阴影翻转"/>
 </div>
 
+上面没有解决光照到背面的问题，并且动态效果只有一个左脸和右脸阴影翻转，接下来我们需要通过一个阈值来控制光照的前后问题，以及让阴影变化更加合理自然。将光向量点乘前向量，在重映射到 0 至 1，再反向一下，这样照正面是 0，照背面是 1。我们希望光越照在正前方该阈值越低，即越容易被点亮。使用 `step()` 函数来跟上面算出来的 sdfValue 进行比较，sdfValue 比阈值大就会被点亮。增加代码如下：  
+
+    float sdfThreshold = 1 - (dot(fixedLightDirectionWS, headForward) * 0.5 + 0.5);
+    float sdf = step(sdfThreshold, sdfValue);
+
+将 sdf 输出就可以看到一个合理的面部 SDF 阴影了，如下图：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/25/f4vVYC6D29ixoW3.jpg" width = "100%" height = "100%" alt="图14 - SDF 脸部硬阴影"/>
+</div>
+
+但是将光照方向设置到模型的正背面，可以看到面部仍然被点亮了，这是因为此时光向量和右向量成 90 度，故 sdfValue = 0；光向量和前向量成 180 度，点乘为 1，故 sdfThreshold = 0。因为 step(a, b) 比较是 b >= a 时为 1，此时相等，正好为 1，故有此错误。所以我们需要对 sdfValue 稍微偏移一点来避免此问题，需要减去个某个值，故我们对 sdfValue 加上 `_FaceShadowOffset`（默认值为 -0.01）：
+
+    sdfValue += _FaceShadowOffset;
+
+此时得到的面部阴影仍然比较硬，同理，把 `step()` 函数改为 `smoothstep()` 函数，并用 `_FaceShadowTransitionSoftness` 参数进行控制，改动后代码如下：  
+
+    float sdf = smoothstep(sdfThreshold - _FaceShadowTransitionSoftness, sdfThreshold + _FaceShadowTransitionSoftness, sdfValue);
+
+最后把 SDF 遮罩外的五官的阴影也显示出来，即使用 FaceMap 的 G 通道，并使用 R 通道进行阈值控制，原理之前使用光照图进行环境光遮罩中讲过，忘了可以回去看，就是当 R 通道小于 0.5，使用 SDF；大于 0.5，使用 FaceMap 的 G 通道，即 AO 部分。代码如下：  
+
+    mainLightShadow = lerp(faceMap.g, sdf, step(faceMap.r, 0.5));
+
+图片就不放出来了，就是多了点眼睛以及口腔内部的阴影细节。接下来需要使用 C# 脚本将头向量传递给 Shader，否则模型旋转阴影不会发生变化：
+
+``` C#
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class HeadVectorGenerator : MonoBehaviour
+{
+    public Transform HeadBoneTransform;
+    public Transform HeadForwardTransform;
+    public Transform HeadRightTransform;
+    public string ShaderName = "Custom/StarRailToon"; //名字自己修改
+
+    private Renderer[] allRenderers;
+
+    private int HeadForwardID = Shader.PropertyToID("_HeadForward");
+    private int HeadRightID = Shader.PropertyToID("_HeadRight");
+    
+#if UNITY_EDITOR
+    private void OnValidate() //OnValidate 方法，在 Unity 加载脚本或检查器中的值更改时调用，而 #if UNITY_EDITOR 可以确保代码只在 Unity 编辑器中编译和执行，而不会在构建的游戏中执行。
+    {
+        LateUpdate();
+    }
+#endif
+
+    private void LateUpdate()
+    {
+        if (allRenderers == null)
+        {
+            allRenderers = GetComponentsInChildren<Renderer>(true);
+        }
+
+        for (int i = 0; i &lt; allRenderers.Length; i++)
+        {
+            Renderer r = allRenderers[i];
+
+            foreach (Material mat in r.sharedMaterials)
+            {
+                if (mat.shader.name == ShaderName)
+                {
+                    mat.SetVector(HeadForwardID, HeadForwardTransform.position - HeadBoneTransform.position);
+                    mat.SetVector(HeadRightID, HeadRightTransform.position - HeadBoneTransform.position);
+                }
+            }
+        }
+    }
+}
+```
+
+接着在模型的头骨上创建 3 个空物体分别为，HeadCenter、HeadRight、HeadForward，分别设置好其对应的位置。然后将这三个空物体赋予上面的脚本。这样子模型旋转可以实时更新阴影了，但是 Scene 窗口里不会变化，需要到 Game 窗口中运行游戏查看。
+
+## 阴影渐变
+首先查看身体的 Ramp 图，一张冷色一张暖色，都是 256 × 16 行，但是 16 行中每两行是一样的，所以实际上为 8 行，每行间隔 1/16 = 0.0625；头发的 Ramp 图，也是一张冷色一张暖色，虽然是 256 × 2 行，但是两行颜色都一样。用 LightMap 的 alpha 通道的灰度值来决定使用 Ramp 图的哪一个行，头发的 LightMap 的 alpha 通道是黑的是因为头发的 Ramp 图只有一行。
+
+我们需要把灰度值转换为 Ramp 图的行序号，也就是 UV 的 V 部分。首先上衣和下衣的 LightMap 的 Alpha 通道一共有 8 个突变：分别为 5，37，69，101，133，165，197，228。都除以 255 分别为 0.02，0.15，0.27，0.4，0.52，0.65，0.77，0.89。将这些值 `round((Alpha + 0.0425)/0.0625)` 就可以得到 1，3，5，7，9，11，13，15 行。把这些数字减去 1 除以 2 就可以得到行序号 0 ~ 7 了。但是视频里说，偶数行的采样没问题，但是奇数行会有问题，需要转变 4 行，也就是原来的第 1 行对应第 5 行，第 3 行对应第 7 行，第 5 行对应第 1 行，第 7 行对应第 3 行，这就是为什么 `rawIndex + 4 < 8 ? rawIndex + 4 : rawIndex + 4 - 8`。同时使用 `fmod()` 函数来判断奇偶性，代码如下：
+
+``` C
+int rampRowIndex = 0;
+int rampRowNum = 1;
+
+#if _AREA_HAIR
+{
+    rampRowIndex = 0; //行序号
+    rampRowNum = 1; //行总数
+}
+#elif _AREA_UPPERBODY || _AREA_LOWERBODY
+{
+    int rawIndex = (round((lightMap.a + 0.0425)/0.0625) - 1)/2;
+    rampRowIndex = lerp(rawIndex, rawIndex + 4 < 8 ? rawIndex + 4 : rawIndex + 4 - 8, fmod(rawIndex, 2));
+    rampRowNum = 8;
+}
+#elif _AREA_FACE
+{
+    rampRowIndex = 0; //脸也使用身体 Ramp 的第 1 行
+    rampRowNum = 8;
+}
+#endif
+```
+
+接下来是 UV 的 U 部分，因为使用渐变纹理就是使用阴影值对其进行采样，LightMap 的 alpha 通道决定行号，而阴影值决定列号，阴影值越大，即阴影值越接近 1，采样值在右侧越亮；阴影值越小，越紧接 0，采样值在左侧越暗。观察 Ramp 图，实际上我们需要用到的是 Ramp 图的后面的部分，所以使用 `_ShadowRampOffset` 重映射一下，该值默认值为 0.75。新增代码如下：  
+
+    float rampUVx = mainLightShadow * (1 - _ShadowRampOffset) + _ShadowRampOffset;
+    float rampUVy = (2 * rampRowIndex + 1) * (1.0 / (rampRowNum * 2));
+    float2 rampUV = float2(rampUVx, rampUVy);
+
+mainLightShadow 的值范围为 (0, 1)，_ShadowRampOffset 为 0.75，即 rampUVx 被重映射到了 (0.75, 1)。rampUVy 则是把 8 行重新映射回 16 行。这样就构建好了 Ramp 图采样所需要的 UV 坐标。
+
+之后就是对 Ramp 图进行采样，新增代码如下：  
+
+    float3 coolRamp = 1;
+    float3 warmRamp = 1;
+
+    #if _AREA_HAIR
+        coolRamp = SAMPLE_TEXTURE2D(_HairCoolRamp, sampler_HairCoolRamp, rampUV).rgb;
+        warmRamp = SAMPLE_TEXTURE2D(_HairWarmRamp, sampler_HairWarmRamp, rampUV).rgb;
+    #elif _AREA_FACE || _AREA_UPPERBODY || _AREA_LOWERBODY
+        coolRamp = SAMPLE_TEXTURE2D(_BodyCoolRamp, sampler_BodyCoolRamp, rampUV).rgb;
+        warmRamp = SAMPLE_TEXTURE2D(_BodyWarmRamp, sampler_BodyWarmRamp, rampUV).rgb;
+    #endif
+
+接下来就是判断什么时候使用暖色，什么时候使用冷色。光照朝上方为黑夜，也就是光向量的 y 值为负数（注意：光向量是指向光源的，所以反过来！！）；光照朝下方为白天，也就是光向量的 y 值为正数。白天用暖色，黑夜用冷色。因为光向量被归一化过，y 值范围为 (-1, 1)，需要将其重映射至 (0, 1) 方便使用 lerp() 函数，新增代码如下：
+
+    float isDay = lightDirectionWS.y * 0.5 + 0.5;
+    float3 rampColor = lerp(coolRamp, warmRamp, isDay);
+
+将 rampColor 输出，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/25/bCjUiyzcfQnZhTo.jpg" width = "100%" height = "100%" alt="图15 - 阴影渐变"/>
+</div>
+
+最后把主光源的颜色和颜色贴图颜色混合上去，并使用 `_MainLightColorUsage` 参数来控制主光源的影响，该值默认为 1。增加的代码如下：  
+
+    float3 mainLightColor = lerp(desaturation(mainLight.color), mainLight.color, _MainLightColorUsage);
+    mainLightColor *= baseColor * rampColor;
+
+`desaturation()` 函数是自己写的去掉饱和度的函数，怎么去饱和度的逻辑，详见《Unity Shader入门精要》读书笔记（四）。代码如下：  
+
+    float3 desaturation(float3 color)
+    {
+        float3 grayXfer = float3(0.3, 0.59, 0.11); //这个值不同标准可能不太一样
+        float grayf = dot(color, grayXfer);
+        return float3(grayf, grayf, grayf);
+    }
+
+主光源（直接光）效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/25/2Wh8lHZXeVm6fPq.jpg" width = "100%" height = "100%" alt="图16 - 直接光"/>
+</div>
+
+将直接光和环境光混合，代码和效果如下：  
+
+    float3 albedo = 0;
+    albedo += indirectLightColor;
+    albedo += mainLightColor;
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/25/pTb1mt7rLWzSwnv.jpg" width = "100%" height = "100%" alt="图17 - 直接光和间接光"/>
+</div>
+
+## 高光
+只有头发和身体有高光，首先使用 Blinn-Phong 模型，`_SpecularExponent` 参数控制高光指数，默认值为 50，新增代码如下：  
+
+``` C
+float3 specularColor = 0;
+    
+#if _AREA_HAIR || _AREA_UPPERBODY || _AREA_LOWERBODY
+{
+    float3 halfVectorWS = normalize(viewDirectionWS + lightDirectionWS);
+    float NdotH = dot(normalWS, halfVectorWS);
+    float blinnPhong = pow(saturate(NdotH), _SpecularExponent);
+}
+```
+
+LightMap 的 B 通道控制着高光的阈值，该区域越亮越会产生高光。观察 LightMap 的 B 通道，可知皮肤和布料衣服没有高光，皮料衣服和衣服上的金属有高光，金属的高光强度差异很大，同时强度也会大于皮料衣服。卡通渲染一般都会限制高光产生的区域。为了区分金属和非金属的高光，我们计算了 nonMetalSpecular 和 metalSpecular：  
+①为了防止高光过于油腻（可以试试 blinnPhong * lightMap.b 直接输出颜色），nonMetalSpecular 使用 `step()` 函数对高光进行二值化。lightMap.b 越亮越会产生高光，所以把 blinnPhong 反向，使用 1.04 是为了偏移一点，可以防止 blinnPhong 为 1，lightMap.b 为 0 时，光照图黑色区域也产生高光。同时这个 0.04 的偏移值越大，NdotH 就需要越大才能产生高光。`_SpecularKsNonMetal` 控制的则是非金属的反射率，非金属反射率固定为 0.04。代码如下：  
+
+> 参数中的 Ks 指镜面反射系数。离线渲染中，通常可以用 kd,ks,kt (分别代表物体的漫反射系数，镜面反射系数，透射系数) 来简单地描述一个物体的基本材质。
+
+    float nonMetalSpecular = step(1.04 - blinnPhong, lightMap.b) * _SpecularKsNonMetal;
+
+② metalSpecular 就简单点，因为不同金属反射率差异很大，阈值图直接用作金属反射率，并使用 `_SpecularKsMetal` 控制，该值默认为 1：
+
+    float metalSpecular = blinnPhong * lightMap.b * _SpecularKsMetal;
+
+接下来就是区分金属和非金属区域了，使用 LightMap 的 A 通道可以区分，其中 0.52 是金属对应的部位，因此可以据此提取出来金属，这里取 a 通道和 0.52 的差值的绝对值，使用 0.1 作为插值范围，也就是 a 通道指在 0.42 - 0.62 之间被映射到了 0 - 1 之间，越靠近 0.52 金属度越大。新增如下代码：  
+
+    float metallic = 0;
+
+    #if _AREA_UPPERBODY || _AREA_LOWERBODY
+        metallic = saturate((abs(lightMap.a - 0.52) - 0.1) / (0 - 0.1));
+    #endif
+
+> 这里我不知道为什么，和视频中效果不太一样，我的效果并不太好，采样出来的 metalic 锯齿感很强烈，所以我先把 0.1 改为了 0.0625，还使用了 step() 函数：`metallic = step(0.01, metallic);` 把金属区域的值都重映射到了 1。
+
+之后，根据区分后的金属或非金属区域，使用 `lerp()` 函数进行区分，因为金属会吸收光的颜色并反射自身颜色，故金属高光乘上 baseColor。再乘上主光源颜色和高光亮度控制参数 `_SpecularBrightness`，该值默认值为 1：  
+
+    specularColor = lerp(nonMetalSpecular, metalSpecular * baseColor, metallic);
+    specularColor *= mainLight.color;
+    specularColor *= _SpecularBrightness;
+
+将 `_SpecularExponent` 参数改为 10，`_SpecularBrightness` 参数改为 10 就可以看见明细的高光了，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/25/HypAQ9dWMSBcsDL.jpg" width = "100%" height = "100%" alt="图18 - 高光"/>
+</div>
+
+将高光加入 albedo：
+
+    albedo += specularColor;
+
+这样间接光 + 直接光 + 高光的效果如下：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/25/GTjboau6gsPhilM.jpg" width = "100%" height = "100%" alt="图18 - 间接光直接光高光，可爱捏~"/>
+</div>
+
+欲知后事如何，请看下篇分解。
