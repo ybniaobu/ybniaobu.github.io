@@ -8,6 +8,7 @@ tags:
   - unity
   - 图形学
   - NPR
+mathjax: true
 top_img: /images/black.jpg
 cover: https://s2.loli.net/2024/03/26/kxdT3sE6wS9LXbp.gif
 description: 本篇主要内容为 Toon Shader 的丝袜、边缘光、描边等效果的实现。本文以米哈游的崩坏星穹铁道的卡通人物渲染来切入 NPR (Non-Photorealistic Rendering) ，从而对卡通渲染有个初步的了解，并加深对渲染的理解，为做出自己的风格化渲染打下基础。
@@ -297,9 +298,9 @@ public class SmoothNormals : MonoBehaviour
                     lineA *= 10000.0f; //计算精度问题
                     lineB *= 10000.0f;
                     float angle = Mathf.Acos(Mathf.Max(Mathf.Min(Vector3.Dot(lineA, lineB)/(lineA.magnitude * lineB.magnitude), 1), -1)); //利用点乘计算夹角
-                    nw.normal = Vector3.Cross(lineA, lineB).normalized; //计算出法线
+                    nw.normal = Vector3.Cross(lineA, lineB).normalized; //计算出真实法线
                     nw.weight = angle; //夹角即顶点权重
-                    normalDict[vertex].Add(nw); //将法线、权重信息加入字典里的 List<NormalWeight>
+                    normalDict[vertex].Add(nw); //将真实法线、权重信息加入字典里的 List<NormalWeight>
                 }
             }
 
@@ -354,7 +355,63 @@ public class SmoothNormals : MonoBehaviour
 }
 ```
 
-知识扩展：
+首先从 Unity 的 mesh 的数据结构开始讲起，一个 mesh 包含了以下属性：**顶点 Vertices**；**拓扑结构 Topology**；**索引结构 Indices**；**Blend shapes 混合形状、变形器**；**Bind poses 绑定姿势或 T-pose**：  
+①Vertices 又包含了以下属性：Position、Normal、Tangent、Color、UVs、 blend indices and bone weights。  
+&emsp;&emsp; - Position：模型空间的顶点坐标；  
+&emsp;&emsp; - Normal：顶点法线；  
+&emsp;&emsp; - Tangent：顶点切线，指向 uv 的 u 方向，w 值存储它的反向；  
+&emsp;&emsp; - UVs：最多 8 套 uv，即 UV0 ~ UV7；  
+&emsp;&emsp; - Color 也就是所谓的**顶点色**，独立于贴图存储的模型颜色，可选的属性，也可以用于存储其他信息；  
+&emsp;&emsp; - Blend indices 存储那些骨骼影响一个顶点，bone weights 存储骨骼影响顶点的程度。  
+②Topology 决定了多少个顶点决定了一个面，Unity 支持以下的 mesh 拓扑结构：Triangle、Quad、Lines 独立线段、LineStrip 不闭合的线、Points；  
+③Indices：顶点的索引数组决定了一个面，数组内元素个数取决于 Topology。比如一个长方形的 Mesh 由四个顶点组成，这四个顶点的索引分别是 0，1，2，3。那么长方形的 triangles 数组就可以表示成 {0，1，2，2，3，1}，如果想拿到第一个三角形的三个顶点在 vertices 下的索引，就是 triangles[0]，triangles[1]，triangles[2]。顶点是可以复用的，同个顶点可以出现在不同的顶点数组。然后顶点的排列顺序决定了一个面的方向，即 **winding order**，顺时针排列是 front-facing，逆时针是 back-facing；  
+④Blend shapes 存储 mesh 的不同形状变体，常用于脸部动画；  
+⑤Bind poses 存储骨骼默认的位置坐标，游戏动画界常用 T-pose 作为默认姿势。
 
-待写内容：mesh 的数据结构；上面代码的过程和原理；tbn矩阵统一就行。
+---
 
+接下来就是讲解上面的平滑法线脚本了：  
+①首先用一个字典来存储顶点以及其对应的法线和权重列表：`Dictionary<Vector3, List<NormalWeight>> normalDict = new Dictionary<Vector3, List<NormalWeight>>();` 为什么是列表，因为一个顶点可以有多条法线，看这个顶点被多少个面共用，一个面可以算出一个顶点法线以及一个顶点角度权重，故使用列表存储多个法线和顶点角度权重。
+
+> 注意区分真实法线、拆分法线 Split Normals（面拐法线）、以及法线贴图的法线。拆分法线是为了模型平滑着色效果，而修改和自定义的法线，当然有些模型会不修改，此时拆分法线等于模型真实法线。而真实法线，一般建模软件都会自动计算，由顶点真实法线决定，顶点真实法线始终与面法线同向。我的理解是 Mesh 中的 Normal 记录的就是自定义的法线，即拆分法线，在建模软件都可以自定义修改，只不过默认情况下为模型的真实法线。若我们使用的 tbn 矩阵是基于拆分法线的切线空间，再去使用基于真实法线的法线贴图可能会出现渲染错误。
+
+②第一个 for 循环的目的就是填充上述字典，记录 mesh 的所有的三角形的每个顶点的多个真实法线和权重信息。`mesh.triangles` 的结构就是 `{0, 2, 1, 2, 3, 1 };` 这样的，每三个定义一个三角形。所以获取每个三角形，再遍历它们的顶点。计算三角形每条线的向量，叉乘出顶点法线，并计算该顶点法线对应的角权重。
+
+③第二个 for 循环目的就是根据每个顶点记录的角权重来加权平均出顶点的平滑法线，然后把平滑法线转换到模型拆分法线的切线空间。因为我们在 Shader 还需要将平滑法线用拆分法线的 TBN 矩阵转换回世界空间，所以不用在意使用的是拆分法线的切线空间还是真实法线的切线空间，只有来回转换的 TBN 矩阵统一就行。
+
+---
+
+回到我们的 Shader 上来，将脚本挂在布洛妮娅上来。因为我们改变了方案，先将 `_OUTLINE_VERTEX_COLOR_SMOOTH_NORMAL` 属性改为 `_OUTLINE_UV7_SMOOTH_NORMAL`，并使用世界坐标系的 TBN 矩阵将切线空间下的平滑法线转换至世界坐标，并使用平滑法线的方向偏移顶点来渲染描边：  
+
+    #if _OUTLINE_UV7_SMOOTH_NORMAL
+        float3x3 tbn = float3x3(vertexNormalInput.tangentWS, vertexNormalInput.bitangentWS, vertexNormalInput.normalWS);
+        positionWS += mul(input.uv7.rgb, tbn) * width;
+    #else
+        positionWS += vertexNormalInput.normalWS * width;
+    #endif
+
+接下来在脸部、上衣、下衣、头发的材质中开启 `Use UV7 smooth normal` 选项，因为默认是关闭的，同时关闭牙舌口、眉毛、颜色的 `Use Outline` 选项，默认是开启状态。效果如下（我把描边宽度设置为了 2 ）：
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/28/5Hun9jl862BXDTt.jpg" width = "100%" height = "100%" alt="图22 - 描边效果（黑）"/>
+</div>
+
+但是现在的描边，若拉近了看，描边会变得很粗，拉远了描边会变得很细。我们希望无论拉远拉近，描边的粗细都不会变化。视频 up 主采用的 github 上 ColinLeung-NiloCat 的方法，详见 https://github.com/ColinLeung-NiloCat/UnityURPToonLitShaderExample ，up 主复制了 github 里的 Outline 方法。该方法的效果并不是很好，因为它简单地乘上相机距离（深度），再乘上相机的 FOV，从而保证不同 FOV 下和深度下，描边宽度不变。我感觉乘上 Tan(FOV/2) 更为合理，因为远近的影响乘上 Tan(FOV/2) 才是屏幕平面上的影响，换个思路想也能得到类似的答案：  
+
+因为我们希望描边宽度不产生近大远小，而近大远小产生的原因是透视投影以及透视投影后的齐次除法产生的，当然如果是正交投影摄像机只是个放大放小的作用。所以为了不产生描边宽度变化，我们需要去除掉透视投影矩阵以及齐次除法的影响，也就是把描边宽度还原至平行投影的状态，这样就不会近大远小。而齐次除法除去的正是深度信息（相机距离），所以我们需要乘回去。接下来我们回忆透视投影矩阵：  
+
+$$ M_{ortho} = \begin{bmatrix} \cfrac{cot \cfrac {FOV}{2}}{Aspect} & 0 & 0 & 0 \\ 0 & cot \cfrac {FOV}{2} & 0 & 0 \\ 0 & 0 & -\cfrac {2}{Far - Near} & -\cfrac {Far + Near}{Far - Near} \\ 0 & 0 & 0 & 1 \end{bmatrix} $$
+
+很好我们找到了 Tan(FOV/2)，Cot(FOV/2) 是 Tan 的倒数，透视投影除以了 Tan(FOV/2)，所以我们乘回去，这很合理。Aspect 的影响我们并不需要考虑，因为从裁切空间转换至屏幕坐标时，Unity 已经考虑了 Aspect 的影响。而透视投影矩阵对 z 轴的影响我们不需要考虑，裁切空间下的 z 轴只是一个非线性的深度，我们其实已经在齐次除法考虑了深度影响。我修改后的代码如下（加 saturate 是为了太远的时候，描边相对于于模型太大了，一坨黑色很难看。也就是拉近，模型小了，给描边宽度缩小；拉太远了，不给描边宽度放大）：  
+
+``` C
+    #if _OUTLINE_UV7_SMOOTH_NORMAL
+        float cotHalfFOV = unity_CameraProjection._m11;
+        float3x3 tbn = float3x3(vertexNormalInput.tangentWS, vertexNormalInput.bitangentWS, vertexNormalInput.normalWS);
+        positionWS += mul(input.uv7.rgb, tbn) * width * saturate(abs(vertexPositionInput.positionCS.w) * (1.0f / cotHalfFOV));
+    #else
+        positionWS += vertexNormalInput.normalWS * width;
+    #endif
+```
+
+## 描边颜色
