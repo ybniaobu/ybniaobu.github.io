@@ -405,13 +405,144 @@ $$ M_{ortho} = \begin{bmatrix} \cfrac{cot \cfrac {FOV}{2}}{Aspect} & 0 & 0 & 0 \
 很好我们找到了 Tan(FOV/2)，Cot(FOV/2) 是 Tan 的倒数，透视投影除以了 Tan(FOV/2)，所以我们乘回去，这很合理。Aspect 的影响我们并不需要考虑，因为从裁切空间转换至屏幕坐标时，Unity 已经考虑了 Aspect 的影响。而透视投影矩阵对 z 轴的影响我们不需要考虑，裁切空间下的 z 轴只是一个非线性的深度，我们其实已经在齐次除法考虑了深度影响。我修改后的代码如下（加 saturate 是为了太远的时候，描边相对于于模型太大了，一坨黑色很难看。也就是拉近，模型小了，给描边宽度缩小；拉太远了，不给描边宽度放大）：  
 
 ``` C
-    #if _OUTLINE_UV7_SMOOTH_NORMAL
-        float cotHalfFOV = unity_CameraProjection._m11;
-        float3x3 tbn = float3x3(vertexNormalInput.tangentWS, vertexNormalInput.bitangentWS, vertexNormalInput.normalWS);
-        positionWS += mul(input.uv7.rgb, tbn) * width * saturate(abs(vertexPositionInput.positionCS.w) * (1.0f / cotHalfFOV));
-    #else
-        positionWS += vertexNormalInput.normalWS * width;
-    #endif
+float cotHalfFOV = unity_CameraProjection._m11;
+float widthFactor = saturate(abs(vertexPositionInput.positionCS.w) * (1.0f / cotHalfFOV));
+#if _OUTLINE_UV7_SMOOTH_NORMAL
+    float3x3 tbn = float3x3(vertexNormalInput.tangentWS, vertexNormalInput.bitangentWS, vertexNormalInput.normalWS);
+    positionWS += mul(input.uv7.rgb, tbn) * width * widthFactor;
+#else
+    positionWS += vertexNormalInput.normalWS * width * widthFactor;
+#endif
 ```
 
+这段代码也可以处理摄像机为正交投影的情况，因为正交投影矩阵的 _m11 是 Scale 的倒数，也是需要乘回去。
+
+但是这样虽然不会近大远小了，但是镜头离模型太近了，描边又会感觉太小（相对于模型感觉太小，虽然宽度没变化），效果感觉真的一般。于是我登录游戏看了一下，发现米哈游的描边是有近大远小的，但是它变化的速率感觉没有最开始我们的近大远小的变化速率快，那么这个变化速率是由什么控制的？也是由 FOV 控制的，也就是说 FOV 控制的是近大远小的变化速率，当 FOV 为 0，tan(FOV/2) 也为 0，此时没有变化速率，不产生近大远小，也就变为了平行透视。FOV 越大，变化越快，所以我们需要改变描边宽度的 FOV 值。为了产生近大远小，我们还是要齐次除法的，所以不乘回深度值了，我们只改变 FOV 值，就取原 FOV 的一半：  
+
+    float cotHalfFOV = unity_CameraProjection._m11;
+    float HalfFOV = atan(1.0f / cotHalfFOV);
+    float widthFactor = (1.0f / cotHalfFOV) / (tan(HalfFOV / 2));
+
+这样的效果还是和米哈游的有点不一样，但是我尽力了，感觉还是缩小了近距离原本变大的宽度。莫非只是改变了参数的影响程度，还是改了回去，最终代码如下，别问我为什么，问就是感觉最舒服：  
+
+    float cotHalfFOV = unity_CameraProjection._m11;
+    float widthFactor = clamp(0, 2, (abs(vertexPositionInput.positionCS.w) * (1.0f / cotHalfFOV) + 1) / 4);
+
 ## 描边颜色
+我们先把顶点着色器的内容的输出结构补充完整，新增代码如下：
+
+    output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
+    output.fogFactor = ComputeFogFactor(vertexPositionInput.positionCS.z);
+
+描边颜色使用 Ramp 贴图的颜色，同时对冷暖贴图采样出来的颜色进行混合，并使用 `_OutlineGamma` 参数对颜色调整（默认值为 16），最后加上 fogFactor 的影响，如下：  
+
+``` C
+float3 coolRamp = 0;
+float3 warmRamp = 0;
+
+#if _AREA_HAIR
+{
+    float2 outlineUV = float2(0, 0.5); //选择了一个颜色
+    coolRamp = SAMPLE_TEXTURE2D(_HairCoolRamp, sampler_HairCoolRamp, outlineUV).rgb;
+    warmRamp = SAMPLE_TEXTURE2D(_HairWarmRamp, sampler_HairWarmRamp, outlineUV).rgb;
+}
+#elif _AREA_UPPERBODY || _AREA_LOWERBODY
+{
+    float4 lightMap = 0;
+    #if _AREA_UPPERBODY
+        lightMap = SAMPLE_TEXTURE2D(_UpperBodyLightMap, sampler_UpperBodyLightMap, input.uv);
+    #elif _AREA_LOWERBODY
+        lightMap = SAMPLE_TEXTURE2D(_LowerBodyLightMap, sampler_LowerBodyLightMap, input.uv);
+    #endif
+    
+    float materialEnum = lightMap.a;
+    //float materialEnumOffset = materialEnum + 0.0425;
+    //float outlineUVy = lerp(materialEnumOffset, materialEnumOffset + 0.5 > 1 ? materialEnumOffset + 0.5 - 1 : materialEnumOffset + 0.5, fmod((round(materialEnumOffset/0.0625) - 1)/2, 2));
+    int rawIndex = (round((lightMap.a + 0.0425)/0.0625) - 1)/2;
+    int rampRowIndex = lerp(rawIndex, rawIndex + 4 < 8 ? rawIndex + 4 : rawIndex + 4 - 8, fmod(rawIndex, 2));
+    float outlineUVy = (2 * rampRowIndex + 1) * (1.0 / (8 * 2));
+        
+    float2 outlineUV = float2(0, outlineUVy);
+    coolRamp = SAMPLE_TEXTURE2D(_BodyCoolRamp, sampler_BodyCoolRamp, outlineUV).rgb;
+    warmRamp = SAMPLE_TEXTURE2D(_BodyWarmRamp, sampler_BodyWarmRamp, outlineUV).rgb;
+}
+#elif _AREA_FACE
+{
+    float2 outlineUV = float2(0, 0.0625); //选择了一个颜色
+    coolRamp = SAMPLE_TEXTURE2D(_BodyCoolRamp, sampler_BodyCoolRamp, outlineUV).rgb;
+    warmRamp = SAMPLE_TEXTURE2D(_BodyWarmRamp, sampler_BodyWarmRamp, outlineUV).rgb;
+}
+#endif
+
+float3 ramp = lerp(coolRamp, warmRamp, 0.5);
+float3 albedo = pow(saturate(ramp), _OutlineGamma);
+    
+float4 color = float4(albedo, 1);
+color.rgb = MixFog(color.rgb, input.fogFactor);
+return color;
+```
+
+头发和脸都是直接在 Ramp 图上找了一个颜色采样出来。而身体部分和之前渐变阴影部分是一样的，可以回去看看。不知道为什么，我这里的效果还是和视频 up 主有点不一样，我稍微改了改采样的点位和 `_OutlineGamma` 参数值，代码见最后面全部代码小节，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/29/nmxX6FV2CgwRotS.jpg" width = "100%" height = "100%" alt="图23 - 描边效果（渐变）"/>
+</div>
+
+为了更好的效果，可以不对 ramp 采样，可以设置多个颜色参数，根据 lightMap.a 去使用不同的颜色参数。这里就不处理了。
+
+## 鼻子描边
+鼻子描边在 FaceMap 的 B 通道上，我们要回到之前的 ToonForwardPass 去。我们希望鼻子描边效果越直视越明显，越斜视越不明显，所以还是使用头前向量和视角方向进行点乘，给点乘指数幂降低可视范围。使用 smoothstep() 函数来抬高最后颜色 lerp() 的参数。颜色使用 Ramp 贴图的一个点。代码如下：
+
+```
+float fakeOutlineEffect = 0;
+float3 fakeOutlineColor = 0;
+
+#if _AREA_FACE && _OUTLINE_ON
+{
+    float fakeOutline = faceMap.b;
+    float3 headForward = normalize(_HeadForward);
+    fakeOutlineEffect = smoothstep(0.0, 0.25, pow(saturate(dot(headForward, viewDirectionWS)), 20) * fakeOutline);
+
+    float2 outlineUV = float2(0 , 0.0625);
+    float3 coolRamp = SAMPLE_TEXTURE2D(_BodyCoolRamp, sampler_BodyCoolRamp, outlineUV).rgb;
+    float3 warmRamp = SAMPLE_TEXTURE2D(_BodyWarmRamp, sampler_BodyWarmRamp, outlineUV).rgb;
+    float3 ramp = lerp(coolRamp, warmRamp, 0.5);
+    fakeOutlineColor = pow(ramp, _OutlineGamma);
+}
+#endif
+
+...
+albedo = lerp(albedo, fakeOutlineColor, fakeOutlineEffect);
+```
+
+这样就有鼻子正面时候的描边效果了，不展示图片了。
+
+# 边缘光
+边缘光要先把 URP 的 Depth Texture 打开，要使用到深度图。视频中使用的方法是屏幕空间深度边缘光，即取当前像素屏幕 uv，向该点法线方向偏移后采样深度，与当前像素深度进行比较，深度差大于某一阈值则为边缘。视频 up 主的代码如下：
+
+``` C
+float linearEyeDepth = LinearEyeDepth(input.positionCS.z, _ZBufferParams);
+float3 normalVS = mul((float3x3)UNITY_MATRIX_V, normalWS);
+float2 uvOffset = float2(sign(normalVS.x), 0) * _RimLightWidth / (1 + linearEyeDepth) / 100;
+int2 loadTexPos = input.positionCS.xy + uvOffset * _ScaledScreenParams.xy;
+
+loadTexPos = min(max(loadTexPos, 0), _ScaledScreenParams.xy - 1); //防止采样出界
+        
+float offsetScreenDepth = LoadSceneDepth(loadTexPos); //函数在 DeclareDepthTexture.hlsl 里
+float offsetLinearEyeDepth = LinearEyeDepth(offsetScreenDepth, _ZBufferParams);
+float rimLight = saturate(offsetLinearEyeDepth - (linearEyeDepth + _RimLightThreshold)) / _RimLightFadeout;
+float3 rimLightColor = rimLight * mainLight.color.rgb;
+rimLightColor *= _RimLightTintColor;
+rimLightColor *= _RimLightBrightness;
+...
+albedo += rimLightColor * lerp(1, albedo, _RimLightMixAlbedo);
+```
+
+一开始我还以为视频 up 主的代码有问题，因为第一句代码：`float linearEyeDepth = LinearEyeDepth(input.positionCS.z, _ZBufferParams);` 。我一直记得 `LinearEyeDepth()` 函数应该传递进去的是范围在 (0 - 1) 的 NDC 坐标，而上面传递进去的是裁切空间下的 z 坐标，未被齐次除法，也未被重映射至 (0 - 1)。但是经过高强度的网上冲浪之后，我发现一个惊人的事实，那就是 positionCS.z 存储的就是范围在 (0 - 1) 的 NDC 坐标，准确的说是带 SV_POSITION 语义的 positionCS.z。这是因为之前的《Unity Shader入门精要》在讲解数学逻辑时，都是基于 OpenGL 的风格习惯来讲解的，但是 URP 使用的是 HLSL，即 DirectX 平台。这就导致了很多细节上的区别，特别是裁切空间、NDC 坐标、屏幕坐标等等，平台差异真的坑死人啊。接下来我们先补充一点细节差异上的基础知识，再略微修改视频 up 主的代码为了更好的理解整个边缘光效果。
+
+---
+
+DirectX 和 OpenGL 的一些差异：  
+
+
+
