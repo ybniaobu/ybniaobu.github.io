@@ -428,6 +428,13 @@ float widthFactor = saturate(abs(vertexPositionInput.positionCS.w) * (1.0f / cot
     float cotHalfFOV = unity_CameraProjection._m11;
     float widthFactor = clamp(0, 2, (abs(vertexPositionInput.positionCS.w) * (1.0f / cotHalfFOV) + 1) / 4);
 
+这样子其实效果已经不错了，但是我睡了一觉后突然想到，之前去除了透视投影矩阵以及齐次除法的代码的效果，是我们感觉拉近的时候描边变小得太快（相对于近大远小效果），但是拉远了又嫌描边变大得太快，我突然就想到了平方根函数，相对于 y = x，刚好是小于 1 时，变小的慢了，大于 1 时，变大得慢了，我悟了，修改代码如下：  
+
+    float cotHalfFOV = unity_CameraProjection._m11;
+    float widthFactor = pow(abs(vertexPositionInput.positionCS.w) * (1.0f / cotHalfFOV), 0.5f);
+
+这个最终得描边效果我很满意，可以尝试改变距离和相机 FOV 看看效果，应该能满足需求了。
+
 ## 描边颜色
 我们先把顶点着色器的内容的输出结构补充完整，新增代码如下：
 
@@ -538,11 +545,73 @@ rimLightColor *= _RimLightBrightness;
 albedo += rimLightColor * lerp(1, albedo, _RimLightMixAlbedo);
 ```
 
-一开始我还以为视频 up 主的代码有问题，因为第一句代码：`float linearEyeDepth = LinearEyeDepth(input.positionCS.z, _ZBufferParams);` 。我一直记得 `LinearEyeDepth()` 函数应该传递进去的是范围在 (0 - 1) 的 NDC 坐标，而上面传递进去的是裁切空间下的 z 坐标，未被齐次除法，也未被重映射至 (0 - 1)。但是经过高强度的网上冲浪之后，我发现一个惊人的事实，那就是 positionCS.z 存储的就是范围在 (0 - 1) 的 NDC 坐标，准确的说是带 SV_POSITION 语义的 positionCS.z。这是因为之前的《Unity Shader入门精要》在讲解数学逻辑时，都是基于 OpenGL 的风格习惯来讲解的，但是 URP 使用的是 HLSL，即 DirectX 平台。这就导致了很多细节上的区别，特别是裁切空间、NDC 坐标、屏幕坐标等等，平台差异真的坑死人啊。接下来我们先补充一点细节差异上的基础知识，再略微修改视频 up 主的代码为了更好的理解整个边缘光效果。
+一开始我还以为视频 up 主的代码有问题，因为第一句代码：`float linearEyeDepth = LinearEyeDepth(input.positionCS.z, _ZBufferParams);` 。我一直记得 `LinearEyeDepth()` 函数应该传递进去的是范围在 (0 - 1) 的 NDC 坐标，而上面传递进去的是裁切空间下的 z 坐标，未被齐次除法，也未被重映射至 (0 - 1)。但是经过高强度的网上冲浪之后，我发现一个惊人的事实，那就是 positionCS.z 存储的就是范围在 (0 - 1) 的 NDC 坐标，准确的说是带 SV_POSITION 语义的 positionCS.z。也就是说带 SV_POSITION 语义的 positionCS 和不带的 positionCS 并不一样，这是源于 **SV_POSITION 语义**的特殊性而导致的。
+
+> SV_POSITION 虽然是 DirectX 平台的 HLSL 语义，但不代表 Unity editor 内部计算风格习惯也是基于 DirectX。Unity 大部分内置函数还是基于 OpenGL 的，比如视角空间是右手坐标系（在 URP 源码我们也可以看到这一点），而 DirectX 的视角空间是左手坐标系。除了因 SV_POSITION 语义的特殊性而产生影响的相关函数，Unity 会考虑到这些影响，所以我们要注意区分。之前的《Unity Shader入门精要》在讲解数学逻辑时，也都是基于 OpenGL 的风格习惯来讲解的。
+
+接下来我们先补充一点细节差异上的基础知识，再略微修改视频 up 主的代码为了更好的理解整个边缘光效果。
 
 ---
 
-DirectX 和 OpenGL 的一些差异：  
+首先对几个名词进行说明：  
+①**NDC 坐标**：Normalized Device Coordinates，即裁切空间齐次除法后的结果。区分为 z 的范围在 [-1, 1] 的 NDC 坐标，即 OpenGL 的风格；z 的范围在 [0, 1] 的 NDC 坐标，DirectX 风格；以及 Unity URP 中 ShaderVariablesFunctions.hlsl 的 `GetVertexPositionInputs()`函数获取到的 positionNDC，详见下面。（无论 OpenGL 还是 DirectX，NDC.xy 范围都是 [-1, 1]）。
+②**屏幕坐标**：Sceen Space 或者说屏幕 uv。区分为归一化的屏幕坐标，也就是将 NDC.xy 重映射至范围在 [0, 1] 的坐标，在《Unity Shader入门精要》也称为视口坐标 viewport space；未归一化的屏幕坐标，也称为像素坐标，就是归一化的屏幕坐标乘上屏幕分辨率。
+
+**SV_POSITION** 语义说明：  
+在顶点着色器中，我们使用 SV_POSITION 作为裁剪空间坐标的输出值。但是在片元着色器中，SV_POSITION 的含义会发生改变：  
+①**SV_POSITION.xy** 坐标表示当前像素在屏幕空间下的像素坐标加上 0.5 的位置偏移（因为一个像素点为 1 的话，其像素中心点为 0.5）。  
+②**SV_POSITION.z** 的值等于 NDC Space 下的 z 值，也就是非线性深度值，因为是在 DirectX 中，其范围在 [0, 1]。这和 OpenGL 的 NDC 坐标的 z 的范围不同，OpenGL 范围在 [-1, 1]。SV_POSITION.z 也是写入 Depth buffer 的值，但有些平台会使用 reverse Z buffer（范围变为 [1, 0]），目的是为了防止 z-fight，有需要去额外了解。Depth buffer 的值其实就是写入 Depth Texture 的值。  
+③**SV_POSITION.w** 的值，就是经过插值后的裁切空间的 w 值，等价于视角坐标下的 z 坐标值（注意负号），也就是未归一化的线性深度值。
+
+> DirectX 的透视矩阵变换后，裁剪空间中 z 的范围是 [0, w] 而不是 [-w, w]。所以透视除法后得到的 NDC 坐标的 z 的范围是 [0, 1]。
+>  
+> OpenGL 类似于顶点着色器的 SV_POSTION 的语义为 gl_FragCoord。但 gl_FragCoord.w 的值，等于裁切空间的 w 值的倒数。不过在 Unity 中，为我们做了自动的转换，如果我们在顶点着色器中使用 SV_POSTION.w 值的时候，在 OpenGL 下，会自动转换成 1/gl_FragCoord.w，非常方便。
+
+所以为了获取 screenUV，以便对深度纹理进行采样，一共有三种方式可以获取：  
+①使用不带 SV_POSITION 语义的 positionCS（使用 TEXCOORDn 语义）：**`float2 screenUV = (input.positionCS.xy / input.positionCS.w) * 0.5 + 0.5;`**  
+②使用带 SV_POSITION 语义的 positionCS：**`float2 screenUV = input.positionCS.xy / _ScaledScreenParams.xy;`**。_ScaledScreenParams.xy 就是当前的屏幕分辨率；（注：官方的示例中使用的代码就是这样，但是不知道为什么没考虑上面说的 0.5 的偏移）  
+③使用 URP 内置的 `GetVertexPositionInputs()` 函数获取到的 positionNDC.xy：**`float2 screenUV = i.positionNDC.xy / i.positionNDC.w;`**。好了疑问又来了，为什么这样可以得到 screenUV。因为此 NDC 非彼 NDC，它是 Homogeneous Normalized Device Coordinates，并不是严格意义上的 NDC 坐标。`GetVertexPositionInputs()` 这个函数的逻辑和之前内置管线的 UnityCG.cginc 的 `ComputeScreenPos()` 函数是一样的，忘了可以去《Unity Shader入门精要》看看。也就是未经过齐次除法，但是做了重映射。总之 **positionNDC.x** 为 $\,clip_x / 2 + clip_w / 2\,$，**positionNDC.y** 为 $\,clip_y / 2 + clip_w / 2\,$，**positionNDC.z** 为 $\,clip_z\,$，**positionNDC.w** 为 $\,clip_w\,$。所以 **positionNDC.xy/positionNDC.w** 为 **(positionCS.xy / positionCS.w) * 0.5 + 0.5**，即屏幕坐标。（注，positionNDC 在内置函数中是通过 positionWS 转换到裁切空间后的 positionCS 获得的，所以不用关心 SV_POSITION 语义的影响）
+
+---
+
+回到我们的 Toon Shader，我就按照我略微改动后的代码来讲解，首先获取当前像素的深度：  
+
+    //float linearEyeDepth = LinearEyeDepth(input.positionCS.z, _ZBufferParams);
+    //float linearEyeDepth = input.positionCS.w;
+    float2 screenUV = input.positionCS.xy / _ScaledScreenParams.xy;
+    float depth = SampleSceneDepth(screenUV);
+    float linearEyeDepth = LinearEyeDepth(depth, _ZBufferParams);
+
+上面两个注释掉的方法也能获取到相同的线性深度值，第一个方法就是视频中的代码。然后就是对 screenUV 进行偏移，视频中的方法是对视角空间下的法线做个偏移的方向判断，然后只对 uv 的 u 方向上进行偏移，我选择了同时对 u 和 v 方向进行偏移，代码如下：  
+
+    float3 normalVS = mul((float3x3)UNITY_MATRIX_V, normalWS);
+    float2 uvOffset = sign(normalVS.xy) / _ScaledScreenParams.xy * _RimLightWidth * pow((1.0f / linearEyeDepth) * unity_CameraProjection._m11, 0.5f);
+    float2 OffsetScreenUV = screenUV + uvOffset;
+
+因为 uvOffset 其实也控制着边缘光的宽度，所以我们乘上了参数 `_RimLightWidth` 方便控制宽度，因为 `_RimLightWidth` 的默认值为 1，而 uv 范围是 [0, 1] 的，所以要除以 `_ScaledScreenParams.xy` 把像素宽度变为归一化后的屏幕坐标的宽度。至于为什么乘上 `pow((1.0f / linearEyeDepth) * unity_CameraProjection._m11, 0.5f);`？这个公式很眼熟，没错，就是我在描边中使用的方法，加上是为了产生近大远小，因为模型离屏幕近，我们希望边缘光宽度变大，反之亦然，至于开平方是因为不希望变得太大。若不乘上无论模型远近，采样的宽度不变，当很近时，采样的宽度相对于模型会变很小，不信可以试试。
+
+接下来就是使用 OffsetScreenUV 对深度纹理进行采样，我使用的是 `SampleSceneDepth()` 函数，接受的是范围 [0, 1] 的 uv 坐标。而视频中采用的是 `LoadSceneDepth()` 函数，它接受的是像素的像素坐标，所以会有些许区别。我的代码如下：  
+
+    float offsetDepth = SampleSceneDepth(OffsetScreenUV);
+    float offsetLinearEyeDepth = LinearEyeDepth(offsetDepth, _ZBufferParams);
+
+视频中还遇到了采样出界的问题，但是我没遇到，不知道是不是 `SampleSceneDepth()` 和 `LoadSceneDepth()` 的区别，所以我没那行代码。然后就是根据 offsetLinearEyeDepth 和 LinearEyeDepth 的差值判断出边缘光了，可以使用 step() 函数大于某个阈值才产生边缘光，这里简单点，就使用视频中使用的 saturate() 函数，并使用 `_RimLightThreshold` 参数控制偏移值，默认为 0.05，该值调整为负数可以增大边缘光范围。除以 `_RimLightFadeout` 可以减弱边缘光，默认值为 1，不知道为什么范围是 Range(0.01, 1)，建议修改一下。
+
+    float rimLight = saturate(offsetLinearEyeDepth - (linearEyeDepth + _RimLightThreshold)) / _RimLightFadeout;
+
+最后乘上主光颜色，`_RimLightTintColor` 颜色控制参数，默认白色，以及 `_RimLightBrightness` 亮度控制参数，默认为 1。
+
+    float3 rimLightColor = rimLight * mainLight.color.rgb;
+    rimLightColor *= _RimLightTintColor;
+    rimLightColor *= _RimLightBrightness;
+    
+此时直接输出边缘光，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/30/sHtSPnZNL5qpCWm.jpg" width = "100%" height = "100%" alt="图25 - 边缘光"/>
+</div>
+
+这样效果只能算一般把，视频基本上就到这里了。我使用菲涅耳边缘光混合了一下：
 
 
-
+_RimLightMixAlbedo 默认 0.9。
