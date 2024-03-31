@@ -608,10 +608,952 @@ albedo += rimLightColor * lerp(1, albedo, _RimLightMixAlbedo);
 此时直接输出边缘光，效果如下：  
 
 <div  align="center">  
-<img src="https://s2.loli.net/2024/03/30/sHtSPnZNL5qpCWm.jpg" width = "100%" height = "100%" alt="图25 - 边缘光"/>
+<img src="https://s2.loli.net/2024/03/30/sHtSPnZNL5qpCWm.jpg" width = "100%" height = "100%" alt="图24 - 边缘光"/>
 </div>
 
-这样效果只能算一般把，视频基本上就到这里了。我使用菲涅耳边缘光混合了一下：
+最后将边缘光混合上颜色贴图的颜色，使用 `_RimLightMixAlbedo` 参数，默认为 0.9：
+
+    albedo += rimLightColor * lerp(1, albedo, _RimLightMixAlbedo);
+
+最终效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/31/U4c5NfD1ylXzFRI.jpg" width = "100%" height = "100%" alt="图25 - 加上边缘光后的总效果"/>
+</div>
+
+最后提一下，最好能弄个参数控制边缘光的开关，建议脸部关闭边缘光，因为脸部后面的头发会影响到深度比较，导致脸部边缘光效果并不是很好。或者采用其他方法，比如边缘检测算子之类的。
 
 
-_RimLightMixAlbedo 默认 0.9。
+# 自发光
+脸部颜色贴图的 A 通道有自发光的遮罩，基本上就是眼睛部分自发光，简单得处理一下，代码如下，`_EmissionMixBaseColor` 默认为 1，`_EmissionTintColor` 默认白色，`_EmissionIntensity` 默认为 1：  
+
+    float3 emissionColor = 0;
+    #if _EMISSION_ON
+        emissionColor = areaMap.a;
+        emissionColor *= lerp(1, baseColor, _EmissionMixBaseColor);
+        emissionColor *= _EmissionTintColor;
+        emissionColor *= _EmissionIntensity;
+    #endif
+    ···
+    albedo += emissionColor;
+
+打开眼睛材质的 Use emission，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/31/RTatc5gNMWjIrBO.jpg" width = "100%" height = "100%" alt="图26 - 加上眼睛自发光后的总效果"/>
+</div>
+
+# 眉毛透过刘海
+使用模板测试，因为眉毛要先画，使用在材质面板中，把眉毛材质的 Render Queue 改为 1999，即 Geometry - 1。把眉毛的模板值 Stencil reference 改为 2；通过测试 Stencil Comparison 改为 GreaterEqual；通过测试后往缓存区写入 2 ，即 Stencil pass operation 改为 Replace。
+
+接下来是画头发以外的的所有材质，随便给模板测试值一个比 2 大的数字，Stencil reference 改为 6 好了；通过测试 Stencil Comparison 改为 GreaterEqual；通过测试后把缓冲区的 2 去掉，即 Stencil pass operation 改为 Zero，这部分是挡住了眉毛的。
+
+最后画头发，Render Queue 改为 2001，即 Geometry + 1。模板值要比眉毛小，改为 1；通过测试 Stencil Comparison 改为 GreaterEqual。
+
+这样眉毛就可以透过头发了，效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/31/LUnEVQNF87wfulM.jpg" width = "100%" height = "100%" alt="图27 - 眉毛透过刘海"/>
+</div>
+
+想要半透明效果，就需要增加一个 Overlay Pass，代码如下：  
+
+``` C
+Pass
+{
+    Name "Overlay"
+            
+    Tags { "LightMode" = "UniversalForwardOnly" }
+            
+    Cull [_Cull]
+            
+    Stencil
+    { 
+        Ref [_StencilRefOverlay]
+        Comp [_StencilCompOverlay]
+    }
+    Blend [_SrcBlendModeOverlay] [_DstBlendModeOverlay]
+    BlendOp [_BlendOpOverlay]
+    ZWrite [_ZWrite]
+            
+    HLSLPROGRAM
+    #pragma vertex ToonForwardVert
+    #pragma fragment ToonForwardFrag
+
+    #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+    #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
+
+    #pragma multi_compile_fog
+
+    #if _DRAW_OVERLAY_ON
+    #include "Assets/ShaderLibrary/ToonInput.hlsl"
+    #include "Assets/ShaderLibrary/ToonForwardPass.hlsl"
+    #else
+    struct Attributes {};
+    struct Varyings
+    {
+        float4 positionCS : SV_POSITION;
+    };
+            
+    Varyings ToonForwardVert(Attributes input)
+    {
+        return (Varyings)0;
+    }
+            
+    float4 ToonForwardFrag(Varyings input) : SV_TARGET
+    {
+        return 0;
+    }
+    #endif
+    
+    ENDHLSL
+}
+```
+
+然后开启头发材质 Draw Overlay 下面的 Use draw overlay 给头发多画一遍，模板值跟眉毛一样为 2，通过测试是 Equal。之后就是改成 Alpha 混合，SrcAlpha 和 OneMinusSrcAlpha。最后把 Alpha 改为 0.5。
+
+但是眉毛有时在模型背面也能看到，此时再加个透明度随视角变化的代码来解决：
+
+    #if _DRAW_OVERLAY_ON
+    {
+        float3 headForward = normalize(_HeadForward);
+        alpha = lerp(1, alpha, saturate(dot(headForward, viewDirectionWS)));
+    }
+    #endif
+
+最后补上 Alpha 剔除和雾效：  
+
+    clip(color.a - _AlphaClip);
+    color.rgb = MixFog(color.rgb, input.positionWSAndFogFactor.w);
+
+完结撒花，最终效果如下：  
+
+<div  align="center">  
+<img src="https://s2.loli.net/2024/03/31/y54IpwjmVNrfLWH.jpg" width = "100%" height = "100%" alt="图28 - 最终效果"/>
+</div>
+
+# 所有代码
+## StarRailToon.shader
+StarRailToon.shader 代码如下：  
+
+``` C
+Shader "Custom/StarRailToon"
+{
+    Properties
+    {
+        [KeywordEnum(None,Face,Hair,UpperBody,LowerBody)] _Area ("Material Area", Float) = 0
+        [HideInInspector] _HeadForward ("", Vector) = (0, 0, 1)
+        [HideInInspector] _HeadRight ("", Vector) = (1, 0, 0)
+        
+        [Header(Base Color)]
+        [HideInInspector] _BaseMap ("", 2D) = "white" {}
+        [NoScaleOffset] _FaceColorMap ("Face color map (Default white)", 2D) = "white" {}
+        [NoScaleOffset] _HairColorMap ("Hair color map (Default white)", 2D) = "white" {}
+        [NoScaleOffset] _UpperBodyColorMap ("UpperBody color map (Default white)", 2D) = "white" {}
+        [NoScaleOffset] _LowerBodyColorMap ("LowerBody color map (Default white)", 2D) = "white" {}
+        _FrontFaceTintColor ("Front face tint color (Default white)", Color) = (1,1,1)
+        _BackFaceTintColor ("Back face tint color (Default white)", Color) = (1,1,1)
+        _Alpha ("Alpha (Default 1)", Range(0, 1)) = 1
+        _AlphaClip ("Alpha clip (Default 0.333)", Range(0, 1)) = 0.333
+        
+        [Header(Light Map)]
+        [NoScaleOffset] _HairLightMap ("Hair light map (Default black)", 2D) = "black" {}
+        [NoScaleOffset] _UpperBodyLightMap ("UpperBody light map (Default black)", 2D) = "black" {}
+        [NoScaleOffset] _LowerBodyLightMap ("LowerBody light map (Default black)", 2D) = "black" {}
+        
+        [Header(Ramp Map)]
+        [NoScaleOffset] _HairCoolRamp ("Hair cool ramp (Default white)", 2D) = "white" {}
+        [NoScaleOffset] _HairWarmRamp ("Hair warm ramp (Default white)", 2D) = "white" {}
+        [NoScaleOffset] _BodyCoolRamp ("Body cool ramp (Default white)", 2D) = "white" {}
+        [NoScaleOffset] _BodyWarmRamp ("Body warm ramp (Default white)", 2D) = "white" {}
+        
+        [Header(Indirect Lighting)]
+        _IndirectLightFlattenNormal ("Indirect light flatten normal (Default 0)", Range(0, 1)) = 0
+        _IndirectLightUsage ("Indirect light usage (Default 0.5)", Range(0, 1)) = 0.5
+        _IndirectLightOcclusionUsage ("Indirect light occlusion usage (Default 0.5)", Range(0, 1)) = 0.5
+        _IndirectLightMixBaseColor ("Indirect light mix base color (Default 1)", Range(0, 1)) = 1
+        
+        [Header(Main Lighting)]
+        _MainLightColorUsage ("Main light color usage (Default 1)", Range(0, 1)) = 1
+        _ShadowThresholdCenter ("Shadow threshold center (Default 0)", Range(-1, 1)) = 0
+        _ShadowThresholdSoftness ("Shadow threshold softness (Default 0.1)", Range(0, 1)) = 0.1
+        _ShadowRampOffset ("Shadow ramp offset (Default 0.75)", Range(0, 1)) = 0.75
+        
+        [Header(Face)]
+        [NoScaleOffset] _FaceMap ("Face map (Default black)", 2D) = "black" {}
+        _FaceShadowOffset ("Face shadow offset (Default -0.01)", Range(-1, 1)) = -0.01
+        _FaceShadowTransitionSoftness ("Face shadow transition softness (Default 0.05)", Range(0, 1)) = 0.05
+        
+        [Header(Specular)]
+        _SpecularExponent ("Specular exponent (Default 50)", Range(1, 128)) = 50
+        _SpecularKsNonMetal ("Specular Ks non-metal (Default 0.04)", Range(0, 1)) = 0.04
+        _SpecularKsMetal ("Specular Ks metal (Default 1)", Range(0, 1)) = 1
+        _SpecularBrightness ("Specular brightness (Default 1)", Range(0, 10)) = 1
+        
+        [Header(Stockings)]
+        [NoScaleOffset] _UpperBodyStockings ("Upper body stockings (Default black)", 2D) = "black" {}
+        [NoScaleOffset] _LowerBodyStockings ("Lower body stockings (Default black)", 2D) = "black" {}
+        _StockingsDarkColor ("Stockings dark color (Default black)", Color) = (0, 0, 0)
+        [HDR] _StockingsLightColor ("Stockings light color (Default 1.8, 1.48299, 0.856821)", Color) = (1.8, 1.48299, 0.856821)
+        [HDR] _StockingsTransitionColor ("Stockings transition color (Default 0.360381, 0.242986, 0.358131)", Color) = (0.360381, 0.242986, 0.358131)
+        _StockingsTransitionThreshold ("Stockings transition threshold (Default 0.58)", Range(0, 1)) = 0.58
+        _StockingsTransitionPower ("Stockings transition power (Default 1)", Range(0.1, 50)) = 1
+        _StockingsTransitionHardness ("Stockings transition hardness (Default 0.4)", Range(0, 1)) = 0.4
+        _StockingsTextureUsage ("Stockings texture usage (Default 0.1)", Range(0, 1)) = 0.1
+        
+        [Header(Rim Lighting)]
+        _RimLightWidth ("Rim light width (Default 1)", Range(0, 10)) = 1
+        _RimLightThreshold ("Rim light threshold (Default 0.05)", Range(-1, 1)) = 0.05
+        _RimLightFadeout ("Rim light fadeout (Default 1)", Range(0.01, 1)) = 1
+        [HDR] _RimLightTintColor ("Rim light tint color (Default white)", Color) = (1, 1, 1)
+        _RimLightBrightness ("Rim light brightness (Default 1)", Range(0, 10)) = 1
+        _RimLightMixAlbedo ("Rim light mix albedo (Default 0.9)", Range(0, 1)) = 0.9
+        
+        [Header(Emission)]
+        [Toggle(_EMISSION_ON)] _UseEmission ("Use emission (Default No)", Float) = 0
+        _EmissionMixBaseColor ("Emission mix base color (Default 1)", Range(0, 1)) = 1
+        [HDR] _EmissionTintColor ("Emission tint color (Default white)", Color) = (1, 1, 1)
+        _EmissionIntensity ("Emission intensity (Default 1)", Range(0, 100)) = 1
+        
+        [Header(Outline)]
+        [Toggle(_OUTLINE_ON)] _UseOutline ("Use outline (Default Yes)", Float) = 1
+        [Toggle(_OUTLINE_UV7_SMOOTH_NORMAL)] _OutlineUseUV7SmoothNormal ("Use UV7 smooth normal (Default No)", Float) = 0
+        _OutlineWidth ("Outline width (Default 1)", Range(0, 10)) = 1
+        _OutlineGamma ("Outline gamma (Default 16)", Range(1, 255)) = 16
+        
+        [Header(Surface Options)]
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull (Default back)", Float) = 2
+        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("Src blend mode (Default One)", Float) = 1
+        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("Dst blend mode (Default Zero)", Float) = 0
+        [Enum(UnityEngine.Rendering.BlendOp)] _BlendOp ("Blend operation (Default Add)", Float) = 0
+        [Enum(Off, 0, On, 1)] _ZWrite ("ZWrite (Default On)", float) = 1
+        _StencilRef("Stencil reference (Default 0)", Range(0, 255)) = 0
+        [Enum(UnityEngine.Rendering.CompareFunction)]_StencilComp ("Stencil comparison (Default disabled)", Float) = 0
+        [Enum(UnityEngine.Rendering.StencilOp)] _StencilPassOp ("Stencil pass operation (Default keep)", Float) = 0
+        [Enum(UnityEngine.Rendering.StencilOp)] _StencilFailOp ("Stencil fail operation (Default keep)", Float) = 0
+        [Enum(UnityEngine.Rendering.StencilOp)] _StencilZFailOp ("Stencil ZFail operation (Default keep)", Float) = 0
+        
+        [Header(Draw Overlay)]
+        [Toggle(_DRAW_OVERLAY_ON)] _UseDrawOverlay ("Use draw overlay (Default No)", Float) = 0
+        [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlendModeOverlay ("Overlay pass src blend mode (Default One)", Float) = 1
+        [Enum(UnityEngine.Rendering.BlendMode)] _DstBlendModeOverlay ("Overlay pass dst blend mode (Default Zero)", Float) = 0
+        [Enum(UnityEngine.Rendering.BlendOp)] _BlendOpOverlay ("Overlay pass blend operation (Default Add)", Float) = 0
+        _StencilRefOverlay ("Overlay pass stencil reference (Default 0)", Range(0, 255)) = 0
+        [Enum(UnityEngine.Rendering.CompareFunction)] _StencilCompOverlay ("Overlay pass stencil comparison (Default disabled)", Float) = 0
+    }
+
+    SubShader
+    {
+        Tags 
+        {
+            "RenderPipeline" = "UniversalPipeline" 
+            "IgnoreProjector" = "True"
+        }
+        
+        LOD 100
+        
+        HLSLINCLUDE
+        
+        #pragma shader_feature_local _AREA_FACE
+        #pragma shader_feature_local _AREA_HAIR
+        #pragma shader_feature_local _AREA_UPPERBODY
+        #pragma shader_feature_local _AREA_LOWERBODY
+        #pragma shader_feature_local _EMISSION_ON
+        #pragma shader_feature_local _OUTLINE_ON
+        #pragma shader_feature_local _OUTLINE_UV7_SMOOTH_NORMAL
+        #pragma shader_feature_local _DRAW_OVERLAY_ON
+        
+        ENDHLSL
+        
+        Pass
+        {
+            Name "ToonForward"
+            
+            Tags { "LightMode" = "UniversalForward" }
+            
+            Cull [_Cull]
+            Stencil
+            { 
+                Ref [_StencilRef]
+                Comp [_StencilComp]
+                Pass [_StencilPassOp]
+                Fail [_StencilFailOp]
+                ZFail [_StencilZFailOp]
+            }
+            Blend [_SrcBlend] [_DstBlend]
+            BlendOp [_BlendOp]
+            ZWrite [_ZWrite]
+            
+            HLSLPROGRAM
+            #pragma vertex ToonForwardVert
+            #pragma fragment ToonForwardFrag
+
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
+            
+            #include "Assets/ShaderLibrary/StarRailToonInput.hlsl"
+            #include "Assets/ShaderLibrary/StarRailToonForwardPass.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "OutLine"
+            
+            Tags { "LightMode" = "SRPDefaultUnlit" }
+            
+            Cull Front
+            ZWrite [_ZWrite]
+            
+            HLSLPROGRAM
+            #pragma vertex ToonOutLineVert
+            #pragma fragment ToonOutLineFrag
+
+            #pragma multi_compile_fog
+
+            #if _OUTLINE_ON
+            #include "Assets/ShaderLibrary/StarRailToonInput.hlsl"
+            #include "Assets/ShaderLibrary/StarRailToonOutlinePass.hlsl"
+
+            #else
+            struct Attributes {};
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+            };
+            
+            Varyings ToonOutLineVert(Attributes input)
+            {
+                return (Varyings)0;
+            }
+            
+            float4 ToonOutLineFrag(Varyings input) : SV_TARGET
+            {
+                return 0;
+            }
+            #endif
+            
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "Overlay"
+            
+            Tags { "LightMode" = "UniversalForwardOnly" }
+            
+            Cull [_Cull]
+            
+            Stencil
+            { 
+                Ref [_StencilRefOverlay]
+                Comp [_StencilCompOverlay]
+            }
+            Blend [_SrcBlendModeOverlay] [_DstBlendModeOverlay]
+            BlendOp [_BlendOpOverlay]
+            ZWrite [_ZWrite]
+            
+            HLSLPROGRAM
+            #pragma vertex ToonForwardVert
+            #pragma fragment ToonForwardFrag
+
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
+
+            #pragma multi_compile_fog
+
+            #if _DRAW_OVERLAY_ON
+            #include "Assets/ShaderLibrary/StarRailToonInput.hlsl"
+            #include "Assets/ShaderLibrary/StarRailToonForwardPass.hlsl"
+            
+            #else
+            struct Attributes {};
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+            };
+            
+            Varyings ToonForwardVert(Attributes input)
+            {
+                return (Varyings)0;
+            }
+            
+            float4 ToonForwardFrag(Varyings input) : SV_TARGET
+            {
+                return 0;
+            }
+            #endif
+            
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ShadowCaster"
+            Tags { "LightMode" = "ShadowCaster" }
+            
+            ZWrite [_ZWrite]
+            ZTest LEqual
+            ColorMask 0
+            Cull [_Cull]
+            
+            HLSLPROGRAM
+            #pragma target 4.5
+            
+            #pragma vertex ShadowPassVertex
+            #pragma fragment ShadowPassFragment
+
+            // -------------------------------------
+            // Material Keywords
+            #pragma shader_feature_local_fragment _ALPHATEST_ON
+            #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+
+            // -------------------------------------
+            // Universal Pipeline keywords
+
+            // -------------------------------------
+            // Unity defined keywords
+            #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
+
+            // This is used during shadow map generation to differentiate between directional and punctual light shadows, as they use different formulas to apply Normal Bias
+            #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
+            
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/ShadowCasterPass.hlsl"
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+            
+            ZWrite [_ZWrite]
+            ColorMask 0
+            Cull [_Cull]
+            
+            HLSLPROGRAM
+            #pragma target 4.5
+            
+            #pragma vertex DepthOnlyVertex
+            #pragma fragment DepthOnlyFragment
+
+            // -------------------------------------
+            // Material Keywords
+            #pragma shader_feature_local_fragment _ALPHATEST_ON
+            #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+
+            // -------------------------------------
+            // Unity defined keywords
+            #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
+
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+            
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
+            ENDHLSL
+        }
+        
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+            
+            ZWrite [_ZWrite]
+            Cull [_Cull]
+
+            HLSLPROGRAM
+            #pragma target 4.5
+            
+            #pragma vertex DepthNormalsVertex
+            #pragma fragment DepthNormalsFragment
+
+            // -------------------------------------
+            // Material Keywords
+            #pragma shader_feature_local _NORMALMAP
+            #pragma shader_feature_local _PARALLAXMAP
+            #pragma shader_feature_local _ _DETAIL_MULX2 _DETAIL_SCALED
+            #pragma shader_feature_local_fragment _ALPHATEST_ON
+            #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+
+            // -------------------------------------
+            // Unity defined keywords
+            #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
+
+            // -------------------------------------
+            // Universal Pipeline keywords
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
+
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+            
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitDepthNormalsPass.hlsl"
+            ENDHLSL
+        }
+    }
+}
+```
+## StarRailToonInput.hlsl
+StarRailToonInput.hlsl 和 Shader 准备时是一样的，没改变过。
+
+## StarRailToonForwardPass.hlsl
+StarRailToonForwardPass.hlsl 代码如下：  
+
+``` C
+#ifndef CUSTOM_TOON_FORWARD_PASS_INCLUDED
+#define CUSTOM_TOON_FORWARD_PASS_INCLUDED
+
+struct Attributes
+{
+    float3 positionOS   : POSITION;
+    float3 normalOS      : NORMAL;
+    float4 tangentOS     : TANGENT;
+    float2 uv           : TEXCOORD0;
+};
+
+struct Varyings
+{
+    float2 uv                       : TEXCOORD0;
+    float4 positionWSAndFogFactor   : TEXCOORD1; //w: vertex fog factor
+    float3 normalWS                 : TEXCOORD2;
+    float3 viewDirectionWS          : TEXCOORD3;
+    float3 SH                       : TEXCOORD4;
+    float4 positionCS               : SV_POSITION;
+};
+
+struct Gradient
+{
+    int colorsLength;
+    float4 colors[8];
+};
+
+Gradient GradientConstruct() //构造函数
+{
+    Gradient g;
+    g.colorsLength = 2;
+    g.colors[0] = float4(1, 1, 1, 0); //a 表示的是颜色位置
+    g.colors[1] = float4(1, 1, 1, 1);
+    g.colors[2] = float4(0, 0, 0, 0);
+    g.colors[3] = float4(0, 0, 0, 0);
+    g.colors[4] = float4(0, 0, 0, 0);
+    g.colors[5] = float4(0, 0, 0, 0);
+    g.colors[6] = float4(0, 0, 0, 0);
+    g.colors[7] = float4(0, 0, 0, 0);
+    return g;
+}
+
+float3 SampleGradient(Gradient Gradient, float Time)
+{
+    float3 color = Gradient.colors[0].rgb;
+    for (int c = 1; c < Gradient.colorsLength; c++)
+    {
+        float colorPos = saturate((Time - Gradient.colors[c - 1].w) / (Gradient.colors[c].w - Gradient.colors[c - 1].w)) * step(c, Gradient.colorsLength - 1);
+        color = lerp(color, Gradient.colors[c].rgb, colorPos);
+    }
+    #ifdef UNITY_COLORSPACE_GAMMA
+    color = LinearToSRGB(color);
+    #endif
+    return color;
+}
+
+float3 desaturation(float3 color)
+{
+    float3 grayXfer = float3(0.3, 0.59, 0.11);
+    float grayf = dot(color, grayXfer);
+    return float3(grayf, grayf, grayf);
+}
+
+Varyings ToonForwardVert(Attributes input)
+{
+    Varyings output;
+
+    VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS);
+    VertexNormalInputs vertexNormalInput = GetVertexNormalInputs(input.normalOS, input.tangentOS);
+
+    output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
+    output.positionWSAndFogFactor = float4(vertexInput.positionWS, ComputeFogFactor(vertexInput.positionCS.z));
+    output.normalWS = vertexNormalInput.normalWS;
+    output.viewDirectionWS = GetWorldSpaceViewDir(vertexInput.positionWS);
+    output.SH = SampleSH(lerp(vertexNormalInput.normalWS, float3(0, 0, 0), _IndirectLightFlattenNormal));
+    output.positionCS = vertexInput.positionCS;
+
+    return output;
+}
+
+float4 ToonForwardFrag(Varyings input, bool isFrontFace : SV_IsFrontFace) : SV_TARGET
+{
+    float3 positionWS = input.positionWSAndFogFactor.xyz;
+    float4 shadowCoord = TransformWorldToShadowCoord(positionWS);
+    Light mainLight = GetMainLight(shadowCoord);
+    float3 lightDirectionWS = normalize(mainLight.direction);
+    
+    float3 normalWS = normalize(input.normalWS);
+    float3 viewDirectionWS = normalize(input.viewDirectionWS);
+
+    float3 baseColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).rgb;
+
+    //颜色贴图
+    float4 areaMap = 0;
+    
+    #if _AREA_FACE
+        areaMap = SAMPLE_TEXTURE2D(_FaceColorMap, sampler_FaceColorMap, input.uv);
+    #elif _AREA_HAIR
+        areaMap = SAMPLE_TEXTURE2D(_HairColorMap, sampler_HairColorMap, input.uv);
+    #elif _AREA_UPPERBODY
+        areaMap = SAMPLE_TEXTURE2D(_UpperBodyColorMap, sampler_UpperBodyColorMap, input.uv);
+    #elif _AREA_LOWERBODY
+        areaMap = SAMPLE_TEXTURE2D(_LowerBodyColorMap, sampler_LowerBodyColorMap, input.uv);
+    #endif
+    
+    baseColor = areaMap.rgb;
+    baseColor *= lerp(_BackFaceTintColor, _FrontFaceTintColor, isFrontFace);
+
+    //光照图
+    float4 lightMap = 0;
+    
+    #if _AREA_HAIR
+        lightMap = SAMPLE_TEXTURE2D(_HairLightMap, sampler_HairLightMap, input.uv);
+    #elif _AREA_UPPERBODY
+        lightMap = SAMPLE_TEXTURE2D(_UpperBodyLightMap, sampler_UpperBodyLightMap, input.uv);
+    #elif _AREA_LOWERBODY
+        lightMap = SAMPLE_TEXTURE2D(_LowerBodyLightMap, sampler_LowerBodyLightMap, input.uv);
+    #endif
+    
+    float4 faceMap = 0;
+        
+    #if _AREA_FACE
+        faceMap = SAMPLE_TEXTURE2D(_FaceMap, sampler_FaceMap, input.uv);
+    #endif
+
+    //环境光
+    float3 indirectLightColor = input.SH.rgb * _IndirectLightUsage;
+
+    #if _AREA_HAIR || _AREA_UPPERBODY || _AREA_LOWERBODY
+    indirectLightColor *= lerp(1, lightMap.r, _IndirectLightOcclusionUsage);
+    #else
+    indirectLightColor *= lerp(1, lerp(faceMap.g, 1, step(faceMap.r, 0.5)), _IndirectLightOcclusionUsage);
+    #endif
+
+    indirectLightColor *= lerp(1, baseColor, _IndirectLightMixBaseColor);
+
+    //直接光
+    float3 mainLightColor = lerp(desaturation(mainLight.color), mainLight.color, _MainLightColorUsage);
+    float mainLightShadow = 1;
+
+    #if _AREA_HAIR || _AREA_UPPERBODY || _AREA_LOWERBODY
+    {
+        float NdotL = dot(normalWS, lightDirectionWS);
+        //mainLightShadow = step(0, NdotL); //常用的 NPR 硬阴影
+        float remappedNdotL = NdotL * 0.5 + 0.5;
+        mainLightShadow = smoothstep(1 - lightMap.g + _ShadowThresholdCenter - _ShadowThresholdSoftness, 1 - lightMap.g + _ShadowThresholdCenter + _ShadowThresholdSoftness, remappedNdotL);
+        mainLightShadow *= lightMap.r;
+    }
+    #elif _AREA_FACE
+    {
+        float3 headForward = normalize(_HeadForward);
+        float3 headRight = normalize(_HeadRight);
+        float3 headUp = cross(headForward, headRight);
+
+        float3 fixedLightDirectionWS = normalize(lightDirectionWS - dot(lightDirectionWS, headUp) * headUp);
+        float2 sdfUV = float2(sign(dot(fixedLightDirectionWS, headRight)), 1) * input.uv * float2(-1, 1);
+        float sdfValue = SAMPLE_TEXTURE2D(_FaceMap, sampler_FaceMap, sdfUV).a;
+        sdfValue += _FaceShadowOffset;
+
+        float sdfThreshold = 1 - (dot(fixedLightDirectionWS, headForward) * 0.5 + 0.5);
+        float sdf = smoothstep(sdfThreshold - _FaceShadowTransitionSoftness, sdfThreshold + _FaceShadowTransitionSoftness, sdfValue);
+        
+        mainLightShadow = lerp(faceMap.g, sdf, step(faceMap.r, 0.5));
+    }
+    #endif
+
+    int rampRowIndex = 0;
+    int rampRowNum = 1;
+    
+    #if _AREA_HAIR
+    rampRowIndex = 0;
+    rampRowNum = 1;
+    #elif _AREA_UPPERBODY || _AREA_LOWERBODY
+    int rawIndex = (round((lightMap.a + 0.0425)/0.0625) - 1)/2;
+    rampRowIndex = lerp(rawIndex, rawIndex + 4 < 8 ? rawIndex + 4 : rawIndex + 4 - 8, fmod(rawIndex, 2));
+    rampRowNum = 8;
+    #elif _AREA_FACE
+    rampRowIndex = 0;
+    rampRowNum = 8;
+    #endif
+
+    float rampUVx = mainLightShadow * (1 - _ShadowRampOffset) + _ShadowRampOffset;
+    float rampUVy = (2 * rampRowIndex + 1) * (1.0 / (rampRowNum * 2));
+    float2 rampUV = float2(rampUVx, rampUVy);
+    float3 coolRamp = 1;
+    float3 warmRamp = 1;
+
+    #if _AREA_HAIR
+    coolRamp = SAMPLE_TEXTURE2D(_HairCoolRamp, sampler_HairCoolRamp, rampUV).rgb;
+    warmRamp = SAMPLE_TEXTURE2D(_HairWarmRamp, sampler_HairWarmRamp, rampUV).rgb;
+    #elif _AREA_FACE ||_AREA_UPPERBODY || _AREA_LOWERBODY
+    coolRamp = SAMPLE_TEXTURE2D(_BodyCoolRamp, sampler_BodyCoolRamp, rampUV).rgb;
+    warmRamp = SAMPLE_TEXTURE2D(_BodyWarmRamp, sampler_BodyWarmRamp, rampUV).rgb;
+    #endif
+
+    float isDay = lightDirectionWS.y * 0.5 + 0.5;
+    float3 rampColor = lerp(coolRamp, warmRamp, isDay);
+    mainLightColor *= baseColor * rampColor;
+
+    //高光
+    float3 specularColor = 0;
+    
+    #if _AREA_HAIR || _AREA_UPPERBODY || _AREA_LOWERBODY
+    {
+        float3 halfVectorWS = normalize(viewDirectionWS + lightDirectionWS);
+        float NdotH = dot(normalWS, halfVectorWS);
+        float blinnPhong = pow(saturate(NdotH), _SpecularExponent);
+
+        float nonMetalSpecular = step(1.04 - blinnPhong, lightMap.b) * _SpecularKsNonMetal; //1.04是因为偏移了一点
+        float metalSpecular = blinnPhong * lightMap.b * _SpecularKsMetal;
+
+        float metallic = 0;
+
+        #if _AREA_UPPERBODY || _AREA_LOWERBODY
+            metallic = saturate((abs(lightMap.a - 0.52) - 0.0625) / (0 - 0.0625));
+            metallic = step(0.01, metallic);
+        #endif
+        
+        specularColor = lerp(nonMetalSpecular, metalSpecular * baseColor, metallic);
+        specularColor *= mainLight.color;
+        specularColor *= _SpecularBrightness;
+    }
+    #endif
+
+    //丝袜
+    float3 stockingsEffect = 1;
+
+    #if _AREA_UPPERBODY || _AREA_LOWERBODY
+    {
+        float2 stockingsMapRG = 0;
+        float stockingsMapB = 0;
+    
+        #if _AREA_UPPERBODY
+        stockingsMapRG = SAMPLE_TEXTURE2D(_UpperBodyStockings, sampler_UpperBodyStockings, input.uv).rg;
+        stockingsMapB = SAMPLE_TEXTURE2D(_UpperBodyStockings, sampler_UpperBodyStockings, input.uv * 20).b;
+        #elif _AREA_LOWERBODY
+        stockingsMapRG = SAMPLE_TEXTURE2D(_LowerBodyStockings, sampler_LowerBodyStockings, input.uv).rg;
+        stockingsMapB = SAMPLE_TEXTURE2D(_LowerBodyStockings, sampler_LowerBodyStockings, input.uv * 20).b;
+        #endif
+        
+        float NdotV = dot(normalWS, viewDirectionWS);
+        float fac = NdotV;
+        fac = pow(saturate(fac), _StockingsTransitionPower);
+        fac = saturate((fac - _StockingsTransitionHardness/2) / (1 - _StockingsTransitionHardness));
+        fac = fac * (stockingsMapB * _StockingsTextureUsage + 1 - _StockingsTextureUsage);
+        fac = lerp(fac, 1, stockingsMapRG.g);
+
+        Gradient curve = GradientConstruct();
+        curve.colorsLength = 3;
+        curve.colors[0] = float4(_StockingsDarkColor, 0);
+        curve.colors[1] = float4(_StockingsTransitionColor, _StockingsTransitionThreshold);
+        curve.colors[2] = float4(_StockingsLightColor, 1);
+        float3 stockingsColor = SampleGradient(curve, fac);
+        
+        stockingsEffect = lerp(1, stockingsColor, stockingsMapRG.r);
+    }
+    #endif
+
+    //鼻子描边颜色
+    float fakeOutlineEffect = 0;
+    float3 fakeOutlineColor = 0;
+
+    #if _AREA_FACE && _OUTLINE_ON
+    {
+        float fakeOutline = faceMap.b;
+        float3 headForward = normalize(_HeadForward);
+        fakeOutlineEffect = smoothstep(0.0, 0.25, pow(saturate(dot(headForward, viewDirectionWS)), 20) * fakeOutline);
+
+        float2 outlineUV = float2(0 , 0.0625);
+        float3 coolRamp = SAMPLE_TEXTURE2D(_BodyCoolRamp, sampler_BodyCoolRamp, outlineUV).rgb;
+        float3 warmRamp = SAMPLE_TEXTURE2D(_BodyWarmRamp, sampler_BodyWarmRamp, outlineUV).rgb;
+        float3 ramp = lerp(coolRamp, warmRamp, 0.5);
+        fakeOutlineColor = pow(abs(ramp), _OutlineGamma);
+    }
+    #endif
+
+    //边缘光
+    //float linearEyeDepth = LinearEyeDepth(input.positionCS.z, _ZBufferParams);
+    //float linearEyeDepth = input.positionCS.w;
+    float2 screenUV = input.positionCS.xy / _ScaledScreenParams.xy;
+    float depth = SampleSceneDepth(screenUV);
+    float linearEyeDepth = LinearEyeDepth(depth, _ZBufferParams);
+    
+    float3 normalVS = mul((float3x3)UNITY_MATRIX_V, normalWS);
+    float2 uvOffset = normalVS.xy / _ScaledScreenParams.xy * _RimLightWidth * pow((1.0f / linearEyeDepth) * unity_CameraProjection._m11, 0.5f);
+    float2 OffsetScreenUV = screenUV + uvOffset;
+    
+    //OffsetScreenUV = min(max(OffsetScreenUV, 0), 1 - 1/_ScaledScreenParams.xy); //防止采样出界
+    
+    float offsetDepth = SampleSceneDepth(OffsetScreenUV);
+    float offsetLinearEyeDepth = LinearEyeDepth(offsetDepth, _ZBufferParams);
+    
+    float rimLight = saturate(offsetLinearEyeDepth - (linearEyeDepth + _RimLightThreshold)) / _RimLightFadeout;
+    float3 rimLightColor = rimLight * mainLight.color.rgb;
+    rimLightColor *= _RimLightTintColor;
+    rimLightColor *= _RimLightBrightness;
+
+    // 可以尝试用菲涅尔边缘光进行混合
+    // float fresnelPower = 10;
+    // float fresnel = 1 - saturate(dot(normalWS , viewDirectionWS));
+    // fresnel = pow(fresnel, fresnelPower);
+    // fresnel = lerp(0, fresnel, isFrontFace);
+    // rimLightColor = lerp(fresnel, rimLightColor, 0.75);
+
+    //自发光
+    float3 emissionColor = 0;
+    #if _EMISSION_ON
+    emissionColor = areaMap.a;
+    emissionColor *= lerp(1, baseColor, _EmissionMixBaseColor);
+    emissionColor *= _EmissionTintColor;
+    emissionColor *= _EmissionIntensity;
+    #endif
+    
+    float3 albedo = 0;
+    albedo += indirectLightColor;
+    albedo += mainLightColor;
+    albedo += specularColor;
+    albedo *= stockingsEffect;
+    albedo += rimLightColor * lerp(1, albedo, _RimLightMixAlbedo);
+    albedo += emissionColor;
+    albedo = lerp(albedo, fakeOutlineColor, fakeOutlineEffect);
+
+    float alpha = _Alpha;
+    //眉毛透出头发的背面问题
+    #if _DRAW_OVERLAY_ON
+    {
+        float3 headForward = normalize(_HeadForward);
+        alpha = lerp(1, alpha, saturate(dot(headForward, viewDirectionWS)));
+    }
+    #endif
+    
+    float4 color = float4(albedo, alpha);
+    clip(color.a - _AlphaClip);
+    color.rgb = MixFog(color.rgb, input.positionWSAndFogFactor.w);
+    return color;
+}
+
+#endif
+```
+
+## StarRailToonOutlinePass.hlsl
+代码如下：  
+
+``` C
+#ifndef CUSTOM_TOON_OUTLINE_PASS_INCLUDED
+#define CUSTOM_TOON_OUTLINE_PASS_INCLUDED
+
+struct Attributes
+{
+    float3 positionOS   : POSITION;
+    float3 normalOS     : NORMAL;
+    float4 tangentOS    : TANGENT;
+    float4 color        : COLOR;
+    float2 uv           : TEXCOORD0;
+    float4 uv7          : TEXCOORD7;
+};
+
+struct Varyings
+{
+    float2 uv                   : TEXCOORD0;
+    float fogFactor             : TEXCOORD1;
+    float4 color                : TEXCOORD2;
+    float4 positionCS           : SV_POSITION;
+};
+
+Varyings ToonOutLineVert(Attributes input)
+{
+    Varyings output = (Varyings)0;
+
+    VertexPositionInputs vertexPositionInput = GetVertexPositionInputs(input.positionOS);
+    VertexNormalInputs vertexNormalInput = GetVertexNormalInputs(input.normalOS, input.tangentOS);
+
+    float width = _OutlineWidth;
+    width *= 0.001;
+
+    float3 positionWS = vertexPositionInput.positionWS;
+
+    float cotHalfFOV = unity_CameraProjection._m11;
+    //float widthFactor = clamp(0, 2, (abs(vertexPositionInput.positionCS.w) * (1.0f / cotHalfFOV) + 1) /4);
+    float widthFactor = pow(abs(vertexPositionInput.positionCS.w) * (1.0f / cotHalfFOV), 0.5f);
+    #if _OUTLINE_UV7_SMOOTH_NORMAL
+    float3x3 tbn = float3x3(vertexNormalInput.tangentWS, vertexNormalInput.bitangentWS, vertexNormalInput.normalWS);
+    positionWS += mul(input.uv7.rgb, tbn) * width * widthFactor;
+    #else
+    positionWS += vertexNormalInput.normalWS * width * widthFactor;
+    #endif
+    
+    output.positionCS = TransformWorldToHClip(positionWS);
+    output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
+    output.fogFactor = ComputeFogFactor(vertexPositionInput.positionCS.z);
+    
+    return output;
+}
+            
+float4 ToonOutLineFrag(Varyings input) : SV_TARGET
+{
+    float3 coolRamp = 0;
+    float3 warmRamp = 0;
+
+    #if _AREA_HAIR
+    {
+        float2 outlineUV = float2(0, 0.0625);
+        coolRamp = SAMPLE_TEXTURE2D(_HairCoolRamp, sampler_HairCoolRamp, outlineUV).rgb;
+        warmRamp = SAMPLE_TEXTURE2D(_HairWarmRamp, sampler_HairWarmRamp, outlineUV).rgb;
+    }
+    #elif _AREA_UPPERBODY || _AREA_LOWERBODY
+    {
+        float4 lightMap = 0;
+        #if _AREA_UPPERBODY
+            lightMap = SAMPLE_TEXTURE2D(_UpperBodyLightMap, sampler_UpperBodyLightMap, input.uv);
+        #elif _AREA_LOWERBODY
+            lightMap = SAMPLE_TEXTURE2D(_LowerBodyLightMap, sampler_LowerBodyLightMap, input.uv);
+        #endif
+    
+        float materialEnum = lightMap.a;
+        float materialEnumOffset = materialEnum + 0.0425;
+        float outlineUVy = materialEnumOffset;
+        //float outlineUVy = lerp(materialEnumOffset, materialEnumOffset + 0.5 > 1 ? materialEnumOffset + 0.5 - 1 : materialEnumOffset + 0.5, fmod((round(materialEnumOffset/0.0625) - 1)/2, 2));
+        //int rawIndex = (round((lightMap.a + 0.0425)/0.0625) - 1)/2;
+        //int rampRowIndex = lerp(rawIndex, rawIndex + 4 < 8 ? rawIndex + 4 : rawIndex + 4 - 8, fmod(rawIndex, 2));
+        //float outlineUVy = (2 * rampRowIndex + 1) * (1.0 / (8 * 2));
+        
+        float2 outlineUV = float2(0, outlineUVy);
+        coolRamp = SAMPLE_TEXTURE2D(_BodyCoolRamp, sampler_BodyCoolRamp, outlineUV).rgb;
+        warmRamp = SAMPLE_TEXTURE2D(_BodyWarmRamp, sampler_BodyWarmRamp, outlineUV).rgb;
+    }
+    #elif _AREA_FACE
+    {
+        float2 outlineUV = float2(0, 0.0625);
+        coolRamp = SAMPLE_TEXTURE2D(_BodyCoolRamp, sampler_BodyCoolRamp, outlineUV).rgb;
+        warmRamp = SAMPLE_TEXTURE2D(_BodyWarmRamp, sampler_BodyWarmRamp, outlineUV).rgb;
+    }
+    #endif
+
+    float3 ramp = lerp(coolRamp, warmRamp, 0.5);
+    float3 albedo = pow(saturate(ramp), _OutlineGamma);
+    
+    float4 color = float4(albedo, 1);
+    color.rgb = MixFog(color.rgb, input.fogFactor);
+    return color;
+}
+
+#endif
+```
