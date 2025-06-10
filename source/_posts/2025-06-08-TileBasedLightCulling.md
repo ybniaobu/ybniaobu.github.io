@@ -62,7 +62,7 @@ Tile-based Light Culling 是一个被不断改进过的技术，简单地来说�
 详细介绍见后面。
 
 ## Cluster-based Light Culling 简介
-Tile-based 的光源分类使用的是一个基于 tile 的二维空间范围，以及几何物体的深度边界；而 Cluster-based 则将视锥体划分为一组三维单元格，称为**聚类 cluster**，聚类的划分是在整个视锥体上进行的，独立于场景中的几何形状，如下图所示：  
+Tile-based 的光源分类使用的是一个基于 tile 的二维空间范围，以及几何物体的深度边界；而 Cluster-based 则将视锥体划分为一组三维单元格，称为**簇 cluster**，簇的划分是在整个视锥体上进行的，独立于场景中的几何形状，如下图所示：  
 
 <div align="center">  
 <img src="https://s2.loli.net/2025/06/09/eJoPiS7p2bhuWKr.png" width = "60%" height = "60%" alt="图5 - Cluster-based Light Culling"/>
@@ -71,13 +71,61 @@ Tile-based 的光源分类使用的是一个基于 tile 的二维空间范围，
 光源会基于 cluster 来进行分类，并形成对应的光源列表，由于 cluster 并不依赖场景几何的 z-depth，故无论是透明的还是不透明的物体，都可以使用该物体的位置来检索相关的光源列表。本篇文章就不详细介绍该技术了，以后实现的时候再行阐述。
 
 
-# Compute Shader 同步基础
-## groupshared
-## 原子操作
-## Barrier
-## Wave Operation
+# Compute Shader 同步相关概念简介
+这里略微介绍一下之前没怎么遇到过的 Compute Shader 的一些概念，方便后面 Tile-based Light Culling 的 Compute Shader 编写。
+
+## GPU 架构简介
+架构这里就简单介绍一下，详细请看 NVIDIA 的 Ada 显卡架构白皮书：https://images.nvidia.com/aem-dam/Solutions/geforce/ada/nvidia-ada-gpu-architecture.pdf 。Ada 架构应该是前几年的主力架构，最新架构应该是 Blackwell。
+
+GPU 由多个**图像处理簇 Graphics Processing Clusters (GPCs)** 组成，GPCs 包括数个**纹理处理簇 Texture Processing Clusters (TPCs)**，TPCs 又包括数个**流式多处理器 Stream Multiprocessors (SMs)**，如下图所示：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/10/lo7u3nYyTdEmfUP.jpg" width = "80%" height = "80%" alt="图6 - Ada GPU Architecture"/>
+</div>
+
+SMs 是理解 Compute Shader 的重点，SM 可以被分为多个 processing blocks，每个 processing block 包含一个**寄存器堆 Register File**、一个**L0 指令缓存 L0 instruction cache**、一个**线程束调度器 warp scheduler**、一个**指令分发单元 dispatch unit**、数个 **CUDA Cores**（基础并行计算单元，用于处理通用浮点/整数运算）和一个 **Tensor Core**（专用 AI/深度学习加速单元，针对矩阵运算优化）等等，如下图：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/10/27wjQ5LAXoKtd6g.jpg" width = "45%" height = "45%" alt="图7 - Ada Streaming Multiprocessor (SM)"/>
+</div>
+
+**线程束 warp** 是 SM 的基本执行单元，一个 warp 包含 32 个并行的**线程 Thread**。这也是为什么 compute shader 的 numthreads 要设置为 64 的倍数的原因，假如我们使用 numthreads 设置每个线程组只有 10 个线程，但是由于 SM 每次调度一个 Warp 就会执行 32 个线程，这就会造成有 22 个线程是不干活的，之所以是 64 是因为 AMD 显卡相对于 warp 概念的叫 **Wavefront**，由 64 个线程组成。
+
+一个 SM 可同时处理多个**线程组 Thread Block/Group**（如 Ada SM 最多处理 32 个线程组），反之一个线程组也可能被拆分到多个 SM（不太常见）。线程组其实算是软件上的概念，compute shader 里叫 Thread Group，CUDA 编程里叫 Thread Block。
+
+## Memory Types in GPU
+下面介绍一下 GPU 里的内存类型，如下图：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/10/8r7YAf9XvHLFEzi.webp" width = "50%" height = "50%" alt="图8 - Memory Types in GPU"/>
+</div>
+
+简单地来说可以分为：  
+①**本地内存 Local Memory**：每个线程拥有的局部内存；  
+②**共享内存 Shared Memory**：每个线程组内所有线程共享的内存，即带有 `groupshared` 关键字的变量；  
+③**全局内存 Global Memory**：GPU 中最大、最主要内存区域，所有线程组共享。有时也被称为 **Device Memory**，但严格来说不完全是同个意思；  
+④**Texture Memory and Constant Memory** 这个就不多说了，应该非常熟悉了。
+
+## Memory Barrier
+由于 GPU 的并行特性，对共享资源的访问需要特别注意同步问题，以确保数据一致性以及避免**数据竞争 Data Race**，即**内存一致性 Memory Coherency**。这就涉及到了**内存屏障 Memory Barrier** 这个概念，诸如以下函数：`GroupMemoryBarrier()`、`DeviceMemoryBarrier()` 和 `AllMemoryBarrier()`，顾名思义，这三个对应的是 Shared Memory、Global Memory 以及所有 Memory。在线程调用 Memory Barrier 之后，才能确保共享内存的写入对其他线程可见，但 MemoryBarrier 系列函数无法保证线程同步，即它不等待所有线程都执行到此点。这就又涉及到了**执行屏障 Execution Barrier**，用于保证屏障前的代码已被组内所有线程执行完毕，对应 `GroupMemoryBarrierWithGroupSync()`、`DeviceMemoryBarrierWithGroupSync()`、`AllMemoryBarrierWithGroupSync()` 这三个函数，它们既是内存屏障也是执行屏障。总的来说，内存屏障保证的是内存可见性同步，执行屏障保证的是线程执行同步，滥用或忘记使用屏障会导致极其难以调试的数据竞争和错误结果。
+
+还有额外的一点是，即便加了 DeviceMemoryBarrier 或者 AllMemoryBarrier，Global Memory 这个时候也只能保证在 Group 内部操作的可见性，默认情况下 Global Memory 资源的访问不保证跨线程组或 SM 的写入立即可见性或读取缓存一致性。GPU 可以利用缓存优化性能，但这可能导致不同线程看到的内存状态不一致。此时，需要用 `globallycoherent` 关键字修饰 Global Memory 资源，要求 HLSL 编译器对该特定变量的所有访问（读/写）都必须遵循严格的全局内存一致性。使用 globallycoherent 会带来额外的性能开销。
+
+## Atomic Operations
+内存一致性的问题还有一个内存操作顺序的问题，简单地来说，所有线程都在给一个共享变量加一，如果这个加一操作不是原子的，那么在 A 线程正在更新这个位置时，B 线程可能会同时访问这个位置，导致 B 线程得到的值是旧的、不正确的。而**原子操作 Atomic Operations** 提供了一种无锁、线程安全的方式来操作共享变量，可以说它是并行编程的基石，是实现跨线程安全访问共享资源的核心机制，确保了在并行环境下对同一内存地址的读写操作具有不可分割性（即操作执行过程中不会被其他线程中断）。
+
+HLSL 中的原子操作函数有如下：`InterlockedAdd()`，`InterlockedAnd()`，`InterlockedCompareExchange()`，`InterlockedCompareStore()`，`InterlockedExchange()`，`InterlockedMax()`，`InterlockedMin()`，`InterlockedOr()`，`InterlockedXor()`。
+
+## Wave Operations
+**波形操作 Wave Operations** 则允许 Warp 或 Wave 内的线程之间进行通信，允许同一 Wave 内的线程直接使用共享寄存器交换数据，无需通过共享内存，从而显著提升性能和简化代码。Wave Operations 需要 Shader Model 6.0。这里我先就不详细介绍了，大概知道这么一个概念就行，以后实现效果遇到了，再详细学习如何使用。
+
 
 # Tile-Based Light Culling
+## 整体流程
+CPU 中的操作我这里就不做记录了，根据需要的数据资源写就行，这里只摘录 GPU 中的流程。
+
+## Depth Texture
+
 ## 球形相交测试
 ### Sphere-Frustum Test
 ### Cone Test
