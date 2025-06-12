@@ -121,13 +121,169 @@ HLSL 中的原子操作函数有如下：`InterlockedAdd()`，`InterlockedAnd()`
 
 
 # Tile-Based Light Culling
-## 整体流程
-CPU 中的操作我这里就不做记录了，根据需要的数据资源写就行，这里只摘录 GPU 中的流程。
+先说一下 Tile-Based Light Culling 的整体基本流程，我们要构建 tile 在视锥体 view frustum 下的包围体，包含上下左右四个平面。而基于深度的剔除，则通过采样深度贴图（必须要有 z-prepass）计算每个 tile 的最大最小深度，这样就组成了 tile 包围体的前后平面。拿这 6 个平面跟灯光包围体做相交测试，通过则记录下灯光索引。具体的 compute shader 中步骤如下：  
+①将屏幕按照 16 x 16 进行分块，每个线程组的线程数量也是 16 x 16，每个线程组代表一个 tile；  
+②初始化 groupshared 变量，主要包括每个 tile（线程组）中的最大最小深度、每个 tile 通过测试的灯光数量以及索引；  
+③每个 tile（线程组）中的每个线程代表屏幕上的对应像素，获取 Depth Texture 的深度值，并用原子操作计算出每个 tile 的最大最小深度值，记录在该 tile（线程组）的 groupshared 变量里；  
+④每个线程代表一盏灯光（故只支持 16 x 16 = 256 盏灯，超出 256 需要 for 循环）与当前 tile（线程组）做相交测试，通过则将灯光数量和索引记录到该 tile（线程组）的 groupshared 变量里；
+⑤将记录灯光数量和索引 groupshared 变量传递到 RWStructuredBuffer 中，方便后面着色（灯光计算）时使用。
 
-## Depth Texture
+每个 tile（线程组）的 groupshared 变量，以及初始化如下：  
 
-## 球形相交测试
+    #define THREAD_NUM_X 16 // equal to per tile size
+    #define THREAD_NUM_Y 16
+
+    groupshared uint tileMinDepthInt;
+    groupshared uint tileMaxDepthInt;
+    groupshared uint lightCountInTile;
+    groupshared uint lightIndicesInTile[MAX_PUNCTUAL_LIGHT_COUNT];
+
+    [numthreads(THREAD_NUM_X, THREAD_NUM_Y, 1)]
+    void TiledLightCulling(uint3 id : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID, uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
+    {
+        // initialize shared memory
+        if (groupIndex == 0)
+        {
+            tileMinDepthInt = 0x7f7fffff;
+            tileMaxDepthInt = 0;
+            lightCountInTile = 0;
+        }
+
+        GroupMemoryBarrierWithGroupSync();
+        ...
+    }
+
+`0x7f7fffff` 是 float 作为 uint 的最大值，因为原子操作只能比较 uint 或 int 需要把深度按位转换为 uint。最后别忘了组同步。
+
+## Depth Intersect Test
+### Load Depth Texture
+这一步比较简单，就是每个线程使用 texture.load 读取 Depth Texture 深度值，并转换为 view space 下的线性深度，与 groupshared 变量进行 InterlockedMin 和 InterlockedMax 操作得到每个 tile 的最大最小深度：  
+
+    void TiledLightCulling(...)
+    {    
+        // get the minimum and maximum depth of the tile
+        bool inScreen = (int) id.x < _CameraBufferSize.z && (int) id.y < _CameraBufferSize.w;
+
+        if (inScreen)
+        {
+            float depth = LOAD_TEXTURE2D_LOD(_CameraDepthTexture, id.xy, 0).r;
+            float linearDepth = GetViewDepthFromDepthTexture(depth);
+            uint z = asuint(linearDepth);
+            InterlockedMin(tileMinDepthInt, z);
+            InterlockedMax(tileMaxDepthInt, z);
+        }
+
+        GroupMemoryBarrierWithGroupSync();
+    }
+
+如下图所示：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/12/jQ2xcw1EHb6B3lK.jpg" width = "30%" height = "30%" alt="图9 - Min Max Depth"/>
+</div>
+  
+### Depth Test
+然后就是和灯光进行深度相交测试了，测试也很简单：灯光最小深度小于 tile 最大深度，并且灯光最大深度大于 tile 最小深度，即相交，代码如下：  
+
+    bool DepthIntersectTest(float3 lightPositionVS, float lightRange)
+    {
+        float tileDepthMin = asfloat(tileMinDepthInt);
+        float tileDepthMax = asfloat(tileMaxDepthInt);
+
+        float lightDepthMin = -lightPositionVS.z - lightRange;
+        float lightDepthMax = -lightPositionVS.z + lightRange;
+        
+        return lightDepthMin <= tileDepthMax && lightDepthMax >= tileDepthMin;
+    }
+
+    bool IntersectTest(uint lightIndex, uint2 tileIndex)
+    {
+        if ((float) lightIndex >= GetPunctualLightCount()) return false;
+
+        float3 lightPositionVS = TransformWorldToView(GetPunctualLightPosition(lightIndex));
+        float lightRange = GetPunctualLightRange(lightIndex);
+
+        if (!DepthIntersectTest(lightPositionVS, lightRange)) return false;
+        ...
+    }
+
+`lightPositionVS.z` 之所以取反是因为 Unity 的 view matrix 是基于右手坐标系的，且摄像机面向 -z 轴方向。只进行深度相交测试，通过 debug 输出每个 tile 的灯光数量后，如下图：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/12/1EpankqobfOVmi2.jpg" width = "60%" height = "60%" alt="图10 - Depth Test"/>
+</div>
+
+可以看到底部 plane 边缘的 tile 因为深度范围很大，也判定为了相交。如果这样的情况发生在灯光范围内，就会少剔除掉很多灯光，这也是之前所说 2.5 culling 的原因。
+
+## Sphere Intersect Test
+我们这里先假设 spot light 跟 point light 一样也是球形范围进行剔除（spot light 的特殊处理后面再说），所以对于灯光球形包围盒，相交测试问题就是 tile 视锥体包围盒与球形包围盒求交。这个相交测试原理比较简单，就是灯光（球心）跟 tile 视锥体包围盒的上下左右 4 个平面（前后深度测试已经处理好了）的距离同时小于灯光范围（球半径）即可，这样子说不太严谨，后面会说原因。所以我们首先要计算这 4 个平面。
+
+### Frustum Planes Calculation
+因为我们要在 view space 做相交测试，所以需要知道每个 tile 在视锥体近裁切平面（或远裁切平面）的 4 个点的坐标，从而构建出 4 个平面，计算它们的法向，和灯光中心求距离。至于为什么 4 个点就可以构建 4 个平面，是因为 tile 视锥体一定和摄像机（view space 原点）相交，如下图：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/12/qDgaYMTuHWloVkC.png" width = "45%" height = "45%" alt="图11 - tile frustums in x-z plane"/>
+</div>
+
+我们只需要计算整个视锥体近裁切平面最左下角的 view space 坐标，以及每个 tile 在近裁切平面上 x 和 y 轴方向上的大小，就可以根据 tile index 来计算出每个 tile 的四个顶点了。view space 相对于 world space 只是平移加旋转，大小是不会变的，故计算 cameraNearPlaneLB（左下角坐标）和 tile 在近裁切平面下的大小是比较容易的，如下：  
+
+``` C#
+float nearPlaneZ = data.camera.nearClipPlane;
+float nearPlaneHeight = Mathf.Tan(Mathf.Deg2Rad * data.camera.fieldOfView * 0.5f) * 2 * nearPlaneZ;
+float nearPlaneWidth = data.camera.aspect * nearPlaneHeight;
+passData.cameraNearPlaneLB = new Vector3(-nearPlaneWidth / 2, -nearPlaneHeight / 2, -nearPlaneZ);
+passData.tileNearPlaneSize = new Vector2(YPipelineLightsData.k_TileSize * nearPlaneWidth / data.BufferSize.x, YPipelineLightsData.k_TileSize * nearPlaneHeight / data.BufferSize.y);
+```
+
+传递给 GPU 后就可以计算出每个 tile 在近裁切平面上的四个顶点了：  
+
+    float3 tileCorners[4];
+    tileCorners[0] = _CameraNearPlaneLB.xyz + tileIndex.x * float3(_TileNearPlaneSize.x, 0, 0) + tileIndex.y * float3(0, _TileNearPlaneSize.y, 0);
+    tileCorners[1] = tileCorners[0] + float3(0, _TileNearPlaneSize.y, 0);
+    tileCorners[2] = tileCorners[1] + float3(_TileNearPlaneSize.x, 0, 0);
+    tileCorners[3] = tileCorners[0] + float3(_TileNearPlaneSize.x, 0, 0);
+
+tileIndex 就是线程组 id，即 `uint3 groupId : SV_GroupID`。这样每两个点和原点就可以构建出一个平面，从而形成 tile 视锥体包围盒。
+
 ### Sphere-Frustum Test
+有了 tile 的 4 个点以后，就可以取 2 个点做叉乘，计算出垂直于该平面的法向量，归一化后，和灯光原点坐标（view space 下）点乘，就可以计算出灯光距离平面的距离了。之所以点乘就可以计算出距离，是因为 4 个包围平面都会经过 view space 原点，所以原点到灯光位置的向量在平面的法向量上的投影就是距离，测试代码如下：  
+
+    bool SidePlanesIntersect(float3 p1, float3 p2, float3 lightPositionVS, float lightRange)
+    {
+        float3 N = -normalize(cross(p1, p2));
+        float distance = dot(N, lightPositionVS);
+        return distance < lightRange;
+    }
+
+    bool SphereFrustumIntersectTest(uint lightIndex, uint2 tileIndex)
+    {
+        // depth test
+        ...
+
+        float3 tileCorners[4];
+        ...
+
+        bool sideIntersected0 = SidePlanesIntersect(tileCorners[0], tileCorners[1], lightPositionVS, lightRange);
+        bool sideIntersected1 = SidePlanesIntersect(tileCorners[1], tileCorners[2], lightPositionVS, lightRange);
+        bool sideIntersected2 = SidePlanesIntersect(tileCorners[2], tileCorners[3], lightPositionVS, lightRange);
+        bool sideIntersected4 = SidePlanesIntersect(tileCorners[3], tileCorners[0], lightPositionVS, lightRange);
+        return sideIntersected0 && sideIntersected1 && sideIntersected2 && sideIntersected4;
+    }
+
+之前说了灯光（球心）跟 tile 视锥体包围盒的上下左右 4 个平面的距离同时小于灯光范围（球半径），这个条件不太严谨是因为如下图所示，此时灯光距离 01 平面的距离大于灯光半径，那么这个 tile 就会被认定为不相交，这是不合理的。这里就需要一点小技巧，因为我们知道法向量的方向决定了点乘的正负，而法向量方向由叉乘顺序决定（这里注意一下，因为我们的点坐标都是在 view space 这个右手坐标系下，故叉乘是右手法则）。如果 4 个平面的法向量都朝外（即如下图），那么此时灯光距离 01 平面的距离就为负数，故一定小于半径，而 23 平面仍可以正常求交，这样这个 tile 就可以正确判断相交了。这也是 `SidePlanesIntersect()` 函数中，法向量 N 取负号的原因（当然交换顺序也可以），我先传递了点 0 后点 1，这样右手法则是朝内的，取反就朝外了。
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/12/OwTnsS3LBFfJUm6.jpg" width = "35%" height = "35%" alt="图12 - Sphere-Frustum Test"/>
+</div>
+
+不取负号，或者对距离做绝对值的后果就是灯光边缘的 tile 相交会错误，可以直观地看下面这张图片（注释掉了 depth test 的结果）：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/12/31gZSoLm2OjWYnP.png" width = "75%" height = "75%" alt="图13 - 左：法向量朝内或者距离取绝对值后，灯光边缘的一些 tile 相交测试错误；右：法向量朝外"/>
+</div>
+
 ### Cone Test
+可以看到 Sphere-Frustum Test 也存在问题，就是会引入 false positives 的 tile，比如说上图中在球形外的包含灯光的 tile。
+
 ### Spherical-sliced Cone Test
 ## Spot Light 相交测试
