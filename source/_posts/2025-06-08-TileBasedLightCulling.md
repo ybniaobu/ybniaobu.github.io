@@ -257,9 +257,7 @@ tileIndex 就是线程组 id，即 `uint3 groupId : SV_GroupID`。这样每两�
 
     bool SphereFrustumIntersectTest(uint lightIndex, uint2 tileIndex)
     {
-        // depth test
         ...
-
         float3 tileCorners[4];
         ...
 
@@ -267,7 +265,7 @@ tileIndex 就是线程组 id，即 `uint3 groupId : SV_GroupID`。这样每两�
         bool sideIntersected1 = SidePlanesIntersect(tileCorners[1], tileCorners[2], lightPositionVS, lightRange);
         bool sideIntersected2 = SidePlanesIntersect(tileCorners[2], tileCorners[3], lightPositionVS, lightRange);
         bool sideIntersected4 = SidePlanesIntersect(tileCorners[3], tileCorners[0], lightPositionVS, lightRange);
-        return sideIntersected0 && sideIntersected1 && sideIntersected2 && sideIntersected4;
+        return sideIntersected0 && sideIntersected1 && sideIntersected2 && sideIntersected4 && DepthIntersectTest(lightPositionVS, lightRange);
     }
 
 之前说了灯光（球心）跟 tile 视锥体包围盒的上下左右 4 个平面的距离同时小于灯光范围（球半径），这个条件不太严谨是因为如下图所示，此时灯光距离 01 平面的距离大于灯光半径，那么这个 tile 就会被认定为不相交，这是不合理的。这里就需要一点小技巧，因为我们知道法向量的方向决定了点乘的正负，而法向量方向由叉乘顺序决定（这里注意一下，因为我们的点坐标都是在 view space 这个右手坐标系下，故叉乘是右手法则）。如果 4 个平面的法向量都朝外（即如下图），那么此时灯光距离 01 平面的距离就为负数，故一定小于半径，而 23 平面仍可以正常求交，这样这个 tile 就可以正确判断相交了。这也是 `SidePlanesIntersect()` 函数中，法向量 N 取负号的原因（当然交换顺序也可以），我先传递了点 0 后点 1，这样右手法则是朝内的，取反就朝外了。
@@ -279,11 +277,99 @@ tileIndex 就是线程组 id，即 `uint3 groupId : SV_GroupID`。这样每两�
 不取负号，或者对距离做绝对值的后果就是灯光边缘的 tile 相交会错误，可以直观地看下面这张图片（注释掉了 depth test 的结果）：  
 
 <div align="center">  
-<img src="https://s2.loli.net/2025/06/12/31gZSoLm2OjWYnP.png" width = "75%" height = "75%" alt="图13 - 左：法向量朝内或者距离取绝对值后，灯光边缘的一些 tile 相交测试错误；右：法向量朝外"/>
+<img src="https://s2.loli.net/2025/06/12/31gZSoLm2OjWYnP.png" width = "70%" height = "70%" alt="图13 - 左：法向量朝内或者距离取绝对值后，灯光边缘的一些 tile 相交测试错误；右：法向量朝外"/>
 </div>
 
 ### Cone Test
-可以看到 Sphere-Frustum Test 也存在问题，就是会引入 false positives 的 tile，比如说上图中在球形外的包含灯光的 tile。
 
-### Spherical-sliced Cone Test
+> 这里主要参考了这篇博客文章： https://lxjk.github.io/2018/03/25/Improve-Tile-based-Light-Culling-with-Spherical-sliced-Cone.html 
+
+可以看到 Sphere-Frustum Test 的剔除精度仍然不够，会引入 false positives 的 tile，比如说上图中在灯光球形外的一些 tile。也就是说即使灯光不会真正和 tile 视锥体包围盒相交，也可能会被误判为相交，这主要是因为计算距离时，假设了视锥体包围盒每个面都是无限距离。如下图中，球体在红色区域，仍然通过 Sphere-Frustum Test：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/13/BySTK58D7ZYAXk3.png" width = "50%" height = "50%" alt="图14 - Sphere-Frustum Test introduces false positives"/>
+</div>
+
+为了减少误判区域，可以假设一个从原点（摄像机）出发的圆锥体包裹着 tile 视锥体，灯光也是同理，然后测试两个 cone 是否相交，如下图：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/13/YWHgPfK6iNA4IOl.png" width = "30%" height = "30%" alt="图15 - Cone Test。红色区域为 Sphere-Frustum Test 的 false positives，蓝色区域为 Cone Test 的 false positives。"/>
+</div>
+
+而 Cone Test 的具体操作则是比较角度，求出原点到灯光中心的向量和原点到 tile 中心的向量的夹角，若这个夹角比灯光 cone 的顶点角的一半加上 tile cone 的顶点角的一半要小，则相交，代码如下：    
+
+    bool ConeIntersect(float3 tileCorners[4], float3 lightPositionVS, float lightRange)
+    {
+        float3 tileCenterVec = normalize(tileCorners[0] + tileCorners[1] + tileCorners[2] + tileCorners[3]);
+        float tileCos = min(min(min(dot(tileCenterVec, normalize(tileCorners[0])), dot(tileCenterVec, normalize(tileCorners[1]))), dot(tileCenterVec, normalize(tileCorners[2]))), dot(tileCenterVec, normalize(tileCorners[3])));
+        float tileSin = sqrt(1 - tileCos * tileCos);
+
+        float lightDistSqr = dot(lightPositionVS, lightPositionVS);
+        float lightDist = sqrt(lightDistSqr);
+        float3 lightCenterVec = lightPositionVS / lightDist;
+        float lightSin = clamp(lightRange / lightDist, 0.0, 1.0);
+        float lightCos = sqrt(1 - lightSin * lightSin);
+        
+        float lightTileCos = dot(lightCenterVec, tileCenterVec);
+        float sumCos = (lightRange > lightDist) ? -1.0 : (tileCos * lightCos - tileSin * lightSin);
+
+        return lightTileCos >= sumCos;
+    }
+
+tile 的中心向量即 4 个点的平均，然后选择这 4 个向量与中心向量的夹角的最大值（cos 最小值）作为 tile cone 的顶点角的半角度。灯光 cone 的半顶点角的正弦值可以通过灯光半径除以灯光距离计算出来，之所以 clamp 是因为灯光半径会大于灯光距离，此时摄像机在灯光球体内部。摄像机在灯光球体内部时，博客选择让所有 tile 都通过测试，故 sumCos 设置为了 -1。至于 sumCos 为什么这么算是因为这个三角函数方程：$\,cos(A + B) = cos(A)cos(B) - sin(A)sin(B)\,$。比较的时候，两个中心的夹角要比合计角度小才算相交，所以 cos 值是大于。最后别忘了和 Depth Test 一起使用，最终效果大致如下：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/13/bWo5w7uKPYGR4nc.png" width = "60%" height = "60%" alt="图16 - 左：Cone Test；右：Cone Test & Depth Test"/>
+</div>
+
+可以看到，已经完美适配球形了，只不过剔除精度还是不够，但这次是因为 depth test 引起的。故博客中升级了 Cone Test，称为 Spherical-Sliced Cone Test。
+
+### Spherical-Sliced Cone Test
+这里不使用 min/max depth 进行测试，而使用 min/max distance to camera 代替 depth，如下图：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/13/HJ8jYZ526yT4kRc.png" width = "65%" height = "65%" alt="图17 - Spherical-Sliced Cone Test"/>
+</div>
+
+由上图可知，我们要比较的是 tile cone 和球体相交处的最小最大距离，于是要得到图中的 Diff Angle，这个 Diff Angle 可由 tile 中心向量和 light 中心向量的夹角（即上面计算的 sumCos）减去 tile cone 的顶点角的一半而得，唯一的问题是 Diff Angle 可能会变为负值，即灯光中心位于 tile 内部的时候，此时直接设置为 0。角度相减的三角函数公式有：$\,sin(A - B) = sinAcosB - cosAsinB\,$、$\,cos(A - B) = cosAcosB + sinAsinB\,$。
+
+    float diffSin = clamp(lightTileSin * tileCos - lightTileCos * tileSin, 0.0, 1.0);
+    float diffCos = (diffSin == 0.0) ? 1.0 : lightTileCos * tileCos + lightTileSin * tileSin;
+    float lightTileDistOffset = sqrt(lightRadius * lightRadius - lightDistSqr * diffSin * diffSin);
+    float lightTileDistBase = lightDist * diffCos;
+
+    if (lightTileCos >= sumCos && lightTileDistBase - lightTileDistOffset <= maxTileDist && lightTileDistBase + lightTileDistOffset >= minTileDist)
+    {
+        // light intersect this tile
+    }
+
+然后原博客中并没有给出 min/maxTileDist 的计算方式，在最后代码总结中使用了 min/maxTileDepth 替代了 min/maxTileDist，这是不合理的，毕竟 Dist 是一个三维上的距离，depth 本质上是一个二维上的距离。我后来自己想了个方法计算 min/maxTileDist，即归一化后的 tile 的 4 个点向量跟 float3(0, 0, -1) 做点乘计算 cos 值，得到 cos 值的最大最小值，再用 min/maxTileDepth 除以 min/maxCos 得到 min/maxTileDist：  
+
+    ...
+    float3 tileCornerVec0 = normalize(tileCorners[0]);
+    float3 tileCornerVec1 = normalize(tileCorners[1]);
+    float3 tileCornerVec2 = normalize(tileCorners[2]);
+    float3 tileCornerVec3 = normalize(tileCorners[3]);
+
+    float tileDepthMin = asfloat(tileMinDepthInt);
+    float tileDepthMax = asfloat(tileMaxDepthInt);
+    float cosCornerMin = min(min(min(-tileCornerVec0.z, -tileCornerVec1.z), -tileCornerVec2.z), -tileCornerVec3.z);
+    float cosCornerMax = max(max(max(-tileCornerVec0.z, -tileCornerVec1.z), -tileCornerVec2.z), -tileCornerVec3.z);
+    float tileDistMin = tileDepthMin / cosCornerMax;
+    float tileDistMax = tileDepthMax / cosCornerMin;
+
+最后我还发现距离上的比较已经暗含了 Cone Test，也就是说不用 `lightTileCos >= sumCos` 了，结果是一样的： 
+
+    return lightTileDistBase - lightTileDistOffset < tileDistMax && lightTileDistBase + lightTileDistOffset > tileDistMin;
+
+最后效果如下，可以看到结果已经接近完美了：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/13/XrUksP4HVgCMJ1E.jpg" width = "30%" height = "30%" alt="图18 - Spherical-Sliced Cone Test"/>
+</div>
+
+### AABB Test
+
+
+
 ## Spot Light 相交测试
