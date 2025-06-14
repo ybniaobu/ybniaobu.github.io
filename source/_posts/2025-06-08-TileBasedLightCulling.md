@@ -328,7 +328,7 @@ tile 的中心向量即 4 个点的平均，然后选择这 4 个向量与中心
 这里不使用 min/max depth 进行测试，而使用 min/max distance to camera 代替 depth，如下图：  
 
 <div align="center">  
-<img src="https://s2.loli.net/2025/06/13/HJ8jYZ526yT4kRc.png" width = "65%" height = "65%" alt="图17 - Spherical-Sliced Cone Test"/>
+<img src="https://s2.loli.net/2025/06/13/HJ8jYZ526yT4kRc.png" width = "65%" height = "65%" alt="图17 - Spherical-Sliced Cone Test 示意图"/>
 </div>
 
 由上图可知，我们要比较的是 tile cone 和球体相交处的最小最大距离，于是要得到图中的 Diff Angle，这个 Diff Angle 可由 tile 中心向量和 light 中心向量的夹角（即上面计算的 sumCos）减去 tile cone 的顶点角的一半而得，唯一的问题是 Diff Angle 可能会变为负值，即灯光中心位于 tile 内部的时候，此时直接设置为 0。角度相减的三角函数公式有：$\,sin(A - B) = sinAcosB - cosAsinB\,$、$\,cos(A - B) = cosAcosB + sinAsinB\,$。
@@ -343,7 +343,7 @@ tile 的中心向量即 4 个点的平均，然后选择这 4 个向量与中心
         // light intersect this tile
     }
 
-然后原博客中并没有给出 min/maxTileDist 的计算方式，在最后代码总结中使用了 min/maxTileDepth 替代了 min/maxTileDist，这是不合理的，毕竟 Dist 是一个三维上的距离，depth 本质上是一个二维上的距离。我后来自己想了个方法计算 min/maxTileDist，即归一化后的 tile 的 4 个点向量跟 float3(0, 0, -1) 做点乘计算 cos 值，得到 cos 值的最大最小值，再用 min/maxTileDepth 除以 min/maxCos 得到 min/maxTileDist：  
+然后原博客中并没有给出 min/maxTileDist 的计算方式，在最后代码总结中使用了 min/maxTileDepth 替代了 min/maxTileDist，这是不合理的，毕竟 Dist 是一个三维上的距离，depth 本质上是一个一维上的距离。我后来自己想了个方法计算 min/maxTileDist，即归一化后的 tile 的 4 个点向量跟 float3(0, 0, -1) 做点乘计算 cos 值，得到 cos 值的最大最小值，再用 min/maxTileDepth 除以 min/maxCos 得到 min/maxTileDist：  
 
     ...
     float3 tileCornerVec0 = normalize(tileCorners[0]);
@@ -369,7 +369,51 @@ tile 的中心向量即 4 个点的平均，然后选择这 4 个向量与中心
 </div>
 
 ### AABB Test
+还有一种方案就是 AABB 测试，用一个 AABB 包围盒包围住 tile frustum 跟灯光球体求交。这里有个问题就是 depth 的范围可能会很大，会影响到求交的准确度，这里可以把 AABB 包围盒的最大深度设置为 tile 深度最大值和 light 深度最大值的较小值，最小深度设置为 tile 深度最小值和 light 深度最小值的较大值，因为包围盒的深浅超过了灯光的深浅的部分对求交来说没有意义的：  
 
+    float minZ = max(tileDepthMin, lightDepthMin);
+    float maxZ = min(tileDepthMax, lightDepthMax);
 
+然后就可以求 xy 轴上的最大最小值了，从而计算出整个 AABB 的 min/max：  
+
+    float nearPlaneScale = minZ / _ProjectionParams.y;
+    float farPlaneScale = maxZ / _ProjectionParams.y;
+
+    float2 tileCorner0 = _CameraNearPlaneLB.xy + float2(tileIndex.x * _TileNearPlaneSize.x, tileIndex.y * _TileNearPlaneSize.y);
+    float2 tileCorner2 = tileCorner0 + float2(_TileNearPlaneSize.x, _TileNearPlaneSize.y);
+    
+    float3 tileMin = float3(min(tileCorner0 * nearPlaneScale, tileCorner0 * farPlaneScale), minZ);
+    float3 tileMax = float3(max(tileCorner2 * nearPlaneScale, tileCorner2 * farPlaneScale), maxZ);
+
+求 minXY/maxXY 要注意一下，maxXY 不一定是在 tileCorner2 被远平面缩放后的位置，X 和 Y 的最大值有可能一个在近平面，一个在远平面，画一下 tile frustum 的远近平面在 XY 平面的 4 个象限的不同情况就可以理解了，如下图：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/14/xj5GTFIeqtziuC2.jpg" width = "45%" height = "45%" alt="图19 - 求 minXY/maxXY"/>
+</div>
+
+然后就是相交测试了，可以通过 clamp 来找到离灯光中心最近的 AABB 包围盒上的点：  
+
+    float3 closestPoint = clamp(lightPositionVS, tileMin, tileMax);
+
+然后该点和灯光中心的距离比灯光半径小即相交：  
+
+    float3 diff = closestPoint - lightPositionVS;
+    float sqrDiff = dot(diff, diff);
+    float sqrLightRange = lightRange * lightRange;
+    return sqrDiff <= sqrLightRange && lightDepthMin <= tileDepthMax && lightDepthMax >= tileDepthMin;
+
+还是要同时做 depth test 的，不然会有一些全是 skybox 的 tile 会判定为相交。最后效果如下：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/14/MflzIYHCBgq2JFe.jpg" width = "30%" height = "30%" alt="图20 - AABB Test"/>
+</div>
+
+从上图的结果上来看，看起来跟 Spherical-Sliced Cone Test 的效果差不多，但我测试下来感觉 AABB 测试的 false positive 会更大一点，特别是当 tile 的深度范围比较大时。AABB 的 false positive 范围大致如下图：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/14/SagyG4tLl8IAkKQ.png" width = "60%" height = "60%" alt="图21 - 左图： Sphere-Frustum Test 的 false positive；AABB Test 的 false positive"/>
+</div>
+
+但上述无论哪种方式，在深度不连续或过长的情况下的剔除效果都不佳，毕竟都依赖于最近最远深度，这就引出了 2.5D culling 的方法。但在之前，先解决一下 Spot Light 的剔除问题。
 
 ## Spot Light 相交测试
