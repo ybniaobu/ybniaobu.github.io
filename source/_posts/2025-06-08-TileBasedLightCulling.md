@@ -416,4 +416,46 @@ tile 的中心向量即 4 个点的平均，然后选择这 4 个向量与中心
 
 但上述无论哪种方式，在深度不连续或过长的情况下的剔除效果都不佳，毕竟都依赖于最近最远深度，这就引出了 2.5D culling 的方法。但在之前，先解决一下 Spot Light 的剔除问题。
 
-## Spot Light 相交测试
+## Cull Spot Light
+
+> 以下主要参考了这位大神的文章： https://bartwronski.com/2017/04/13/cull-that-cone/ 。
+
+### Spot Light as Sphere
+首先是一个最简单的方法，就是用一个能包裹 Spot Light 的最小球体来作为包围体，如果用 light range/radius 作为包围球体的半径，就跟点光源一样，很明显这样的球体是偏大的，不是最小的能包裹的球体，具体如下图：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/17/ZlIDSRj7nWFpvxy.gif" width = "40%" height = "40%" alt="图22 - Spot Light Bounding Sphere"/>
+</div>
+
+很明显我们需要区分两种情况，一种大于 90 度，一种小于。上图中的三角形可能会让我们对 spot light 的实际影响范围产生一定的误解，如下图：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/17/pkL95nhwvMYoxgq.png" width = "60%" height = "60%" alt="图23 - Spot Light Bounding Sphere"/>
+</div>
+
+实际的 spot light 影响范围是 OAB 这个扇形而不是三角形，我们要求的有两个东西，一是 Bounding Sphere 的半径 r，二是 Bounding Sphere 的圆心 C 的位置。首先 spot light 的 outer angle 小于 90 度的情况，即 $\,\theta\,$ 小于 45 度的情况：  
+
+$$ cos 2 \theta \cdot r + r = cos \theta \cdot range $$
+$$ (2cos^2 \theta - 1)r + r = cos \theta \cdot range $$
+$$ r = \cfrac {range} {2 cos \theta} $$
+
+outer angle 大于 90 度就是 $\,r = sin \theta \cdot range\,$。圆心 C 可以通过 Spot Direction 和 Light Position 共同获取，很容易推导，就不多说了。因为跟 Point Light Sphere 一样，只需要传递圆心位置和半径，所以可以直接在 CPU 里计算好，代码如下：
+
+``` C#
+if (visibleLight.spotAngle >= 90.0f)
+{
+    data.lightsData.lightsCullingInputInfos[punctualLightCount] = position + cosOuterAngle * visibleLight.range * -spotDirection;
+    data.lightsData.lightsCullingInputInfos[punctualLightCount].w = Mathf.Sin(Mathf.Deg2Rad * 0.5f * visibleLight.spotAngle) * visibleLight.range;
+}
+else
+{
+    float boundRadius = visibleLight.range / (cosOuterAngle * 2.0f);
+    data.lightsData.lightsCullingInputInfos[punctualLightCount] = position + boundRadius * -spotDirection;
+    data.lightsData.lightsCullingInputInfos[punctualLightCount].w = boundRadius;
+}
+```
+
+这里注意一下，之前计算的 spotDirection 是指向灯光的方向，这里要反过来。然后 spotDirection 是通过灯光的 localToWorld 矩阵的第三列获取的，localToWorld 矩阵只有旋转和位移，故第三列的前三位一定是单位向量，所以无需归一化。实现效果就不展示了，可想而知剔除效果是有限的。
+
+
+
