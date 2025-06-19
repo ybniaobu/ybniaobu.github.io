@@ -457,5 +457,44 @@ else
 
 这里注意一下，之前计算的 spotDirection 是指向灯光的方向，这里要反过来。然后 spotDirection 是通过灯光的 localToWorld 矩阵的第三列获取的，localToWorld 矩阵只有旋转和位移，故第三列的前三位一定是单位向量，所以无需归一化。实现效果就不展示了，可想而知剔除效果是有限的。
 
+### Tile as Sphere vs Cone
+这个方法是将 tile 视作 sphere，和 spot light 的锥形体进行求交。对于 Tile-based Light Culling 来说，由于 tile 的深度范围可能会很大，将 tile 视作 sphere 可能会产生过大的半径，所以相对于 Cluster-based Light Culling 会引入更多的 false positive，但是仍然相对于其他 spot light 剔除方法来说能做到更加精确的剔除。这个方法的思路如下图：  
 
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/19/EZCtzH75LXa93YS.gif" width = "30%" height = "30%" alt="图24 - Tile as Sphere vs Cone"/>
+</div>
 
+可以将 cone 的朝向分为三种情况求交，一是头部最接近 tile sphere 时，二是尾部最接近时，三是侧边最接近时。头部和尾部的情况计算都比较简单，我们先看侧边，如下图：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/19/ApNtBSg2xiZjDVM.jpg" width = "40%" height = "40%" alt="图25 - Tile as Sphere vs Cone"/>
+</div>
+
+由图可知，tile sphere 与 cone 侧边最接近时，OD 距离要大于 sphere radius 才不相交。OA 向量 v 很好计算，AB 方向为 spot light 方向，v 与 spot light 方向点乘可得到 v1 的长度，由此可得 v2 长度。然后 $\, OC = v2 - v1 \cdot tan \theta \,$，再乘上 $\,cos \theta\,$ 得到 OD 距离。代码如下：  
+
+    bool SpotConeIntersectTest(float3 tileMin, float3 tileMax, float3 lightPositionVS, float lightRange, float3 spotLightDir, float angle)
+    {
+        float3 tileCenter = 0.5 * (tileMin + tileMax);
+        float3 extent = tileMax - tileCenter;
+        float tileRadius = sqrt(dot(extent, extent));
+        float3 V = tileCenter - lightPositionVS;
+        float VLenSqr = dot(V, V);
+        float V1Len = dot(V, spotLightDir);
+
+        float distanceClosestPoint = cos(angle) * sqrt(VLenSqr - V1Len * V1Len) - V1Len * sin(angle);
+
+        bool angleCull = distanceClosestPoint > tileRadius;
+        bool frontCull = V1Len > tileRadius + lightRange;
+        bool backCull = V1Len < -tileRadius;
+        return !(angleCull || frontCull || backCull);
+    }
+
+注意一下 spotLightDir 要转换至观察空间，左手右手要和 tile、lightPosition 保持一致，且是远离光源的方向。V1Len 因为是点乘求出来的，所以有方向，我们可以根据方向来判断 tile sphere 跟 cone 的头部还是尾部更近。头部更近时的测试是上面的 backCull，尾部更近的测试是上面的 frontCull，应该很容易理解，就不多说了。我实际测试下来，这个测试最好能够结合普通的 AABB Test 以及 Depth Test，否则会引入较多的 false positive，结合的效果如下：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/19/sCPcDq3BFgGTX6V.jpg" width = "70%" height = "70%" alt="图26 - Spot Light Culling Result"/>
+</div>
+
+可以看到，除了深度范围较大的 tile，剔除的精度已经非常高了，下面开始解决深度问题。
+
+## 2.5D culling
