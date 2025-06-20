@@ -497,4 +497,111 @@ else
 
 可以看到，除了深度范围较大的 tile，剔除的精度已经非常高了，下面开始解决深度问题。
 
-## 2.5D culling
+
+# 2.5D Culling
+
+> 这里出自 https://www.slideshare.net/slideshow/a-25d-culling-for-forward-siggraph-asia-2012/34909590 、https://pastebin.com/h7yiUYTD 、https://extremeistan.wordpress.com/2014/04/18/implementing-2-5d-culling-for-tiled-deferred-rendering-in-opencl/comment-page-1/ 、https://wickedengine.net/2018/01/optimizing-tile-based-light-culling/。
+
+## 2.5D Culling 基本实现
+
+2.5D Culling 的主要思路就是对深度进行分割，将 min/max depth 分割为 32 份，大致如下图所示：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/20/QDM56o7OadGYhzx.jpg" width = "60%" height = "60%" alt="图27 - 2.5D Culling 示意图"/>
+</div>
+
+具体操作步骤有两步：  
+①在 depth 上进行区域划分，然后根据 tile 内每个像素的 depth 来确定覆盖了哪些区域，并通过 depth mask 来编码：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/20/GfhTI1pDSQ2m3yt.jpg" width = "45%" height = "45%" alt="图28 - tile depth mask"/>
+</div>
+
+因为是一个 tile（线程组）拥有一个 depth mask，我们要为它定义一个 groupshared 变量，用于存储 tile 中每个像素所在的区间。depth mask 每位（bit）都代表一个区间，有像素落入这个区间，则该区间为 1。所以每个线程代表一个像素，通过深度贴图获取该像素的深度，从而计算出该像素所在 depth 区间的位置索引，根据位置索引将 1 进行左移得到该像素的 depth mask，同时每个像素（线程）原子操作按位或就可以获取到整个 tile 的 depth mask 了，代码大致如下：  
+
+    groupshared uint tileDepthMask;
+
+    [numthreads(THREAD_NUM_X, THREAD_NUM_Y, 1)]
+    void TiledLightCulling(...)
+    {
+        // initialize shared memory
+        if (groupIndex == 0)
+        {
+            #if _TILE_CULLING_SPLIT_DEPTH
+            tileDepthMask = 0;
+            #endif
+        }
+        GroupMemoryBarrierWithGroupSync();
+
+        // get the minimum and maximum depth of the tile
+        ...
+        GroupMemoryBarrierWithGroupSync();
+
+        // 2.5D Culling: Get the tile depth mask
+        float tileDepthMin = asfloat(tileMinDepthInt);
+        float tileDepthMax = asfloat(tileMaxDepthInt);
+
+        #if _TILE_CULLING_SPLIT_DEPTH
+        float invDepthRange = 32.0 / (tileDepthMax - tileDepthMin + 0.00001);
+
+        if (inScreen && isNotSkybox)
+        {
+            uint depthSlot = floor((linearDepth - tileDepthMin) * invDepthRange);
+            InterlockedOr(tileDepthMask, 1 << depthSlot);
+        }
+        
+        GroupMemoryBarrierWithGroupSync();
+        #endif
+
+        ...
+    }
+
+②光源也同样可以根据光源范围来编码成 depth mask，灯光的 depth mask 和 tile 的 depth mask 按位与，即可获得相交测试结果：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/20/7ELgapVer5lcF8P.jpg" width = "45%" height = "45%" alt="图29 - light depth mask"/>
+</div>
+
+道理和上面是一样的，用光源的 min/max depth 得到光源的 depth mask，代码如下：  
+
+    uint GetLightBitMask(float tileDepthMin, float lightDepthMin, float lightDepthMax, float invDepthRange)
+    {
+        uint depthSlotMin = floor((lightDepthMin - tileDepthMin) * invDepthRange);
+        uint depthSlotMax = floor((lightDepthMax - tileDepthMin) * invDepthRange);
+        depthSlotMin = clamp(depthSlotMin, 0, 31);
+        depthSlotMax = clamp(depthSlotMax, 0, 31);
+
+        uint lightMask = 0;
+        for (uint i = depthSlotMin; i <= depthSlotMax; i++)
+        {
+            lightMask |= (1 << i);
+        }
+    }
+
+上面代码（即提出者最原始的代码）使用了一个 for 循环去计算光源的 depth mask，但我在网上看到了一个更好的办法不用使用 for 循环，代码如下：  
+
+    uint lightMask = 0xFFFFFFFF;
+    lightMask >>= 31 - (depthSlotMax - depthSlotMin);
+    lightMask <<= depthSlotMin;
+    return lightMask;
+
+假设一个 light 的 depth mask 从第 11 个 bit 开始，第 21 个 bit 结束，它的 depth mask 为 0000000000111111111110000000000。而 `uint lightMask = 0xFFFFFFFF` 为 1111111111111111111111111111111，首先右移 31 - (21 - 11)，得到 0000000000000000000011111111111。然后左移 11 位，得到 0000000000111111111110000000000 。
+
+得到光源的 depth mask 后，直接和 tile depth mask 按位与，就可以得到测试结果：  
+
+    uint lightMask = GetLightBitMask(tileDepthMin, lightDepthMin, lightDepthMax, invDepthRange);
+    bool intersect2_5D = lightMask & tileDepthMask;
+
+最终效果简单演示如下，图中有一个立方体和一堵墙，中间有两盏灯，都影响不到立方体和墙。关闭 2.5D culling 的情况下，立方体的边缘因为深度范围过大，导致 AABB 检测不准确。开启 2.5D culling 后则可以正确剔除这两盏灯光：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/20/BhvwSTVrqa7Uzux.png" width = "100%" height = "100%" alt="图30 - 中图：关闭 2.5D culling；右图：开启 2.5D culling"/>
+</div>
+
+但是上面还是只解决了 point light 的问题，因为我们计算灯光深度时，直接将灯光当作了球体计算 min/max depth，对于 spot light 来说，这个深度范围还是太广了。
+
+## Spot Light Min/Max Depth
+这里大致参考了 Unity URP 的 ZBinning Cluster Light Culling 里对 Spot Light 的 Min/Max Depth 的计算。
+
+> Unity 的 ZBinning 参考的是 Call of Duty Infinite Warfare 的 ZBinning 算法：https://advances.realtimerendering.com/s2017/2017_Sig_Improved_Culling_final.pdf 。这个 ZBinning 算法虽然是 Cluster Based Light Culling 里使用的算法，但是大致逻辑和 2.5D Culling 几乎可以说是别无二致。所以 2.5D Culling 的实现和之前的 spot light 剔除可以说为之后实现 Cluster Based Light Culling 也打下了一定的基础。
+
