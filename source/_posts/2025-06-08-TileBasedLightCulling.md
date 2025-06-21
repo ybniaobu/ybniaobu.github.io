@@ -11,7 +11,7 @@ tags:
 top_img: /images/black.jpg
 cover: https://s2.loli.net/2025/06/08/1hF5QplnZjxBvJS.gif
 mathjax: true
-description: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+description: 该文章主要内容有多光源渲染优化技术的简单介绍；Compute Shader 与 GPU 架构之间的关联的简单介绍；Tile-Based Light Culling 的详细实现，包括点光源和聚光灯的剔除，以及针对深度的优化 2.5D Culling。
 ---
 
 > 本篇文章主要参考了这篇文章： https://www.cnblogs.com/KillerAery/p/17139487.html 、 https://github.com/wlgys8/SRPLearn/wiki/DeferredShading#34-depth-slice 、https://wickedengine.net/2018/01/optimizing-tile-based-light-culling/ ，并作出了一定的补充。其他参考文献如下：  
@@ -603,5 +603,328 @@ else
 ## Spot Light Min/Max Depth
 这里大致参考了 Unity URP 的 ZBinning Cluster Light Culling 里对 Spot Light 的 Min/Max Depth 的计算。
 
-> Unity 的 ZBinning 参考的是 Call of Duty Infinite Warfare 的 ZBinning 算法：https://advances.realtimerendering.com/s2017/2017_Sig_Improved_Culling_final.pdf 。这个 ZBinning 算法虽然是 Cluster Based Light Culling 里使用的算法，但是大致逻辑和 2.5D Culling 几乎可以说是别无二致。所以 2.5D Culling 的实现和之前的 spot light 剔除可以说为之后实现 Cluster Based Light Culling 也打下了一定的基础。
+> Unity 的 ZBinning 参考的是 Call of Duty Infinite Warfare 的 ZBinning 算法：https://advances.realtimerendering.com/s2017/2017_Sig_Improved_Culling_final.pdf 。这个 ZBinning 算法虽然是 Cluster Based Light Culling 里使用的算法，但是大致逻辑和 2.5D Culling 几乎可以说是别无二致。所以 2.5D Culling 的实现和之前的 AABB 测试以及 spot light 剔除都可以说为之后实现 Cluster Based Light Culling 也打下了一定的基础。
 
+对于点光源来说，我们知道 light min/max depth 就是 lightPositionVS.z - lightRange 以及 lightPositionVS.z + lightRange。但对于 Spot Light 要区分两种情况：  
+①第一种就是，z 轴方向（观察空间）若和 spot direction 的夹角小于 spot light 的 half outer angle ($\,\theta\,$)，那么这种情况下，min/max depth 一定是 lightPositionVS.z - lightRange 以及 lightPositionVS.z，或者 lightPositionVS.z 以及 lightPositionVS.z + lightRange。这种情况比较容易判断，关键是第二种情况。  
+②第二种情况就是，z 轴方向（观察空间）和 spot direction 的夹角大于 spot light 的 half outer angle ($\,\theta\,$)，此时 min/max depth 就比较复杂了，具体如下图：  
+
+<div align="center">  
+<img src="https://s2.loli.net/2025/06/21/3AvUrFCLyOotR5b.jpg" width = "40%" height = "40%" alt="图31 - Spot Light Min/Max Depth Calculation"/>
+</div>
+
+首先 spot light 的影响范围是 ACEB 这个扇形区域。我们先来说 z 轴方向（观察空间）和 spot direction 同向的情况（夹角小于 90 度）。此时上图中，max depth 即点 C 的 Z，min depth 即点 B 的 Z。首先 $\,AD = lightRange \cdot cos\theta \,$，$\,DC = AD \cdot tan\theta\,$，知道 AD 距离可以求得 D 的坐标以及向量 $\,\vec{AD}\,$，所以点 C 的 Z 就等于 D 的 Z 加上 CM 的长度，点 B 则是减去 CM 的长度。而夹角 $\,\alpha\,$ 就是向量 $\,\vec{AD}\,$ 与 Z 轴夹角，故 $\,CM = CD \cdot sin \alpha\,$。由此就可以知道 Min/Max Depth 了。如果 z 轴方向和 spot direction 反向，计算方法是相同的。整体求 Spot Light Min/Max Depth 的代码如下：  
+
+    float2 GetSpotLightMinMaxDepth(float3 lightPositionVS, float lightRange, float3 spotLightDirVS, float angle)
+    {
+        float cosAngle = cos(angle);
+        float coneHeight = lightRange * cosAngle;
+        float3 endPointVS = lightPositionVS + coneHeight * spotLightDirVS;
+        float coneRadius = coneHeight * tan(angle);
+        float3 endPointVec = endPointVS - lightPositionVS;
+        float sinAlpha = sqrt(1.0 - endPointVec.z * endPointVec.z / dot(endPointVec, endPointVec));
+
+        float2 minMax = float2(lightPositionVS.z - lightRange, lightPositionVS.z + lightRange);
+        if (-endPointVec.z < coneHeight * cosAngle) minMax.x = min(lightPositionVS.z, endPointVS.z - sinAlpha * coneRadius);
+        if (endPointVec.z < coneHeight * cosAngle) minMax.y = max(lightPositionVS.z, endPointVS.z + sinAlpha * coneRadius);
+        return minMax;
+    }
+
+代码中 coneHeight 就是 AD，coneRadius 就是 BD 或 DC，endPoint 就是点 D。`endPointVec.z < coneHeight * cosAngle` 就是判断 z 轴方向和 spot direction 的夹角的另外的方式，若夹角越大于 half outer angle ($\,\theta\,$)，那么对应的余弦值就小，endPointVec 在 z 轴的长度就越小，若夹角大于 90 度，则 endPointVec.z 即为负数。这样子就可以判断 4 种情况了：  
+① z 轴方向与 spot direction 同向，且夹角小于 half outer angle ($\,\theta\,$)：此时 endPointVec.z > coneHeight \* cosAngle 且 -endPointVec.z < coneHeight \* cosAngle，那么 minZ 为 lightPositionVS.z，maxZ 为 lightPositionVS.z + lightRange，正确；  
+② z 轴方向与 spot direction 同向，且夹角大于 half outer angle ($\,\theta\,$)：此时 endPointVec.z < coneHeight \* cosAngle 且 -endPointVec.z < coneHeight \* cosAngle，那么 minZ 为 endPointVS.z - sinAlpha \* coneRadius，maxZ 为 endPointVS.z + sinAlpha \* coneRadius，正确；  
+③ z 轴方向与 spot direction 反向，且夹角小于 half outer angle ($\,\theta\,$)：此时 endPointVec.z < coneHeight \* cosAngle 且 -endPointVec.z > coneHeight \* cosAngle，那么 minZ 为 lightPositionVS.z - lightRange，maxZ 为 lightPositionVS.z，正确；  
+④ z 轴方向与 spot direction 反向，且夹角大于 half outer angle ($\,\theta\,$)：此时 endPointVec.z < coneHeight \* cosAngle 且 -endPointVec.z < coneHeight \* cosAngle，那么 minZ 为 endPointVS.z - sinAlpha \* coneRadius，maxZ 为 endPointVS.z + sinAlpha \* coneRadius，正确；  
+
+由此计算出 Spot Light Min/Max Depth 可以更好地进行 Depth Intersect Test 以及 2.5D Culling。可以拿 Depth Intersect Test 来测试上述代码计算的 Min/Max Depth 是否正确，我这里就不展示图片了。
+
+# 整体实现代码
+因为 Sphere-Frustum Test、Cone Test、Spherical-Sliced Cone Test 和 spot light 相关测试不搭，故我在最终实现中删除了相关代码，只保留了点光源的 Sphere AABB Test 、聚光灯的 Cone AABB Test 和 2.5D culling。（下面代码标记 C，只是为了高亮看起来更舒服一点）
+
+``` C
+#pragma kernel TiledLightCulling
+
+#pragma multi_compile _ _TILE_CULLING_SPLIT_DEPTH
+
+#define THREAD_NUM_X 16 // equal to per tile size
+#define THREAD_NUM_Y 16
+
+#include "../../ShaderLibrary/Core/YPipelineCSCore.hlsl"
+
+TEXTURE2D(_CameraDepthTexture);
+
+struct LightInputInfos
+{
+    float4 bound; // xyz: light position, w: light range
+    float4 spotLightInfos; // xyz: spot light direction, w: half outer angle (point light is -1)
+};
+
+StructuredBuffer<LightInputInfos> _LightInputInfos; // xyz: light position, w: light range
+
+float4 _CameraBufferSize; // x: 1.0 / bufferSize.x, y: 1.0 / bufferSize.y, z: bufferSize.x, w: bufferSize.y
+float4 _PunctualLightCount; // x: punctual light count, yzw: 暂无
+
+float4 _TileParams; // xy: tileCountXY, zw: tileUVSizeXY
+float4 _CameraNearPlaneLB; // xyz: near plane left bottom point position in view space
+float4 _TileNearPlaneSize; // xy: tile near plane size in view/world space
+
+RWStructuredBuffer<uint> _TilesLightIndicesBuffer;
+
+groupshared uint tileMinDepthInt;
+groupshared uint tileMaxDepthInt;
+groupshared uint tileDepthMask;
+groupshared uint lightCountInTile;
+groupshared uint lightIndicesInTile[MAX_PUNCTUAL_LIGHT_COUNT];
+
+// ----------------------------------------------------------------------------------------------------
+// Input
+// ----------------------------------------------------------------------------------------------------
+
+float3 GetPunctualLightPosition(uint lightIndex)    { return _LightInputInfos[lightIndex].bound.xyz; }
+float GetPunctualLightRange(uint lightIndex)        { return _LightInputInfos[lightIndex].bound.w; }
+float3 GetSpotLightDirection(uint lightIndex)       { return _LightInputInfos[lightIndex].spotLightInfos.xyz; }
+float GetSpotLightHalfOuterAngle(uint lightIndex)   { return _LightInputInfos[lightIndex].spotLightInfos.w; }
+float GetPunctualLightCount()                       { return _PunctualLightCount.x; }
+
+// ----------------------------------------------------------------------------------------------------
+// 2.5D Culling Referred Functions
+// https://www.slideshare.net/slideshow/a-25d-culling-for-forward-siggraph-asia-2012/34909590
+// ----------------------------------------------------------------------------------------------------
+
+uint GetLightBitMask(float2 tileDepthMinMax, float2 lightDepthMinMax, float invDepthRange)
+{
+    uint depthSlotMin = floor((lightDepthMinMax.x - tileDepthMinMax.x) * invDepthRange);
+    uint depthSlotMax = floor((lightDepthMinMax.y - tileDepthMinMax.x) * invDepthRange);
+    depthSlotMin = clamp(depthSlotMin, 0, 31);
+    depthSlotMax = clamp(depthSlotMax, 0, 31);
+
+    // uint lightMask = 0;
+    // for (uint i = depthSlotMin; i <= depthSlotMax; i++)
+    // {
+    //     lightMask |= (1 << i);
+    // }
+
+    uint lightMask = 0xFFFFFFFF;
+    lightMask >>= 31 - (depthSlotMax - depthSlotMin);
+    lightMask <<= depthSlotMin;
+    return lightMask;
+}
+
+// ----------------------------------------------------------------------------------------------------
+// Depth Intersect Test
+// ----------------------------------------------------------------------------------------------------
+
+// Caution: input param lightPositionVS.z should be positive(left-handed)
+float2 GetSpotLightMinMaxDepth(float3 lightPositionVS, float lightRange, float3 spotLightDirVS, float angle)
+{
+    float cosAngle = cos(angle);
+    float coneHeight = lightRange * cosAngle;
+    float3 endPointVS = lightPositionVS + coneHeight * spotLightDirVS;
+    float coneRadius = coneHeight * tan(angle);
+    float3 endPointVec = endPointVS - lightPositionVS;
+    float sinAlpha = sqrt(1.0 - endPointVec.z * endPointVec.z / dot(endPointVec, endPointVec));
+
+    float2 minMax = float2(lightPositionVS.z - lightRange, lightPositionVS.z + lightRange);
+    if (-endPointVec.z < coneHeight * cosAngle) minMax.x = min(lightPositionVS.z, endPointVS.z - sinAlpha * coneRadius);
+    if (endPointVec.z < coneHeight * cosAngle) minMax.y = max(lightPositionVS.z, endPointVS.z + sinAlpha * coneRadius);
+    return minMax;
+}
+
+float2 GetLightMinMaxDepth(float3 lightPositionVS, float lightRange, float3 spotLightDirVS, float angle)
+{
+    float2 minMax;
+    if (angle > 0.0)
+    {
+        minMax = GetSpotLightMinMaxDepth(lightPositionVS, lightRange, spotLightDirVS, angle);
+    }
+    else
+    {
+        minMax = float2(lightPositionVS.z - lightRange, lightPositionVS.z + lightRange);
+    }
+    return max(minMax, 0.0);
+}
+
+bool DepthIntersect(float2 tileDepthMinMax, float2 lightDepthMinMax)
+{
+    return lightDepthMinMax.x <= tileDepthMinMax.y && lightDepthMinMax.y >= tileDepthMinMax.x;
+}
+
+// ----------------------------------------------------------------------------------------------------
+// AABB Intersect Test -- Suitable For Point Light Sphere & Spot Light Cone
+// ----------------------------------------------------------------------------------------------------
+
+bool BoundingSphereIntersect(float3 tileMin, float3 tileMax, float3 lightPositionVS, float lightRange)
+{
+    float3 closestPoint = clamp(lightPositionVS, tileMin, tileMax);
+    float3 diff = closestPoint - lightPositionVS;
+    float sqrDiff = dot(diff, diff);
+    float sqrLightRange = lightRange * lightRange;
+    return sqrDiff <= sqrLightRange;
+}
+
+// From https://bartwronski.com/2017/04/13/cull-that-cone/
+bool SpotConeIntersectTest(float3 tileMin, float3 tileMax, float3 lightPositionVS, float lightRange, float3 spotLightDirVS, float angle)
+{
+    float3 tileCenter = 0.5 * (tileMin + tileMax);
+    float3 extent = tileMax - tileCenter;
+    float tileRadius = sqrt(dot(extent, extent));
+    float3 V = tileCenter - lightPositionVS;
+    float VLenSqr = dot(V, V);
+    float V1Len = dot(V, spotLightDirVS);
+
+    float distanceClosestPoint = cos(angle) * sqrt(VLenSqr - V1Len * V1Len) - V1Len * sin(angle);
+
+    bool angleCull = distanceClosestPoint > tileRadius;
+    bool frontCull = V1Len > tileRadius + lightRange;
+    bool backCull = V1Len < -tileRadius;
+    return !(angleCull || frontCull || backCull);
+}
+
+bool AABBIntersectTest(uint2 tileIndex, float3 lightPositionVS, float lightRange, float3 spotLightDirVS, float angle, float2 tileDepthMinMax, float2 lightDepthMinMax)
+{
+    float minZ = max(tileDepthMinMax.x, lightDepthMinMax.x);
+    float maxZ = min(tileDepthMinMax.y, lightDepthMinMax.y);
+    float nearPlaneScale = minZ / _ProjectionParams.y;
+    float farPlaneScale = maxZ / _ProjectionParams.y;
+
+    float2 tileCorner0 = _CameraNearPlaneLB.xy + float2(tileIndex.x * _TileNearPlaneSize.x, tileIndex.y * _TileNearPlaneSize.y);
+    float2 tileCorner2 = tileCorner0 + float2(_TileNearPlaneSize.x, _TileNearPlaneSize.y);
+
+    float3 tileMin = float3(min(tileCorner0 * nearPlaneScale, tileCorner0 * farPlaneScale), minZ);
+    float3 tileMax = float3(max(tileCorner2 * nearPlaneScale, tileCorner2 * farPlaneScale), maxZ);
+
+    bool depthTest = DepthIntersect(tileDepthMinMax, lightDepthMinMax);
+    bool boundingSphereTest = BoundingSphereIntersect(tileMin, tileMax, lightPositionVS, lightRange);
+    bool coneTest = angle > 0.0 ? SpotConeIntersectTest(tileMin, tileMax, lightPositionVS, lightRange, spotLightDirVS, angle) : true;
+
+    return depthTest && boundingSphereTest && coneTest;
+}
+
+// ----------------------------------------------------------------------------------------------------
+// Kernel
+// ----------------------------------------------------------------------------------------------------
+
+[numthreads(THREAD_NUM_X, THREAD_NUM_Y, 1)]
+void TiledLightCulling(uint3 id : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID, uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
+{
+    // initialize shared memory
+    if (groupIndex == 0)
+    {
+        tileMinDepthInt = 0x7f7fffff;
+        tileMaxDepthInt = 0;
+        lightCountInTile = 0;
+        
+        #if _TILE_CULLING_SPLIT_DEPTH
+        tileDepthMask = 0;
+        #endif
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    // get the minimum and maximum depth of the tile
+    bool inScreen = (int) id.x < _CameraBufferSize.z && (int) id.y < _CameraBufferSize.w;
+
+    float depth = LOAD_TEXTURE2D_LOD(_CameraDepthTexture, id.xy, 0).r;
+    float linearDepth = GetViewDepthFromDepthTexture(depth);
+    uint z = asuint(linearDepth);
+
+    #if UNITY_REVERSED_Z
+    bool isNotSkybox = depth != 0.0;
+    #else
+    bool isNotSkybox = depth != 1.0;
+    #endif
+    
+    if (inScreen && isNotSkybox)
+    {
+        InterlockedMin(tileMinDepthInt, z);
+        InterlockedMax(tileMaxDepthInt, z);
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+
+    float2 tileDepthMinMax = float2(asfloat(tileMinDepthInt), asfloat(tileMaxDepthInt));
+
+    // 2.5D Culling: Get the tile depth mask
+    #if _TILE_CULLING_SPLIT_DEPTH
+    float invDepthRange = 32.0 / (tileDepthMinMax.y - tileDepthMinMax.x + 0.00001);
+
+    if (inScreen && isNotSkybox)
+    {
+        uint depthSlot = floor((linearDepth - tileDepthMinMax.x) * invDepthRange);
+        InterlockedOr(tileDepthMask, 1 << depthSlot);
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+    #endif
+    
+    // intersect test
+    uint lightIndex = groupIndex;
+    uint2 tileIndex = groupId.xy;
+
+    bool intersect;
+    UNITY_BRANCH
+    if ((float) lightIndex >= GetPunctualLightCount())
+    {
+        intersect = false;
+    }
+    else
+    {
+        float3 lightPositionVS = TransformWorldToView(GetPunctualLightPosition(lightIndex));
+        lightPositionVS.z = -lightPositionVS.z;
+        float lightRange = GetPunctualLightRange(lightIndex);
+        float3 spotLightDirVS = TransformWorldToViewDir(GetSpotLightDirection(lightIndex));
+        spotLightDirVS.z = -spotLightDirVS.z;
+        float angle = GetSpotLightHalfOuterAngle(lightIndex);
+
+        float2 lightDepthMinMax = GetLightMinMaxDepth(lightPositionVS, lightRange, spotLightDirVS, angle);
+        
+        bool AABBTest = AABBIntersectTest(tileIndex, lightPositionVS, lightRange, spotLightDirVS, angle, tileDepthMinMax, lightDepthMinMax);
+
+        #if _TILE_CULLING_SPLIT_DEPTH
+        uint lightMask = GetLightBitMask(tileDepthMinMax, lightDepthMinMax, invDepthRange);
+        bool intersect2_5D = lightMask & tileDepthMask;
+        AABBTest = AABBTest && intersect2_5D;
+        #endif
+
+        intersect = AABBTest;
+    }
+    
+    if (intersect)
+    {
+        uint offset;
+        InterlockedAdd(lightCountInTile, 1, offset);
+        lightIndicesInTile[offset] = groupIndex;
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+
+    // recording light indices
+    uint headerIndex = (groupId.y * _TileParams.x + groupId.x) * (MAX_LIGHT_COUNT_PER_TILE + 1);
+    uint minLightCount = min(lightCountInTile, MAX_LIGHT_COUNT_PER_TILE);
+
+    UNITY_BRANCH
+    if (groupIndex == 0)
+    {
+        _TilesLightIndicesBuffer[headerIndex] = lightCountInTile;
+    }
+    else
+    {
+        if (groupIndex - 1 < minLightCount) _TilesLightIndicesBuffer[headerIndex + groupIndex] = lightIndicesInTile[groupIndex - 1];
+    }
+}
+```
+
+# 其他说明
+## Fine Pruned Tiled Light Lists
+在 《GPU Pro 7》 中还提到了一个 tile-based light culling 的技术，即 **Fine Pruned Tiled Light（FPTL）**，该技术被应用在了《古墓丽影：崛起 Rise of the Tomb Raider》，Unity 的 HDRP 也使用了该技术。FPTL 的主要思路分为两步，第一步：使用 screen space AABB，不管灯光类型，生成一个灯光 coarse list（粗略列表）；第二步：即**精剪 fine pruning**，针对 tile 中的每个像素，跟 coarse list 里的灯光做更精确的测试，判断像素是否在灯光形状内。
+
+具体来说，对于一个 Per 16 × 16 的 tile，步骤如下：  
+①采样 depth buffer，找到 tile 的最大最小 depth；  
+②每个线程使用灯光的 screen space AABB 与当前 tile 求交，得到 coarse list；  
+③每个线程测试 4 个像素，判断像素是否在灯光的真正形状当中，并使用 bit 存储计算结果，该 bit 对应 coarse list，每个 bit 表示该 light 是否确实与 tile 相交；  
+④使用按位与得到 fine pruned light list。
+
+这个技术能够做到像素级的剔除，但我觉得必要性不是很大，所以我就没有实现。因为我觉得计算光照时，本身就会计算光照影响范围，那么逐像素测试像素是否在灯光的真正形状当中真的有必要吗？普通的 tile-based light culling，相当于第一步得到初步的 tile light list，第二步着色时，tile 内的每个像素计算是否和灯光相交（即光照计算），可以通过光照影响范围来更早拒绝 PBR 的计算，相对于做了一次精剪。不知道我这么想是不是对的。
+
+## 关于 Tile-based 和 Cluster-based 的一点思考
+其实 AABB 加上 2.5D culling 后，Tile-based 的步骤可以说跟 Cluster-based，特别是 ZBinning 版的 Cluster-based 非常接近了，那么这样子为什么不直接使用 Cluster-based。毕竟 Cluster-based 的 AABB 相对来说更加接近立方体，剔除精度肯定比 Tile-based 高。Cluster-based 的缺点应该就是剔除性能要求更高，以及要占用更多显存，毕竟 light list 是三维的。之后实现了 Cluster-based 可能才能对这两种技术的优劣对比有更深层次的理解。
