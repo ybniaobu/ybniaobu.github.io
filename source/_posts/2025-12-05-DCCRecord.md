@@ -47,6 +47,11 @@ description: （长期不间断更新）本文章主要记录常用于 PBR 流�
 
 
 # Zbrush
+Morph 笔刷
+
+循环笔刷
+
+ZRemesher 布线笔刷。
 
 # RizomUV
 
