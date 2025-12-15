@@ -47,11 +47,13 @@ description: （长期不间断更新）本文章主要记录常用于 PBR 流�
 
 
 # Zbrush
-Morph 笔刷
+* **循环对称**：我们知道按 <kbd>X</kbd>、<kbd>Y</kbd>、<kbd>Z</kbd> 可以让笔刷沿 x、y、z 轴对称，但有时我们想围绕着圆环雕刻数个花纹（比如每 60 度一个花纹），此时可以开启循环对称，点击循环 Transform ->激活对称 Activate Symmetry -> R，还可以选择循环的个数（即径向个数 Radial Count）。
 
-循环笔刷
+* **还原模型指定部分**至初始状态：需要在模型处于初始状态时（未雕刻时），点击工具 Tool -> 变换目标 Morph Target-> 存储变换目标 StoreMT，然后雕刻时若发现哪里雕刻得不好，但是又不想撤销，就可以使用笔刷中的 **Morph 笔刷**还原模型。  
 
-ZRemesher 布线笔刷。
+* **ZRemesher 布线辅助**：有时 ZRemesher 重拓扑的布线不是我们想要的，我们可以使用 **ZRemesherGuides 笔刷** 来在模型表面画线，用于辅助布线，画完线再点击 ZRemesher 重拓扑，此时就会按照自己画的线进行布线。
+
+
 
 # RizomUV
 
