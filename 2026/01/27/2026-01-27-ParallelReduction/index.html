@@ -1,0 +1,348 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>并行约归 Parallel Reduction | 鸟布的博客</title><meta name="author" content="鸟布"><meta name="copyright" content="鸟布"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="本文章主要讲解如何在 Compute Shader 中更有效地进行约归操作，比如求和。"><link rel="shortcut icon" href="https://s2.loli.net/2022/09/08/Ygib4lfw6z1khnr.png"><link rel="canonical" href="https://ybniaobu.github.io/2026/01/27/2026-01-27-ParallelReduction/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"top_n_per_article":1,"unescape":false,"languages":{"hits_empty":"找不到您查询的内容：${query}","hits_stats":"共找到 ${hits} 篇文章"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '天',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: {"limitCount":50,"languages":{"author":"作者: 鸟布","link":"链接: ","source":"来源: 鸟布的博客","info":"著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。"}},
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: true,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '并行约归 Parallel Reduction',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2026-01-27 20:27:35'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.2.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/images/wechat%20avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">50</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">18</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">18</div></a></div><hr class="custom-hr"/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/images/black.jpg')"><nav id="nav"><span id="blog-info"><a href="/" title="鸟布的博客"><span class="site-name">鸟布的博客</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> 搜索</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page group" href="javascript:void(0);"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></a><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">并行约归 Parallel Reduction</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-01-27T05:16:11.000Z" title="发表于 2026-01-27 13:16:11">2026-01-27</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-01-27T12:27:35.467Z" title="更新于 2026-01-27 20:27:35">2026-01-27</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%AE%97%E6%B3%95/">算法</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E7%AE%97%E6%B3%95/Compute-Shader/">Compute Shader</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">字数总计:</span><span class="word-count">2k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>8分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="并行约归 Parallel Reduction"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><blockquote>
+<p>最近在做 <strong>Reflection Probe (Cubemap) Normalization</strong> 的时候，需要计算 Cubemap 对应的球谐系数，而球谐系数的计算需要遍历整个球面求和，之前在 <a href="https://ybniaobu.github.io/2024/07/09/2024-07-09-IBL_Basics1/">IBL 基于图像的光照（一）</a> 文章中计算时，是在 CPU 中计算球谐系数的，仅仅重建 irradiance 的工作是在 GPU 完成的。然而在 CPU 中单线程遍历纹理纹素的效率相对较低，我就想到能不能使用 Compute Shader 并行采样纹理计算求和，于是就查阅到了 NVIDIA 的这篇文章：<a target="_blank" rel="noopener" href="https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf">Optimizing Parallel Reduction in CUDA</a> ，下面的内容都是基于这篇文章写的。  </p>
+<p>另外，想了解 Reflection Probe Normalization 技术，可以查看 God of War 在 GDC 2019 的这篇演讲：<a target="_blank" rel="noopener" href="https://media.gdcvault.com/gdc2019/presentations/Hobson_Josh_The_Indirect_Lighting.pdf">The Indirect Lighting Pipeline of God of War</a> 。</p>
+</blockquote>
+<h1 id="Parallel-Reduction-简介"><a href="#Parallel-Reduction-简介" class="headerlink" title="Parallel Reduction 简介"></a>Parallel Reduction 简介</h1><p><strong>归约操作 Reduction Operation</strong> 是对集合中的元素进行某种累积计算，最终产生单个结果，例如求和、求最大值或最小值等，而<strong>并行约归 Parallel Reduction</strong> 就是利用 GPU 多线程的并行计算特性来对归约操作进行加速（当然 CPU 多线程也是可以的，只是 GPU 拥有更多核心）。整体算法的思路，就是在每个线程组当中，使用基于树结构的方法进行 reduce，每个线程组 reduce 一部分的原始数据数组。每个线程组计算出部分数据的和后，可以在 CPU 里进行最终的求和，也通过另开 kernel 用递归的方式完成计算，如下图：  </p>
+<div align="center">  
+<img src="https://s2.loli.net/2026/01/27/ZROQXIp4bwAuYBT.png" width = "80%" height = "80%" alt="图1 - Tree-based approach within each thread block。Avoid global sync by decomposing computation
+into multiple recursive kernel invocations。Block 即线程组（CUDA 中的叫法）。"/>
+</div>
+
+<p>在原文章中一共提供了 7 个 Parallel Reduction 算法，每个算法都是基于上一个算法进行优化的，并且运行、带宽 Bandwidth 效率逐渐提高，下面来一一讲解，并将 CUDA 代码都转换为了 Compute Shader 的代码。</p>
+<h1 id="Reduction-1-Interleaved-Addressing"><a href="#Reduction-1-Interleaved-Addressing" class="headerlink" title="Reduction #1: Interleaved Addressing"></a>Reduction #1: Interleaved Addressing</h1><pre><code>#pragma kernel InterleavedAddressing1
+#define THREAD_NUM 16
+
+StructuredBuffer&lt;float&gt; _Source;
+RWStructuredBuffer&lt;float&gt; _Result;
+
+groupshared float sharedMem[THREAD_NUM];
+
+[numthreads(THREAD_NUM, 1, 1)]
+void InterleavedAddressing1(uint3 id : SV_DispatchThreadID, uint3 groupThreadId : SV_GroupThreadID, uint3 groupId : SV_GroupID, uint groupIndex : SV_GroupIndex)
+&#123;
+    // each thread loads one element from global to shared mem
+    sharedMem[groupIndex] = _Source[id.x];
+    GroupMemoryBarrierWithGroupSync();
+
+    // do reduction in shared mem
+    for (uint s = 1; s &lt; THREAD_NUM; s &lt;&lt;= 1)  // stride: 1, 2, 4, 8
+    &#123;
+        if (groupIndex % (2 * s) == 0)
+        &#123;
+            sharedMem[groupIndex] += sharedMem[groupIndex + s];
+        &#125;
+        GroupMemoryBarrierWithGroupSync();
+    &#125;
+
+    // write result for this block to global mem
+    if (groupIndex == 0) _Result[groupId.x] = sharedMem[0];
+&#125;
+</code></pre><p>这个算法的每个线程组，在循环的每一次迭代中求两个数据的和，通过增加步长 stride 对上一次循环的结果再次进行两两相加，最终每个线程组的合计数额在 groupshared 数组的第一位，示意图如下： </p>
+<div align="center">  
+<img src="https://s2.loli.net/2026/01/27/bYKmWUDz8jx2ldV.png" width = "70%" height = "70%" alt="图2 - Reduction #1: Interleaved Addressing."/>
+</div>
+
+<p>这个算法的问题在于取余操作较慢，并且循环中的 if 语句会生成大量的 <strong>Warp divergence</strong>（Warp 是 GPU 调度的基本单元，在同一个 Warp 内的线程，若执行过程中分别进入了不同的分支，同一个 Warp 内无法同时执行不同分支，就会导致阻塞并影响性能）。</p>
+<h1 id="Reduction-2-Interleaved-Addressing"><a href="#Reduction-2-Interleaved-Addressing" class="headerlink" title="Reduction #2: Interleaved Addressing"></a>Reduction #2: Interleaved Addressing</h1><p>没看错，还是 Interleaved Addressing。为了解决上述问题，可以将 for 循环中的内容替换为如下：  </p>
+<pre><code>for (uint s = 1; s &lt; THREAD_NUM; s &lt;&lt;= 1)  // stride: 1, 2, 4, 8
+&#123;
+    int index = 2 * s * groupIndex;
+
+    if (index &lt; THREAD_NUM)
+    &#123;
+        sharedMem[index] += sharedMem[index + s];
+    &#125;
+    GroupMemoryBarrierWithGroupSync();
+&#125;
+</code></pre><p>新的代码去掉了取余操作，然后 if 分支中线程是连续的，缓解了 highly divergent warps 的问题，示意图如下： </p>
+<div align="center">  
+<img src="https://s2.loli.net/2026/01/27/4LNBi2FnMIYpOZT.png" width = "70%" height = "70%" alt="图3 - Reduction #2: Interleaved Addressing."/>
+</div>
+
+<p>然而仍然有个问题，就是 Shared Memory 的 <strong>Bank Conflicts</strong> 问题。Shared Memory 在设计的时候为了并行访问速度，给 Shared Memory 设计了 32 个 banks，每个 bank 里包含许多 word（每个 word 32 bit，4 byte），每个 bank 负责多少数据的访问取决于申请了多少的 Shared Memory 的大小。当同一个 warp 里的多个线程对同一个 bank 发出访问请求，只能进行串行访问，这就是 Bank Conflicts。</p>
+<h1 id="Reduction-3-Sequential-Addressing"><a href="#Reduction-3-Sequential-Addressing" class="headerlink" title="Reduction #3: Sequential Addressing"></a>Reduction #3: Sequential Addressing</h1><p>这次是更改整个 for 循环：  </p>
+<pre><code>for (uint s = THREAD_NUM / 2; s &gt; 0; s &gt;&gt;= 1) // stride: 8, 4, 2, 1
+&#123;
+    if (groupIndex &lt; s)
+    &#123;
+        sharedMem[groupIndex] += sharedMem[groupIndex + s];
+    &#125;
+    GroupMemoryBarrierWithGroupSync();
+&#125;
+</code></pre><p>这样就解决了 Bank Conflicts 问题，示意图如下：  </p>
+<div align="center">  
+<img src="https://s2.loli.net/2026/01/27/2c6jsqxYJOUDVNP.png" width = "70%" height = "70%" alt="图4 - Reduction #3: Sequential Addressing."/>
+</div>
+
+<p>接下来是闲置线程 Idle Threads 的问题，可以看到在第一次循环中，有一半的线程处于闲置状态，毕竟浪费。</p>
+<h1 id="Reduction-4-First-Add-During-Load"><a href="#Reduction-4-First-Add-During-Load" class="headerlink" title="Reduction #4: First Add During Load"></a>Reduction #4: First Add During Load</h1><p>改进的思路是在拷贝 global memory 到 shared memory 的时候，就进行一次加法：  </p>
+<pre><code>// each thread loads one element from global to shared mem
+sharedMem[groupIndex] = _Source[id.x];
+GroupMemoryBarrierWithGroupSync();
+</code></pre><p>改为：  </p>
+<pre><code>uint i = THREAD_NUM * 2 * groupId.x + groupIndex;
+sharedMem[groupIndex] = _Source[i] + _Source[i + THREAD_NUM];
+GroupMemoryBarrierWithGroupSync();
+</code></pre><p>这里要注意的是<strong>线程组的数量是要减半的！！！！</strong>。即 groupId.x 的最大值发生了变化，每个线程组中的线程不变，但总的线程数减少了一半。接下来为了继续提升性能，而性能瓶颈在指令调度上，可以将 for 循环展开。</p>
+<h1 id="Reduction-5-Unroll-the-Last-Warp"><a href="#Reduction-5-Unroll-the-Last-Warp" class="headerlink" title="Reduction #5: Unroll the Last Warp"></a>Reduction #5: Unroll the Last Warp</h1><p>一个 warp 中有 32 个线程，意味着，当 groupIndex &lt;= 32 的时候，其实线程组并不需要等待其他线程（warp），即不需要 <code>GroupMemoryBarrierWithGroupSync()</code>，也不需要 if (groupIndex &lt; s)，于是可以将循环的最后 6 次迭代展开：  </p>
+<pre><code>for (uint s = THREAD_NUM / 2; s &gt; 32; s &gt;&gt;= 1) 
+&#123;
+    if (groupIndex &lt; s) 
+    &#123;
+        sharedMem[groupIndex] += sharedMem[groupIndex + s];
+    &#125;
+    GroupMemoryBarrierWithGroupSync();
+&#125;
+
+if (groupIndex &lt; 32)
+&#123;
+    sharedMem[groupIndex] += sharedMem[groupIndex + 32];
+    sharedMem[groupIndex] += sharedMem[groupIndex + 16];
+    sharedMem[groupIndex] += sharedMem[groupIndex + 8];
+    sharedMem[groupIndex] += sharedMem[groupIndex + 4];
+    sharedMem[groupIndex] += sharedMem[groupIndex + 2];
+    sharedMem[groupIndex] += sharedMem[groupIndex + 1];
+&#125;
+</code></pre><p>顺着这个思路，我们其实可以将 for loop 都展开，只要我们知道迭代次数。</p>
+<h1 id="Reduction-6-Completely-Unrolled"><a href="#Reduction-6-Completely-Unrolled" class="headerlink" title="Reduction #6: Completely Unrolled"></a>Reduction #6: Completely Unrolled</h1><p>完全展开后的代码：  </p>
+<pre><code>if (THREAD_NUM &gt;= 1024)
+&#123;
+    if (groupIndex &lt; 512) &#123; sharedMem[groupIndex] += sharedMem[groupIndex + 512];&#125; 
+    GroupMemoryBarrierWithGroupSync();
+&#125;
+if (THREAD_NUM &gt;= 512) 
+&#123;
+    if (groupIndex &lt; 256) &#123; sharedMem[groupIndex] += sharedMem[groupIndex + 256]; &#125;
+    GroupMemoryBarrierWithGroupSync();
+&#125;
+if (THREAD_NUM &gt;= 256) 
+&#123;
+    if (groupIndex &lt; 128) &#123; sharedMem[groupIndex] += sharedMem[groupIndex + 128]; &#125; 
+    GroupMemoryBarrierWithGroupSync();
+&#125;
+if (THREAD_NUM &gt;= 128) 
+&#123;
+    if (groupIndex &lt;  64) &#123; sharedMem[groupIndex] += sharedMem[groupIndex +  64]; &#125; 
+    GroupMemoryBarrierWithGroupSync();
+&#125;
+
+if (groupIndex &lt; 32)
+&#123;
+    sharedMem[groupIndex] += sharedMem[groupIndex + 32];
+    sharedMem[groupIndex] += sharedMem[groupIndex + 16];
+    sharedMem[groupIndex] += sharedMem[groupIndex + 8];
+    sharedMem[groupIndex] += sharedMem[groupIndex + 4];
+    sharedMem[groupIndex] += sharedMem[groupIndex + 2];
+    sharedMem[groupIndex] += sharedMem[groupIndex + 1];
+&#125;
+</code></pre><h1 id="Reduction-7-Multiple-Adds-Thread"><a href="#Reduction-7-Multiple-Adds-Thread" class="headerlink" title="Reduction #7: Multiple Adds / Thread"></a>Reduction #7: Multiple Adds / Thread</h1><p>这个 Reduction #7，我没太看明白，是对 Reduction #4: First Add During Load 的进一步改进，Reduction #4 只在 Load 阶段进行了一次加法，其实可以使用 loop 加更多次，但是我没太看懂代码，我感觉若是 compute shader 实现的话，应该是要改变 dispatch 的数量，自己上传 gridDim 的，我不太确定。下面就直接摘抄 CUDA 的代码了，原本 Reduction #4 的代码为：  </p>
+<pre><code>unsigned int tid = threadIdx.x;
+unsigned int i = blockIdx.x*(blockDim.x*2) + threadIdx.x;
+sdata[tid] = g_idata[i] + g_idata[i+blockDim.x];
+__syncthreads();
+</code></pre><p>替换为：  </p>
+<pre><code>unsigned int tid = threadIdx.x;
+unsigned int i = blockIdx.x*(blockSize*2) + threadIdx.x;
+unsigned int gridSize = blockSize*2*gridDim.x;
+sdata[tid] = 0;
+
+while (i &lt; n) &#123;
+    sdata[tid] += g_idata[i] + g_idata[i+blockSize];
+    i += gridSize;
+&#125;
+__syncthreads();
+</code></pre><p>最终代码为：  </p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="keyword">template</span> &lt;<span class="type">unsigned</span> <span class="type">int</span> blockSize&gt;</span><br><span class="line"><span class="function">__device__ <span class="type">void</span> <span class="title">warpReduce</span><span class="params">(<span class="keyword">volatile</span> <span class="type">int</span> *sdata, <span class="type">unsigned</span> <span class="type">int</span> tid)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (blockSize &gt;= <span class="number">64</span>) sdata[tid] += sdata[tid + <span class="number">32</span>];</span><br><span class="line">    <span class="keyword">if</span> (blockSize &gt;= <span class="number">32</span>) sdata[tid] += sdata[tid + <span class="number">16</span>];</span><br><span class="line">    <span class="keyword">if</span> (blockSize &gt;= <span class="number">16</span>) sdata[tid] += sdata[tid + <span class="number">8</span>];</span><br><span class="line">    <span class="keyword">if</span> (blockSize &gt;= <span class="number">8</span>) sdata[tid] += sdata[tid + <span class="number">4</span>];</span><br><span class="line">    <span class="keyword">if</span> (blockSize &gt;= <span class="number">4</span>) sdata[tid] += sdata[tid + <span class="number">2</span>];</span><br><span class="line">    <span class="keyword">if</span> (blockSize &gt;= <span class="number">2</span>) sdata[tid] += sdata[tid + <span class="number">1</span>];</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="type">unsigned</span> <span class="type">int</span> blockSize&gt;</span><br><span class="line"><span class="function">__global__ <span class="type">void</span> <span class="title">reduce6</span><span class="params">(<span class="type">int</span> *g_idata, <span class="type">int</span> *g_odata, <span class="type">unsigned</span> <span class="type">int</span> n)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">extern</span> __shared__ <span class="type">int</span> sdata[];</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> tid = threadIdx.x;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> i = blockIdx.x*(blockSize*<span class="number">2</span>) + tid;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> gridSize = blockSize*<span class="number">2</span>*gridDim.x;</span><br><span class="line">    sdata[tid] = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">while</span> (i &lt; n) &#123; sdata[tid] += g_idata[i] + g_idata[i+blockSize]; i += gridSize; &#125;</span><br><span class="line">    __syncthreads();</span><br><span class="line">    <span class="keyword">if</span> (blockSize &gt;= <span class="number">512</span>) &#123; <span class="keyword">if</span> (tid &lt; <span class="number">256</span>) &#123; sdata[tid] += sdata[tid + <span class="number">256</span>]; &#125; __syncthreads(); &#125;</span><br><span class="line">    <span class="keyword">if</span> (blockSize &gt;= <span class="number">256</span>) &#123; <span class="keyword">if</span> (tid &lt; <span class="number">128</span>) &#123; sdata[tid] += sdata[tid + <span class="number">128</span>]; &#125; __syncthreads(); &#125;</span><br><span class="line">    <span class="keyword">if</span> (blockSize &gt;= <span class="number">128</span>) &#123; <span class="keyword">if</span> (tid &lt; <span class="number">64</span>) &#123; sdata[tid] += sdata[tid + <span class="number">64</span>]; &#125; __syncthreads(); &#125;</span><br><span class="line">    <span class="keyword">if</span> (tid &lt; <span class="number">32</span>) <span class="built_in">warpReduce</span>(sdata, tid);</span><br><span class="line">    <span class="keyword">if</span> (tid == <span class="number">0</span>) g_odata[blockIdx.x] = sdata[<span class="number">0</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>文章中给出了上述 7 种算法的性能对比测试，如下图：  </p>
+<div align="center">  
+<img src="https://s2.loli.net/2026/01/27/aZLYFQHbxtGWdnv.png" width = "60%" height = "60%" alt="图5 - Performance for 4M element reduction"/>
+</div>
+
+<p>其实绝大部分情况下，我们不需要优化到这么牛逼的地步，特别是进行离线计算的时候，基本上 #2、#3 的算法够用了，代码也更漂亮一点。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io">鸟布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io/2026/01/27/2026-01-27-ParallelReduction/">https://ybniaobu.github.io/2026/01/27/2026-01-27-ParallelReduction/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://ybniaobu.github.io" target="_blank">鸟布的博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Compute-Shader/">Compute Shader</a><a class="post-meta__tags" href="/tags/%E7%AE%97%E6%B3%95/">算法</a><a class="post-meta__tags" href="/tags/GPGPU/">GPGPU</a></div><div class="post_share"><div class="social-share" data-image="https://s2.loli.net/2026/01/27/jeC94fMAuYXOrDU.gif" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><div class="post-reward"><div class="reward-button"><i class="fas fa-qrcode"></i> 打赏</div><div class="reward-main"><ul class="reward-all"><li class="reward-item"><a href="/images/wechat.png" target="_blank"><img class="post-qr-code-img" src="/images/wechat.png" alt="微信"/></a><div class="post-qr-code-desc">微信</div></li><li class="reward-item"><a href="/images/alipay.png" target="_blank"><img class="post-qr-code-img" src="/images/alipay.png" alt="支付宝"/></a><div class="post-qr-code-desc">支付宝</div></li></ul></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2025/12/26/2025-12-26-HBIL/" title="Horizon-Based Indirect Lighting (HBIL)"><img class="cover" src="https://s2.loli.net/2025/12/26/YpyBQSsUquzxeLP.gif" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">Horizon-Based Indirect Lighting (HBIL)</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">鸟布</div><div class="author-info__description">教练，我想学技术</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">50</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">18</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">18</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://niaobu.notion.site/787824630ea6480e944c1ae5ae7f4792"><i class="fa-solid fa-book"></i><span>My Notion</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/ybniaobu/ybniaobu.github.io" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:niaobubob@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">为了蒂法！！！</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Parallel-Reduction-%E7%AE%80%E4%BB%8B"><span class="toc-number">1.</span> <span class="toc-text">Parallel Reduction 简介</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Reduction-1-Interleaved-Addressing"><span class="toc-number">2.</span> <span class="toc-text">Reduction #1: Interleaved Addressing</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Reduction-2-Interleaved-Addressing"><span class="toc-number">3.</span> <span class="toc-text">Reduction #2: Interleaved Addressing</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Reduction-3-Sequential-Addressing"><span class="toc-number">4.</span> <span class="toc-text">Reduction #3: Sequential Addressing</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Reduction-4-First-Add-During-Load"><span class="toc-number">5.</span> <span class="toc-text">Reduction #4: First Add During Load</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Reduction-5-Unroll-the-Last-Warp"><span class="toc-number">6.</span> <span class="toc-text">Reduction #5: Unroll the Last Warp</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Reduction-6-Completely-Unrolled"><span class="toc-number">7.</span> <span class="toc-text">Reduction #6: Completely Unrolled</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Reduction-7-Multiple-Adds-Thread"><span class="toc-number">8.</span> <span class="toc-text">Reduction #7: Multiple Adds &#x2F; Thread</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">9.</span> <span class="toc-text">总结</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2026/01/27/2026-01-27-ParallelReduction/" title="并行约归 Parallel Reduction"><img src="https://s2.loli.net/2026/01/27/jeC94fMAuYXOrDU.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="并行约归 Parallel Reduction"/></a><div class="content"><a class="title" href="/2026/01/27/2026-01-27-ParallelReduction/" title="并行约归 Parallel Reduction">并行约归 Parallel Reduction</a><time datetime="2026-01-27T05:16:11.000Z" title="发表于 2026-01-27 13:16:11">2026-01-27</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/12/26/2025-12-26-HBIL/" title="Horizon-Based Indirect Lighting (HBIL)"><img src="https://s2.loli.net/2025/12/26/YpyBQSsUquzxeLP.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Horizon-Based Indirect Lighting (HBIL)"/></a><div class="content"><a class="title" href="/2025/12/26/2025-12-26-HBIL/" title="Horizon-Based Indirect Lighting (HBIL)">Horizon-Based Indirect Lighting (HBIL)</a><time datetime="2025-12-26T07:44:00.000Z" title="发表于 2025-12-26 15:44:00">2025-12-26</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/12/14/2025-12-14-APV/" title="Custom SRP 接入 Unity APV"><img src="https://s2.loli.net/2025/12/14/nqFkiKMduaWEc13.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="Custom SRP 接入 Unity APV"/></a><div class="content"><a class="title" href="/2025/12/14/2025-12-14-APV/" title="Custom SRP 接入 Unity APV">Custom SRP 接入 Unity APV</a><time datetime="2025-12-14T11:52:47.000Z" title="发表于 2025-12-14 19:52:47">2025-12-14</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/12/05/2025-12-05-DCCRecord/" title="PBR 流程 DCC 软件功能备忘"><img src="https://s2.loli.net/2022/11/29/uXNZDocJpQx5yrh.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="PBR 流程 DCC 软件功能备忘"/></a><div class="content"><a class="title" href="/2025/12/05/2025-12-05-DCCRecord/" title="PBR 流程 DCC 软件功能备忘">PBR 流程 DCC 软件功能备忘</a><time datetime="2025-12-05T08:36:28.000Z" title="发表于 2025-12-05 16:36:28">2025-12-05</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2025/09/09/2025-09-09-SSAO2/" title="屏幕空间环境光遮蔽（二）HBAO 与 GTAO"><img src="https://s2.loli.net/2025/09/09/Uq93S46lgTAHs7Q.gif" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="屏幕空间环境光遮蔽（二）HBAO 与 GTAO"/></a><div class="content"><a class="title" href="/2025/09/09/2025-09-09-SSAO2/" title="屏幕空间环境光遮蔽（二）HBAO 与 GTAO">屏幕空间环境光遮蔽（二）HBAO 与 GTAO</a><time datetime="2025-09-09T12:10:09.000Z" title="发表于 2025-09-09 20:10:09">2025-09-09</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2022 - 2026 By 鸟布</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div><div class="footer_custom_text">Your time is limited, so don't waste it living someone else's life.</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>if (!window.MathJax) {
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      tags: 'ams'
+    },
+    chtml: {
+      scale: 1.1
+    },
+    options: {
+      renderActions: {
+        findScript: [10, doc => {
+          for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
+            const display = !!node.type.match(/; *mode=display/)
+            const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display)
+            const text = document.createTextNode('')
+            node.parentNode.replaceChild(text, node)
+            math.start = {node: text, delim: '', n: 0}
+            math.end = {node: text, delim: '', n: 0}
+            doc.math.push(math)
+          }
+        }, '']
+      }
+    }
+  }
+  
+  const script = document.createElement('script')
+  script.src = 'https://cdn.jsdelivr.net/npm/mathjax/es5/tex-mml-chtml.min.js'
+  script.id = 'MathJax-script'
+  script.async = true
+  document.head.appendChild(script)
+} else {
+  MathJax.startup.document.state(0)
+  MathJax.texReset()
+  MathJax.typesetPromise()
+}</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据库加载中</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div><hr/><div class="no-result" id="local-search-results"></div><div id="local-search-stats-wrap"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></div></body></html>
