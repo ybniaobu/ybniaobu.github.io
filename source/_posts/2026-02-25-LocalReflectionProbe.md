@@ -20,11 +20,16 @@ Cubemap 可以被分为两种：
 **① Infinite Cubemap**：提供无限距离的环境光照，没有位置的概念，可以理解为全局的立方体贴图。在 Unity 中可以通过 `ReflectionProbe.defaultTexture` 获取到，也就是 Generate Lighting 后在场景文件夹里多出来的那个 Cubemap，之前在 [Unity Custom SRP 基础（三）](https://ybniaobu.github.io/2025/01/07/2025-01-07-CustomSRP3/)中实现的 Indirect Specular Lighting，若场景中没有其他反射探针，物体默认采样到的就是这个全局 Cubemap。因为没有位置的概念，全局 Cubemap 通常使用反射方向 R 采样；  
 **② Local Cubemap**：这类立方体贴图具有位置属性，代表有限距离内的环境光照，也就是 Unity 的 Reflection Probe 组件。从理论上来说，Local Cubemap 生成的光照，只有在生成的位置采样才拥有正确的效果，在其他位置上采样具有视差问题（使用反射方向 R 采样时）。这类立方体贴图通常使用在室内，需要使用 tricks 来弥补视差问题，也就是**视差校正 Parallax Correction**。在 Unity URP 中可以通过开启 Box Projection 来激活视差校正。
 
-And as we often need to blend multiple cubemap,  I will define different cubemap blending method :
-– Sampling K cubemaps in the main shader and do a weighted sum. Expensive.
-– Blending cubemap on the CPU and use the resulted cubemap in the shader. Expensive depends on the resolution and required double buffering resources to avoid GPU stall.
-– Blending cubemap on the GPU and use the resulted cubemap in the shader. Fast.
-– Only with a deferred or light-prepass engine: Apply K cubemaps by weighted additive blending. Each cubemap bounding volume is rendered to the screen and normal+roughness from G-Buffer is used to sample the cubemap.
+## Local Cubemap Strategies
+常见的 Local Cubemap 应用策略有如下几种：  
 
-## Object Based Cubemap
+### Object Based Cubemap
+每个物体都链接着一个或多个 Reflection Probe，使用离物体最近的一个或几个反射探针作为该物体的间接反射光来源。半条命2（Half Life 2）使用的就是这个策略，静态物体在离线时会被链接上几个最近的反射探针，而动态物体则在运行时做动态查询。[Unity Custom SRP 基础（三）](https://ybniaobu.github.io/2025/01/07/2025-01-07-CustomSRP3/)中实现的其实就是 Object Based Cubemap 或者可以称为 **Per-Object Reflection Probe**，我们可以在场景物体的 Mesh Renderer Component 中的 Probes 相关属性看到该物体链接着的一个或两个反射探针，可以在 UnityInput.hlsl 中声明 `unity_SpecCube0` 和 `unity_SpecCube1` 分别对应物体链接着的反射探针，并在 Shader 中做混合。
+
+这套方案的缺点非常明显，就是临近的几个物体可以会采样到不同的反射探针，然后造成反射光照的接缝或者不自然的问题。同时，墙壁地板等较大物体，可能会同时被多个不同的环境所影响，但是也只能采样到一个最近的反射探针。还有就是，动态物体会切换当前影响到它的反射探针，从而导致反射光照突变的现象，虽然该现象可以被 **Cubemap Blending** 减轻。
+
+### Zone Based Cubemap
+作者文章中的 Zone Based Cubemap、Global and Local Cubemap No Overlapping 以及 Global and Local Cubemap Overlapping 道理都是类似的，我就合在一起说了。
+
+Zone Based Cubemap：场景的每个区域 Zone 都分配一个 Infinite Cubemap，当相机进入一个区域，所有物体的反射光照都采样该区域的反射探针，从一个区域到另外一个区域的突变现象还是通过 Cubemap Blending 解决。
 
