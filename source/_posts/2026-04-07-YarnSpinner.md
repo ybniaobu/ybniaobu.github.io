@@ -11,7 +11,7 @@ tags:
   - Gameplay
 top_img: /images/black.jpg
 cover: https://files.seeusercontent.com/2026/04/07/hFz6/YarnSpinner.png
-description: XXXXXXXXXXXXXXXXXXXXXX。
+description: 本文章记录了如何使用 Yarn Spinner 脚本进行叙事文本创作，包括基础至高级语法。
 ---
 
 > Yarn Spinner 官网为 https://yarnspinner.dev/ ，本文章发表时版本为 3.2。
@@ -19,7 +19,9 @@ description: XXXXXXXXXXXXXXXXXXXXXX。
 # 前言
 最近一直在研究游戏的对话系统，也调查了一些知名的插件，诸如：[Dialogue System](https://assetstore.unity.com/packages/tools/behavior-ai/dialogue-system-for-unity-11672) 和 [Node Canvas](https://assetstore.unity.com/packages/tools/visual-scripting/nodecanvas-14914)，从本质上来说这两个插件都是在 Unity 编辑器内部运行的可视化**对话树 Dialogue Tree** 编辑器。只是 Dialogue System 功能比较齐全，也支持导入我后面要说的几种对话脚本或工具，但该插件我感觉过于复杂笨重了，而 Node Canvas 相对轻量一点，还有行为树、状态机等功能。这两个插件都会将对话树中的对话内容序列化至 ScriptableObject 的资产文件 .asset 中，Node Canvas 是将对话树序列化为 JSON，以字符串的形式存储在 ScriptableObject 中，Dialogue System 则更复杂一点，存储了更多信息。
 
-上述插件在处理轻量级的游戏剧本时，可以说是完全够用的，但是一旦文本量变大或者分支很多时，维护、修改以及协作都会成为难题。因为往往编剧更希望在 Word 文档或者 Excel 中写剧情，也方便多人协作修改，那么此时大量剧本及分支逻辑就需要程序员在插件中一个一个去添加或者修改，不利于开发效率。让编剧去使用插件更是不太可能，还不能相互协作，更不要说可能还需要额外的席位费（笑）。所以最好的方式就是编写一个独立于游戏引擎的剧情编辑工具，将程序工作和编剧工作解耦，提高效率。对于大的游戏工作室来说，这样做最好，但是小工作室或者独立工作室可能就没有这么多的精力，只能使用其他开发者开发的工具了，我也找到了一些专门针对游戏分支剧情的对话工具，诸如：[Twine](https://twinery.org/)、[ink](https://www.inklestudios.com/ink/)、[Yarn Spinner](https://yarnspinner.dev/) 以及 [articy:draft X](https://www.articy.com/en/)。具体介绍可以查看这篇文章：[游戏分支剧情创作中的挑战和工具](https://www.gcores.com/articles/139398)，写的非常详细，我就不再赘述了。在调查了这些工具后，我觉得 **Yarn Spinner** 是最适合我的想法的，首先它是开源免费的，并且无论是在写作、多人协作、可视化上还是在与 Unity 或其他游戏引擎的集成上，都非常完善，本篇文章主要翻译并记录它的语法，方便以后查看，顺便记录一下以及如何在 Unity 中使用。其实 articy:draft X 我感觉也可以，只不过它要收费，多人协作还需要购买多人许可证和观众许可证。
+上述插件在处理轻量级的游戏剧本时，可以说是完全够用的，但是一旦文本量变大或者分支很多时，维护、修改以及协作都会成为难题。因为往往编剧更希望在 Word 文档或者 Excel 中写剧情，也方便多人协作修改，那么此时大量剧本及分支逻辑就需要程序员在插件中一个一个去添加或者修改，不利于开发效率。让编剧去使用插件更是不太可能，还不能相互协作，更不要说可能还需要额外的席位费（笑）。所以最好的方式就是编写一个独立于游戏引擎的剧情编辑工具，将程序工作和编剧工作解耦，提高效率。对于大的游戏工作室来说，这样做最好，但是小工作室或者独立工作室可能就没有这么多的精力，只能使用其他开发者开发的工具了，我也找到了一些专门针对游戏分支剧情的对话工具，诸如：[Twine](https://twinery.org/)、[ink](https://www.inklestudios.com/ink/)、[Yarn Spinner](https://yarnspinner.dev/) 以及 [articy:draft X](https://www.articy.com/en/)。具体介绍可以查看这篇文章：[游戏分支剧情创作中的挑战和工具](https://www.gcores.com/articles/139398)，写的非常详细，我就不再赘述了。在调查了这些工具后，我觉得 **Yarn Spinner** 是最适合我的想法的，首先它是开源免费的（MIT License），并且无论是在写作、多人协作、可视化上还是在与 Unity 或其他游戏引擎的集成上，都非常完善，本篇文章主要翻译并记录它的语法，方便以后查看。其实 articy:draft X 我感觉也可以，只不过它要收费，多人协作还需要购买多人许可证和观众许可证。
+
+> 我后来发现 articy:draft X 有免费商用版，只不过有一定限制，详见 https://www.articy.com/en/articydraft/free/ 。
 
 # Yarn Spinner 编辑
 Yarn Spinner 可以在网页上进行编辑：https://try.yarnspinner.dev ，提供了文本编辑和播放功能，但是功能没有 VS Code 中强大，Yarn Spinner 为 VS Code 开发了专属插件，为脚本提供了语法高亮，还有一个树状图形视图可以查看，如下图：  
@@ -271,9 +273,152 @@ Guard: Who are you? &lt;&lt;once&gt;&gt;<br>
 &lt;&lt;endif&gt;&gt;<br>
 </div>
 
-还可以通过 C# 代码创建自己的 command，
+除了内置 command 外，还支持创建自己的 command。在 Unity 中有两种方式可以添加自定义 command，一种是通过给方法添加 <kbd>YarnCommand</kbd> 特性，另一种是调用 DialogueRunner 的 <kbd>AddCommandHandler</kbd> 方法。
 
-***TODO：之后回来再补充***
+<div style="background-color: #fff5ed; margin-bottom: 1em; padding: 10px;">
+<span style="color: #ff9900;">Warning：</span> 我强烈不推荐使用自定义 command，我看了一下源码，自定义 command 的 GC 问题挺严重的，会频繁进行字符串操作、 new list&lt;T&gt; 或者 array。将静态方法作为 command 会比将 MonoBehaviour 方法作为 command 相对好一点，但仍然存在该问题。若还是需要自定义，建议不要使用 YarnCommand 特性，而是通过 AddCommandHandler 手动注册，首先 YarnCommand 特性本质上也是通过 AddCommandHandler 注册的，其次 YarnCommand 的实现是基于反射的，有一定的性能开销，虽然注册所有 command 方法只发生在游戏 startup 阶段。
+</div>
+
+### \[YarnCommand\]
+YarnCommand 特性可以添加到继承 MonoBehaviour 的类的方法中，也可以添加到纯 C# 类的静态方法中。先说继承 MonoBehaviour 的方式：  
+
+``` C#
+public class CharacterMovement : MonoBehaviour 
+{
+    [YarnCommand("leap")]
+    public void Leap() 
+    {
+        Debug.Log($"{name} is leaping!");
+    }
+}
+```
+
+注意：如果 CharacterMovement.cs 拖拽到了场景中的 MyCharacter 下面，那么在 Yarn Spinner 的文本中调用该 command 时，<u>还需要额外指定 gameobject 的名字</u>，即 MyCharacter，以便让 DialogueRunner 知道哪个 gameobject 需要使用该 command，如下：  
+
+<div style="background-color: #f2faf4; margin-bottom: 1em; padding: 10px;">
+&lt;&lt;leap MyCharacter&gt;&gt;&emsp;&emsp;// will print "MyCharacter is leaping!" in the console<br>
+</div>
+
+纯 C# 类中的方法要添加 YarnCommand 特性，必须是静态方法：  
+
+``` C#
+public class FadeCamera 
+{
+    [YarnCommand("fade_camera")]
+    public static void FadeCamera() 
+    {
+        Debug.Log("Fading the camera!");
+    }
+}
+```
+
+Yarn Spinner 脚本中调用无需提供 gameobject 的名字：  
+
+<div style="background-color: #f2faf4; margin-bottom: 1em; padding: 10px;">
+&lt;&lt;fade_camera&gt;&gt;&emsp;&emsp;// will print "Fading the camera!" in the console<br>
+</div>
+
+带有 YarnCommand 特性的方法支持 6 种参数：<kbd>string</kbd>、<kbd>int</kbd>、<kbd>float</kbd>、<kbd>bool</kbd>、<kbd>GameObject</kbd>、<kbd>Component</kbd>（或者继承 Component 的类），对于 GameObject 和 Component，Yarn Spinner 会查找所有激活的场景下的所有 GameObject 是否跟传递进来的名字匹配（通过 `GameObject.Find()`），若匹配，该 GameObject 就会被传递为 YarnCommand 方法的参数。示例如下：  
+
+``` C#
+[YarnCommand("walk")]
+public void Walk(GameObject destination, bool dancing = false) 
+{
+    var position = destination.transform.position;
+    if (dancing) 
+    {
+        // set animation to a dance
+    }
+    else 
+    {
+        // set animation to a regular walk
+    }
+    // walk the character to 'position'
+}
+```
+
+Yarn Spinner 脚本中调用该 command 的方式如下：  
+
+<div style="background-color: #f2faf4; margin-bottom: 1em; padding: 10px;">
+&lt;&lt;walk MyCharacter StageLeft&gt;&gt;&emsp;&emsp;// walk to the position of the object named 'StageLeft'<br>
+&lt;&lt;walk MyOtherCharacter StageRight dancing&gt;&gt;<br>
+</div>
+
+<div style="background-color: #edf7fa; margin-bottom: 1em; padding: 10px;">
+<span style="color: #316f8f;">NOTE：</span>Unity 中，可以通过打开 Window -> Yarn Spinner -> Commands 看到你注册的所有 command。
+</div>
+
+### AddCommandHandler
+使用 AddCommandHandler API 的方法如下：  
+
+``` C#
+public class CustomCommands : MonoBehaviour 
+{
+    // Drag and drop your Dialogue Runner into this variable.
+    public DialogueRunner dialogueRunner;
+
+    public void Awake() 
+    {
+        // Create a new command called 'camera_look', which looks at a target. 
+        // Note how we're listing 'GameObject' as the parameter type.
+        dialogueRunner.AddCommandHandler<GameObject>(
+            "camera_look",     // the name of the command
+            CameraLookAtTarget // the method to run
+        );
+    }
+
+    // The method that gets called when '<<camera_look>>' is run.
+    private void CameraLookAtTarget(GameObject target) 
+    {
+        if (target == null) debug.Log("Can't find the target!");
+        // Make the main camera look at this target
+        Camera.main.transform.LookAt(target.transform);
+    }    
+}
+```
+
+上述 Command 在 Yarn Spinner 脚本中的调用方式如下：  
+
+<div style="background-color: #f2faf4; margin-bottom: 1em; padding: 10px;">
+&lt;&lt;camera_look LeftMarker&gt;&gt;&emsp;&emsp;// make the camera look at an object named LeftMarker<br>
+</div>
+
+### Async Command
+Command 还支持 Unity 的协程：
+
+``` C#
+public class CustomWaitCommand : MonoBehaviour 
+{
+    [YarnCommand("custom_wait")]
+    static IEnumerator CustomWait() 
+    {
+        // Wait for 1 second
+        yield return new WaitForSeconds(1.0);
+        
+        // Because this method returns IEnumerator, it's a coroutine. 
+        // Yarn Spinner will wait until onComplete is called.
+    }    
+}
+```
+
+除了协程也支持 Unity Awaitables、Tasks 或者 UniTasks。Yarn Spinner 提供了一个 awaitable 类叫做 YarnTask，当项目中安装了 UniTask，默认使用 [UniTask](https://github.com/Cysharp/UniTask) ，若没安装则使用 [Unity Awaitables](https://docs.unity3d.com/Manual/async-await-support.html)。
+
+``` C#
+using Yarn.Unity;
+
+public class CustomWaitCommand : MonoBehaviour 
+{
+    [YarnCommand("custom_wait")]
+    static async YarnTask CustomWait() 
+    {
+        // Wait for 1 second
+        await YarnTask.Delay(1000);
+
+        // Yarn Spinner will wait until this method
+        // returns, before continuing the dialogue.
+    }    
+}
+```
 
 ## Functions
 **function** 就是带返回值的 command，function 可以让我们从游戏中获得一定的数据，又或者说生成一定的随机值：
@@ -308,9 +453,29 @@ Gambler: My lucky number is {random_range(1,10)}!<br>
 | `decimal(number n)` | 返回小数部分 |
 | `int(number n)` | 返回整数部分 |
 
-跟 command 一样，也可以通过 C# 代码创建自己的 function，
+跟 command 一样，也可以通过 C# 代码创建自己的 function，也有两种方式，一种是 <kbd>YarnFunction</kbd> 特性，另一个是 DialogueRunner 的 <kbd>AddFunction</kbd> 方法。与 command 不同的是，function 只支持注册静态方法，并且只支持 string、int、float、bool 这几个参数。
 
-***TODO：之后回来再补充***
+### \[YarnFunction\]
+示例如下：  
+
+``` C#
+public class AdderFunction
+{
+   [YarnFunction("add_numbers")]
+   public static int AddNumbers(int first, int second)
+   {
+       return first + second;
+   }
+}
+```
+
+上述 function 示例在 Yarn Spinner 脚本中的调用方式如下：
+
+<div style="background-color: #f2faf4; margin-bottom: 1em; padding: 10px;">
+&lt;&lt;if add_numbers(1,1) == 2&gt;&gt;<br>
+&emsp;&emsp;One plus one is {add_numbers(1, 1)}<br>
+&lt;&lt;endif&gt;&gt;<br>
+</div>
 
 # 高级语法
 在进入高级语法之前，先要介绍一下不同的游戏叙事，游戏叙事可以分为线性叙事、分支叙事以及**故事块 Storylets** 叙事，如下图：  
@@ -484,8 +649,3 @@ Guy: What are you doing back here? <br>
 Ava: I should go. #shadow:departure<br>
 ===<br>
 </div>
-
-# Yarn Spinner in Unity
-
-***TODO:改到下一篇文章中***
-https://github.com/YarnSpinnerTool/YarnSpinner-Unity.git#current
