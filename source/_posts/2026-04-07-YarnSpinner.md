@@ -631,6 +631,10 @@ PieMaker: I just baked [plural value={$pie_count} one="a pie" other="% pies" /]!
 Runner: The race is over! I came in [ordinal value={$race_position} one="%st" two="%nd" few="%rd" other="%th" /] place!<br>
 </div>
 
+<div style="background-color: #edf7fa; margin-bottom: 1em; padding: 10px;">
+<span style="color: #316f8f;">NOTE：</span>实际上 Yarn Spinner 查找行中角色名的方式也是通过 markup 来实现的。markup parser 会对每行第一个 <kbd>:</kbd> 加一个空格之前的内容添加 <kbd>character</kbd> attribute，类似 <code>[character name="CharacterA"]CharacterA: [/character]Hello!</code> 。
+</div>
+
 ## Shadow Lines
 **shadow line** 主要用于<u>让相同的 line 拥有同一个 id，便于共享资源，比如配音音频文件</u>，同时共享 id 的 line 不会在字符串表中拥有不同的入口。源 line 需要有 <kbd>#line:</kbd> tag，共享源 line id 的 line 需要使用 <kbd>#shadow:</kbd> tag：  
 

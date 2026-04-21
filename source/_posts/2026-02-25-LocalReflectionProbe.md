@@ -2,12 +2,13 @@
 title: Local Reflection Probe
 date: 2026-02-25 18:50:29
 categories: 
-  - [图形学]
-  - [unity, pipeline]
+  - [游戏开发, 图形]
+  - [游戏开发, Unity]
 tags:
-  - 图形学
+  - 图形
   - 游戏开发
-  - unity
+  - Unity
+  - Pipeline
 top_img: /images/black.jpg
 cover: https://files.seeusercontent.com/2026/02/25/S9sk/LocalReflectionProbe.gif
 mathjax: true

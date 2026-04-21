@@ -2,11 +2,13 @@
 title: 基于星穹铁道的卡通渲染（一）
 date: 2024-03-20 13:25:53
 categories: 
-  - [unity, unity shader]
+  - [游戏开发, 图形]
+  - [游戏开发, Unity]
 tags:
   - 游戏开发
-  - unity
-  - 图形学
+  - Unity
+  - 图形
+  - Shader
   - NPR
 top_img: /images/black.jpg
 cover: https://s2.loli.net/2024/03/26/dZTwsApi59CSUal.gif

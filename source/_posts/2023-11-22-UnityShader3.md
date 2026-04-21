@@ -2,11 +2,14 @@
 title: 《Unity Shader入门精要》读书笔记（三）
 date: 2023-11-22 16:32:01
 categories: 
-  - [unity, unity shader]
+  - [游戏开发, 图形]
+  - [游戏开发, Unity]
 tags:
   - 游戏开发
-  - unity
-  - 图形学
+  - Unity
+  - 图形
+  - 读书笔记
+  - Shader
 top_img: /images/black.jpg
 cover: https://s2.loli.net/2023/11/23/L3ts4WnThMlDN9d.gif
 mathjax: true

@@ -2,12 +2,13 @@
 title: Tile-Based Light Culling
 date: 2025-06-08 13:03:10
 categories: 
-  - [图形学]
-  - [unity, pipeline]
+  - [游戏开发, 图形]
+  - [游戏开发, Unity]
 tags:
-  - 图形学
+  - 图形
   - 游戏开发
-  - unity
+  - Unity
+  - Pipeline
 top_img: /images/black.jpg
 cover: https://s2.loli.net/2025/06/08/1hF5QplnZjxBvJS.gif
 mathjax: true
