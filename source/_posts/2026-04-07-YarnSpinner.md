@@ -1,5 +1,5 @@
 ---
-title: Yarn Spinner 剧情脚本语言
+title: Yarn Spinner 剧情脚本语言（待删除）
 date: 2026-04-07 20:56:48
 categories: 
   - [游戏开发, Gameplay]
@@ -11,7 +11,7 @@ tags:
   - Gameplay
 top_img: /images/black.jpg
 cover: https://files.seeusercontent.com/2026/04/07/hFz6/YarnSpinner.png
-description: 本文章记录了如何使用 Yarn Spinner 脚本进行叙事文本创作，包括基础至高级语法。
+description: 【待删除文章】本文章记录了如何使用 Yarn Spinner 脚本进行叙事文本创作，包括基础至高级语法。
 ---
 
 > Yarn Spinner 官网为 https://yarnspinner.dev/ ，本文章发表时版本为 3.2。
