@@ -137,7 +137,20 @@ $$ t = \cfrac {BoxMax.x - OriginPos.x} {dir.x} $$
 
     return texCUBE(envMap, ReflDirectionWS);
 
-上述代码的思路就是将 OBB 转换为局部空间的单位 Box，此时 OBB 就退化成了 AABB，便于求交。将着色点和视角反射方向 R 都转换到 OBB 局部空间内，然后计算出交点的 t，而这个 t 可以直接用于求出世界空间的交点，之所以可以这么做，是因为 t 本质上是倍数，视角反射方向 R 在局部空间被缩放了导致倍数不会发生变化。
+但是作者的代码实际上有点小问题，整体思路是没问题的，就是将 OBB 转换为局部空间的单位 Box，此时 OBB 就退化成了 AABB，便于求交。将着色点和视角反射方向 R 都转换到 AABB 的局部空间内，然后计算出交点的 t，而这个 t 可以直接用于求出世界空间的交点，之所以可以这么做，是因为 t 本质上是倍数，视角反射方向 R 在局部空间被缩放了导致倍数不会发生变化。
+
+然而，这样计算出来的 IntersectPositionWS 并不是反射代理体旋转后与视角反射方向 R 的交点，而是反射代理体旋转前与视角反射方向 R 的交点。我更改后的代码大致如下：  
+
+    // float3 IntersectPositionWS = PositionWS + ReflDirectionWS * Distance;
+    // float3 ReflDirectionWS = IntersectPositionWS - CubemapPositionWS;
+
+    float3 IntersectPositionLS = positionLS + rayLS * Distance;
+    float3 IntersectPositionWS = IntersectPositionLS * BoxExtent + BoxCenter;
+    float3 RealReflDirectionWS = normalize(IntersectPositionWS - CubemapPositionWS);
+
+代码看起来很奇怪，但是我实现后测试下来是没问题的。首先，IntersectPositionLS 很简单就是求转换到局部空间后的视角反射方向 R 在局部空间的单位 Box 内的交点。若此时将 IntersectPositionLS 左乘 LocalToWorld 矩阵，得到的还是反射代理体旋转前与视角反射方向 R 的交点，因为 WorldToLocal 与 LocalToWorld 抵消了。所以我们不能考虑矩阵的旋转信息，只考虑缩放和移动，即 TRS 矩阵当中的 TS。因为缩放是不会影响移动的，所以 `IntersectPositionWS = IntersectPositionLS * BoxExtent + BoxCenter`，BoxExtent 就是缩放的三个分量，BoxCenter 就是移动的距离。
+
+额外提一嘴，计算 WorldToLocal 矩阵时，Scale 的信息并不是反射探针本身的 Scale，Position 的信息也不一定是反射探针本身的 position！！！Scale 应该是 `BoxSize * 0.5f`（即 BoxExtent），之所以乘 0.5，是因为代码中使用的局部空间的单位 Box 为 `float3(1.0f, 1.0f, 1.0f)`，本质上边长为 2，所以需要将反射代理体边长 BoxSize 除以 2，即 BoxExtent 的值。Position 应该是 BoxCenter，有时候反射探针的 position 是 CubemapPositionWS，别搞错了，这取决于引擎如何定义反射探针的 position，可以定义为捕获 Cubemap 的位置（Unity URP 的做法），也可以定义为 BoxCenter（Unity HDRP 的做法）。
 
 Unity 对于 Reflection Probe 旋转的处理跟作者文章中的方法不同，直接向 GPU 传递了 Reflection Probe 旋转的四元数，将着色点和视角反射方向先旋转回 AABB，计算求交后，将新的采样方向再旋转到 OBB。具体代码我就不摘抄了，还是在 URP package 的 ShaderLibrary -> GlobalIllumination.hlsl 里，四元数的上传在 RunTime -> ReflectionProbeManager.cs 里。
 
