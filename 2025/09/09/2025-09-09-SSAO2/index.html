@@ -9,11 +9,11 @@
 <meta property="article:published_time" content="2025-09-09T12:10:09.000Z">
 <meta property="article:modified_time" content="2026-04-21T07:25:12.747Z">
 <meta property="article:author" content="鸟布">
-<meta property="article:tag" content="游戏开发">
-<meta property="article:tag" content="Unity">
-<meta property="article:tag" content="图形">
 <meta property="article:tag" content="Pipeline">
+<meta property="article:tag" content="Unity">
 <meta property="article:tag" content="全局光照">
+<meta property="article:tag" content="图形">
+<meta property="article:tag" content="游戏开发">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://s2.loli.net/2025/09/09/Uq93S46lgTAHs7Q.gif"><script type="application/ld+json">{
   "@context": "https://schema.org",
@@ -30,51 +30,92 @@
       "url": "https://ybniaobu.github.io"
     }
   ]
-}</script><link rel="shortcut icon" href="https://s2.loli.net/2022/09/08/Ygib4lfw6z1khnr.png"><link rel="canonical" href="https://ybniaobu.github.io/2025/09/09/2025-09-09-SSAO2/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.9/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
+}</script><link rel="shortcut icon" href="https://s2.loli.net/2022/09/08/Ygib4lfw6z1khnr.png"><link rel="canonical" href="https://ybniaobu.github.io/2025/09/09/2025-09-09-SSAO2/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.7.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.14/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
     (() => {
       
     const saveToLocal = {
       set: (key, value, ttl) => {
-        if (!ttl) return
-        const expiry = Date.now() + ttl * 86400000
-        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
       },
       get: key => {
         const itemStr = localStorage.getItem(key)
-        if (!itemStr) return undefined
-        const { value, expiry } = JSON.parse(itemStr)
-        if (Date.now() > expiry) {
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
           localStorage.removeItem(key)
-          return undefined
         }
-        return value
       }
     }
 
+    const scriptCache = new Map()
+    const cssCache = new Map()
     window.btf = {
       saveToLocal,
-      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
-        const script = document.createElement('script')
-        script.src = url
-        script.async = true
-        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
-        script.onload = script.onreadystatechange = () => {
-          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
         }
-        script.onerror = reject
-        document.head.appendChild(script)
-      }),
-      getCSS: (url, id) => new Promise((resolve, reject) => {
-        const link = document.createElement('link')
-        link.rel = 'stylesheet'
-        link.href = url
-        if (id) link.id = id
-        link.onload = link.onreadystatechange = () => {
-          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
         }
-        link.onerror = reject
-        document.head.appendChild(link)
-      }),
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
       addGlobalFn: (key, fn, name = false, parent = window) => {
         if (!false && key.startsWith('pjax')) return
         const globalFn = parent.globalFn || {}
@@ -85,16 +126,17 @@
     }
   
       
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
       const activateDarkMode = () => {
-        document.documentElement.setAttribute('data-theme', 'dark')
-        if (document.querySelector('meta[name="theme-color"]') !== null) {
-          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'undefined')
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', 'undefined')
         }
       }
       const activateLightMode = () => {
-        document.documentElement.setAttribute('data-theme', 'light')
-        if (document.querySelector('meta[name="theme-color"]') !== null) {
-          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'undefined')
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', 'undefined')
         }
       }
 
@@ -163,7 +205,7 @@
   isHighlightShrink: false,
   isToc: true,
   pageType: 'post'
-}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">55</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">26</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">17</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/images/black.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">鸟布的博客</span></a><a class="nav-page-title" href="/"><span class="site-name">屏幕空间环境光遮蔽（二）HBAO 与 GTAO</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">屏幕空间环境光遮蔽（二）HBAO 与 GTAO</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-09-09T12:10:09.000Z" title="发表于 2025-09-09 20:10:09">2025-09-09</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-04-21T07:25:12.747Z" title="更新于 2026-04-21 15:25:12">2026-04-21</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/%E5%9B%BE%E5%BD%A2/">图形</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/Unity/">Unity</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">9.7k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>37分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="HBAO"><a href="#HBAO" class="headerlink" title="HBAO"></a>HBAO</h1><blockquote>
+}</script><meta name="generator" content="Hexo 8.1.2"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">55</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">26</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">17</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/images/black.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">鸟布的博客</span></a><a class="nav-page-title" href="/"><span class="site-name">屏幕空间环境光遮蔽（二）HBAO 与 GTAO</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">屏幕空间环境光遮蔽（二）HBAO 与 GTAO</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-09-09T12:10:09.000Z" title="发表于 2025-09-09 20:10:09">2025-09-09</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-04-21T07:25:12.747Z" title="更新于 2026-04-21 15:25:12">2026-04-21</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/Unity/">Unity</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/%E5%9B%BE%E5%BD%A2/">图形</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">9.7k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>36分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="HBAO"><a href="#HBAO" class="headerlink" title="HBAO"></a>HBAO</h1><blockquote>
 <p>HBAO 参考文献如下：<br>① Image-Space Horizon-Based Ambient Occlusion (Siggraph 2008)：<a target="_blank" rel="noopener" href="https://developer.download.nvidia.com/presentations/2008/SIGGRAPH/HBAO_SIG08b.pdf">https://developer.download.nvidia.com/presentations/2008/SIGGRAPH/HBAO_SIG08b.pdf</a> 、<a target="_blank" rel="noopener" href="https://www.researchgate.net/publication/215506032_Image-space_horizon-based_ambient_occlusion">https://www.researchgate.net/publication/215506032_Image-space_horizon-based_ambient_occlusion</a> ；<br>② NVIDIA DirectX 11 SDK Sample：<a target="_blank" rel="noopener" href="https://developer.download.nvidia.com/assets/gamedev/files/sdk/11/SSAO11.pdf">https://developer.download.nvidia.com/assets/gamedev/files/sdk/11/SSAO11.pdf</a> 、 <a target="_blank" rel="noopener" href="https://github.com/LiveMirror/NVIDIA-Direct3D-SDK-11/tree/master/SSAO11">https://github.com/LiveMirror/NVIDIA-Direct3D-SDK-11/tree/master/SSAO11</a> ；<br>③ An alternative implementation for HBAO：<a target="_blank" rel="noopener" href="https://www.derschmale.com/2013/12/20/an-alternative-implementation-for-hbao-2/">https://www.derschmale.com/2013/12/20/an-alternative-implementation-for-hbao-2/</a> ；<br>④ NVIDIA’s HBAO+ ：<a target="_blank" rel="noopener" href="https://github.com/NVIDIAGameWorks/HBAOPlus">https://github.com/NVIDIAGameWorks/HBAOPlus</a> ；</p>
 </blockquote>
 <h2 id="HBAO-原理及流程"><a href="#HBAO-原理及流程" class="headerlink" title="HBAO 原理及流程"></a>HBAO 原理及流程</h2><h3 id="基本流程"><a href="#基本流程" class="headerlink" title="基本流程"></a>基本流程</h3><p>书接上文，话说秦琼卖马……不好意思放错碟了。正如上篇文章所说，<strong>Horizon-Based Ambient Occlusion (HBAO)</strong> 由 NVIDIA 的 Louis Bavoil 于 SIGGRAPH 2008 中提出，资料详见上面参考文献中的 <strong>①</strong> Image-Space Horizon-Based Ambient Occlusion，有演讲的 PPT 和对应的论文。HBAO 的主要思路就是将 Z-Buffer 视做高度场，然后在屏幕空间中朝着一定数量的等角的方向进行步进，如下图：</p>
@@ -213,10 +255,10 @@ normalVS.z = -normalVS.z;
 float radiusInPixel = radiusInUV * _TextureSize.w;
 
 if (radiusInPixel &lt; 1)
-&#123;
+{
     _OutputTexture[id.xy] = float2(1.0, P.z);
     return;
-&#125;
+}
 </code></pre><p>其中 <code>_CameraSettings.y</code> 是 $\,cot(FOV/2)\,$，为什么这么算，看看透视投影矩阵的 m00 和 m11 就明白了，除以 z 是透视除法，乘以 0.5 是因为 [-1, 1] 的范围要映射至 [0, 1]。得到了屏幕空间上的半径，就可以根据步进的步数计算步长了，一般步数 <code>NUM_STEPS</code> 为 4 ~ 8：  </p>
 <pre><code>// Avoid oversampling if NUM_STEPS is greater than the kernel radius in pixels
 float numSteps = min(NUM_STEPS, radiusInPixel);
@@ -230,17 +272,17 @@ float randomRadian = (noise + _Jitter.w * IsTemporalBlurEnabled()) * TWO_PI;
 
 UNITY_UNROLL
 for (int d = 0; d &lt; NUM_DIRECTIONS; ++d)
-&#123;
+{
     float angle = dirAngle * d + randomRadian;
     float2 dir = float2(cos(angle), sin(angle));
     float2 pixelDelta = dir * stepSizeInPixel;
     ...
 
     for (float j = 0; j &lt; numSteps; ++j)
-    &#123;
+    {
         ...
-    &#125;
-&#125;
+    }
+}
 </code></pre><p>我还是使用了蓝噪声，尝试过其他的噪声，感觉还是蓝噪声最适配 Temporal Filter。除了对方向应用 Noise，我们也要对每次步进的 sample 应用一个随机偏移：  </p>
 <pre><code>float rand = (d + 1.0 + _Jitter.w * IsTemporalBlurEnabled()) / (NUM_DIRECTIONS + 1.0);
 float2 sampleCoord = id.xy + rand * pixelDelta;
@@ -255,7 +297,7 @@ float3 T = normalize(cross(normalVS, sliceNormal));
 float r2 = GetHBAORadius() * GetHBAORadius();
 
 for (float j = 0; j &lt; numSteps; ++j)
-&#123;
+{
     // ------------------------- Fetch Sample Position -------------------------
     sampleCoord = clamp(sampleCoord, 0, _TextureSize.zw - 1);
     float2 sampleUV = (sampleCoord + 0.5) * _TextureSize.xy;
@@ -270,18 +312,18 @@ for (float j = 0; j &lt; numSteps; ++j)
     // ------------------------- Per-Sample Attenuation -------------------------
     [branch]
     if (d2 &lt; r2 &amp;&amp; sinH &gt; lastSinH)
-    &#123;
+    {
         ao += Falloff(d2, r2) * (sinH - lastSinH);
         lastSinH = sinH;
-    &#125;
+    }
 
     sampleCoord += pixelDelta;
-&#125;
+}
 </code></pre><p>获取每个 sample 的观察空间坐标以及计算 $\,sinH\,$ 没什么好说的，重点说一说 Per-Sample Attenuation，如果在步进的过程中，选择最大的 $\,sinH\,$ 计算 AO，由于 AO 的范围问题，会导致 AO 的不连续性，为了解决不连续性，首先我们会应用一个距离衰减函数，上面讲原理的时候也提到过，但是代码中的距离衰减函数多了一个平方：  </p>
 <script type="math/tex; mode=display">r = \cfrac {||S - P||} {R}</script><script type="math/tex; mode=display">W(r) = 1 - r^2</script><pre><code>inline float Falloff(float d2, float r2)
-&#123;
+{
     return saturate(1.0 - d2 * rcp(r2));
-&#125;
+}
 </code></pre><p>其次是步进的过程中，不选用最高的 $\,sinH\,$ 值，只有下一个 sample 比当前 sample 高，就累计乘以距离衰减函数的 $\,sinH\,$ 值。即对于第一个 sample（S1）：  </p>
 <script type="math/tex; mode=display">AO(S_1) = W(S_1)(sinH(S_1) - sinT)</script><p>对于后面的 sample，若 $\,sinH\,$ 值更大，则累计 AO 值：  </p>
 <script type="math/tex; mode=display">AO(S_1) + W(S_2)(AO(S_2) - AO(S_1)) = AO(S_1) + W(S_2)(sinH(S_2) - sinH(S_1))</script><p>HBAO 最终效果如下，过滤跟上一篇文章 SSAO 是一样的：  </p>
@@ -310,14 +352,14 @@ for (float j = 0; j &lt; numSteps; ++j)
 // S = view-space position of the current sample
 //----------------------------------------------------------------------------------
 float ComputeAO(float3 P, float3 N, float3 S, AORadiusParams Params)
-&#123;
+{
     float3 V = S - P;
     float VdotV = dot(V, V);
     float NdotV = dot(N, V) * rsqrt(VdotV);
 
     // Use saturate(x) instead of max(x,0.f) because that is faster
     return saturate(NdotV - g_fNDotVBias) * saturate(Falloff(VdotV, Params));
-&#125;
+}
 </code></pre><p>但是我实际实践过后，发现这个方法有个致命缺陷，不知道是不是我自己代码的问题，就是当 normal 越接近垂直于视角方向，AO 就越淡。我仔细想了想发生这种现象的原因，应该是因为当 normal 接近垂直于视角方向时，步进方向错误的问题，因为若使用上述方法，我们步进的方向应该是基于 normal 方向的，但实际上我们是基于屏幕步进的，也就是说 normal 并不在我们步进的平面（视角方向和步进方向组成的平面）上，导致计算的角度产生了问题。而之前两个 sin 相减的方法中，tangent 的计算方式保证了 tangent 在步进的平面上。</p>
 <p>我看知乎上很多人的 HBAO 的计算方式也是直接计算 cos 值的，但是展示的图片有些感觉是存在上述问题的，有些又感觉没有，所以我不确定是不是我自己代码写错的问题（虽然我没发现自己代码的错误）。因为后面肯定要实现 GTAO 的，HBAO 作为 GTAO 的弱化版，我没打算最终使用 HBAO 作为 YPipeline 的一项功能，所以也就没有花时间来彻底搞明白这个问题。讲道理 HBAO+ 的效果展示挺正常的，应该不存在这样的问题。但 GTAO 的 <a target="_blank" rel="noopener" href="https://blog.selfshadow.com/publications/s2016-shading-course/activision/s2016_pbs_activision_occlusion.pdf">PPT</a> 有这么一句话：Note that HBAO+ is the latest implementation and seems to not be horizon based，根据这句话我感觉可能这个问题确实存在，否则 GTAO 为什么不用这个方法。</p>
 <blockquote>
@@ -374,12 +416,12 @@ float ComputeAO(float3 P, float3 N, float3 S, AORadiusParams Params)
 <pre><code>float dirAngle = PI / GTAO_NUM_DIRECTIONS;
 </code></pre><p>GTAO 和各种随机技术一样，比较依赖于 Temporal Filter 的降噪。故角度和步长的 Noise 的选择是比较重要的，在 GTAO 的 PPT 中，给出了 Noise 的计算方式，代码大致如下：  </p>
 <pre><code>float noise = (1.0 / 16.0) * ((((id.x + id.y) &amp; 0x3) &lt;&lt; 2) + ((id.x) &amp; 0x3));
-const float rotations[] = &#123;60.0, 300.0, 180.0, 240.0, 120.0, 0.0&#125;;
+const float rotations[] = {60.0, 300.0, 180.0, 240.0, 120.0, 0.0};
 float rotation = rotations[_TimeParams.x % 6] / 360.0;
 float randomRadian = (noise + rotation * IsTemporalBlurEnabled()) * TWO_PI;
 
 float noise2 = 0.25 * ((id.y - id.x) &amp; 0x3);
-const float offsets[] = &#123;0.0, 0.5, 0.25, 0.75&#125;;
+const float offsets[] = {0.0, 0.5, 0.25, 0.75};
 float offset = offsets[(_TimeParams.x / 6) % 4];
 float randomOffset = frac(noise2 + offset * IsTemporalBlurEnabled());
 </code></pre><p>其中 <code>_TimeParams.x</code> 是当前帧数 Frame Count。我实践之后跟 Blue Noise 方案做了个对比，觉得 GTAO PPT 中的 Noise 方案比 Blue Noise 的方案更稳定一点，但是噪点存在一定的固定 Pattern，虽然这个 Pattern 能在视觉上减少对噪点的感知。Blue Noise 的方案整体的降噪能力更强，但是噪点闪烁也更严重。选择什么方案看项目需求，我更喜欢 Blue Noise 的方案，如下：  </p>
@@ -388,24 +430,24 @@ float randomRadian = (noise.r + _Jitter.w * IsTemporalBlurEnabled()) * TWO_PI;
 float randomOffset = frac(noise.g + _Jitter.z * IsTemporalBlurEnabled());
 
 for (int d = 0; d &lt; GTAO_NUM_DIRECTIONS; d++)
-&#123;
+{
     float angle = dirAngle * d + randomRadian;
     float3 dir = float3(cos(angle), sin(angle), 0);
     float2 pixelDelta = dir.xy * stepSizeInPixel;
     ...
 
     for (int s = 0; s &lt; numSteps; s++)
-    &#123;
+    {
         float2 offset = (randomOffset + s) * pixelDelta;
         ...
-    &#125;
-&#125;
+    }
+}
 </code></pre><p>我选择了一张彩色 Blue Noise 的前两个通道（蓝噪声可以看 NVIDIA 的这篇文章：<a target="_blank" rel="noopener" href="https://developer.nvidia.com/blog/rendering-in-real-time-with-spatiotemporal-blue-noise-textures-part-1/">Rendering in Real Time with Spatiotemporal Blue Noise Textures</a>）。我还发现增加方向数量可以减少噪点，而减少步数并不会增加噪点，也就是说 NUM_DIRECTIONS 和 NUM_STEPS 都为 4 的噪点，比 NUM_DIRECTIONS 为 2 以及 NUM_STEPS 为 8 的噪点要少，就是 AO 效果会淡一点。我觉得 Blue Noise 的方案应该还可以再优化，减少噪点闪烁问题，就是没想到什么好办法，以后再看看有什么更好的解决方案。</p>
 <h3 id="计算-AO"><a href="#计算-AO" class="headerlink" title="计算 AO"></a>计算 AO</h3><p>拿到了步长和方向，就可以计算采样点的屏幕坐标了，从而获取 Depth 并重构出观察空间的坐标。这里和 HBAO 的区别在于，一次性要获取两个采样点（即 $\,h_1\,$ 和 $\,h_2\,$）的坐标：  </p>
 <pre><code>float2 cosH;
 
 for (int s = 0; s &lt; numSteps; s++)
-&#123;
+{
     float2 offset = (randomOffset + s) * pixelDelta;
     int4 sampleCoord = clamp(id.xyxy + float4(-offset, offset), 0, _TextureSize.zwzw - 1);
     float4 sampleUV = (sampleCoord + 0.5) * _TextureSize.xyxy;
@@ -414,7 +456,7 @@ for (int s = 0; s &lt; numSteps; s++)
     float3 sh1 = FetchViewPosition(sampleUV.xy, sh1Depth) - P; // sample h1
     float3 sh2 = FetchViewPosition(sampleUV.zw, sh2Depth) - P; // sample h2
     ...
-&#125;
+}
 </code></pre><p>拿到坐标后，就可以利用点乘计算 $\,h_1\,$ 和 $\,h_2\,$ 与视角方向 V 的夹角的余弦值了，即 cosH 值：  </p>
 <pre><code>float2 length2 = float2(dot(sh1, sh1), dot(sh2, sh2));
 cosH = float2(dot(sh1, V), dot(sh2, V)) * rsqrt(length2);
@@ -423,10 +465,10 @@ cosH = float2(dot(sh1, V), dot(sh2, V)) * rsqrt(length2);
 float2 maxCosH = -1.0; // cos(pi)
 
 for (int s = 0; s &lt; numSteps; s++)
-&#123;
+{
     ...
     maxCosH = lerp(maxCosH, max(cosH, maxCosH), length2 &lt; r2);
-&#125;
+}
 </code></pre><p>拿到最大 cosH 值之后，步进循环就可以结束了，接下来是回到方向循环中计算当前方向（Slice）的 AO 值了。首先先对 normal 进行投影，投影到当前 Slice 的平面上去：  </p>
 <pre><code>float3 sliceNormal = normalize(cross(dir, V));
 float3 tangent = cross(normalVS, sliceNormal);
@@ -442,25 +484,25 @@ h.x = n + max(-h.x - n, -HALF_PI); // H1
 h.y = n + min(h.y - n, HALF_PI); // H2
 </code></pre><p>最后就可以计算 ao 值了：  </p>
 <pre><code>for (int d = 0; d &lt; GTAO_NUM_DIRECTIONS; d++)
-&#123;
+{
     ...
     ao += projectedNormalLength * IntegrateArcCosWeight(h, n);
-&#125;
+}
 
 ao = saturate(PositivePow(ao / GTAO_NUM_DIRECTIONS, GetGTAOIntensity()));
 </code></pre><p>其中 <code>IntegrateArcCosWeight</code> 如下：</p>
 <pre><code>float IntegrateArcCosWeight(float2 h, float n)
-&#123;
+{
     float2 arc = -cos(2 * h - n) + cos(n) + 2 * h * sin(n);
     return 0.25 * (arc.x + arc.y);
-&#125;
+}
 </code></pre><p>最后提一下，由于反三角函数是超越函数，操作比较费时，而上面使用了三次 <code>acos()</code>，故 PPT 中提供了更快的函数来近似，如下：</p>
 <pre><code>float GTAOFastAcos(float x)
-&#123;
+{
     float res = -0.156583 * abs(x) + HALF_PI;
     res *= sqrt(1.0 - abs(x));
     return x &gt;= 0 ? res : PI - res;
-&#125;
+}
 </code></pre><p>GTAO 最终效果如下：  </p>
 <div align="center">  
 <img src="https://s2.loli.net/2025/09/30/HM7oxLKeZX3DJcy.png" width = "100%" height = "100%" alt="图28 - 4K，NUM_DIRECTIONS 为 4，NUM_STEPS 为 4，Radius 为 0.5，上图：GTAO (Half-Resolution) 无过滤；左图：GTAO (Half-Resolution) + Spatial Filter（sigma 为 0.6）+ Temporal Filter；右图：HBAO (Half-Resolution) + Spatial Filter（sigma 为 0.6）+ Temporal Filter"/>
@@ -477,13 +519,13 @@ ao = saturate(PositivePow(ao / GTAO_NUM_DIRECTIONS, GetGTAOIntensity()));
 
 <p>具体代码和结果如下：  </p>
 <pre><code>if (length2.x &lt; r2)
-&#123;
+{
     maxCosH.x = (cosH.x &gt; maxCosH.x) ? max(cosH.x, maxCosH.x) : lerp(maxCosH.x, cosH.x, 0.1);
-&#125;
+}
 if (length2.y &lt; r2)
-&#123;
+{
     maxCosH.y = (cosH.y &gt; maxCosH.y) ? max(cosH.y, maxCosH.y) : lerp(maxCosH.y, cosH.y, 0.1);
-&#125;
+}
 </code></pre><div align="center">  
 <img src="https://s2.loli.net/2025/09/30/FeSHTj4rPkhdM5I.png" width = "50%" height = "50%" alt="图30 - Thickness Heuristic Result #1"/>
 </div>
@@ -491,13 +533,13 @@ if (length2.y &lt; r2)
 <p>可以看到桌子上的盆栽和墙上的酒瓶对比之前都变淡了一点，若需要更淡，增加 lerp 中 0.1 的值就行。但是目前为止，GTAO 的某些局部位置还是过黑，此时可以再增加一个距离衰减函数，注意距离衰减函数对 AO 效果的影响是很大的，所以需要根据最终美术需求去选择函数，我这里的方法参考了 Unity HDRP 的做法，如下：  </p>
 <pre><code>float2 falloff = 1.0 - saturate(length2 * rcp(r2));
 if (length2.x &lt; r2)
-&#123;
+{
     maxCosH.x = (cosH.x &gt; maxCosH.x) ? lerp(maxCosH.x, cosH.x, falloff.x) : lerp(maxCosH.x, cosH.x, 0.1);
-&#125;
+}
 if (length2.y &lt; r2)
-&#123;
+{
     maxCosH.y = (cosH.y &gt; maxCosH.y) ? lerp(maxCosH.y, cosH.y, falloff.y) : lerp(maxCosH.y, cosH.y, 0.1);
-&#125;
+}
 </code></pre><p>结果如下：  </p>
 <div align="center">  
 <img src="https://s2.loli.net/2025/09/30/sITbZDy2ijM1fpV.png" width = "50%" height = "50%" alt="图31 - Thickness Heuristic Result #2"/>
@@ -506,20 +548,20 @@ if (length2.y &lt; r2)
 <p>我认为直接在 cosH 上乘以距离衰减函数，其实不是很合理，但是若每次步进计算一次 AO 值，再应用距离衰减函数，会多出很多计算量，所以为了性能的妥协，暂时先这么处理。</p>
 <h2 id="Multi-Bounce"><a href="#Multi-Bounce" class="headerlink" title="Multi-Bounce"></a>Multi-Bounce</h2><p>目前所有实现的屏幕空间 AO 算法包含 SSAO、HBAO、GTAO，都没有考虑光线的相互反射或者<strong>多次弹射 Multiple Bounces</strong>。SSAO、HBAO 的颜色之所以没 GTAO 这么深，是因为采用了 Ambient Obscurance 的方式，即通过距离衰减函数避免了颜色过深。而 GTAO 为了追求更真实的 AO 效果，不想采用距离衰减函数，而使用了一个拟合函数模拟了多次弹射，将单次弹射 single-bounce 映射为多次弹射的结果，函数如下：  </p>
 <pre><code>float3 AOMultiBounce(float ao, float3 albedo)
-&#123;
+{
     float3 a =  2.0404 * albedo - 0.3324;
     float3 b = -4.7951 * albedo + 0.6417;
     float3 c =  2.7552 * albedo + 0.6903;
 
     return max(ao, ((ao * a + b) * ao + c) * ao);
-&#125;
+}
 </code></pre><p>这个拟合函数要在应用 AO 阶段（着色阶段）使用。我不是特别喜欢这个拟合函数，它会导致物体偏白的时候，AO 效果过淡（原因就是因为直接使用 albedo 作为反射率），所以我没有使用，我更愿意直接调整 AO 的强度，或者进一步调整距离衰减函数。</p>
 <h2 id="Temporal-Filter-优化"><a href="#Temporal-Filter-优化" class="headerlink" title="Temporal Filter 优化"></a>Temporal Filter 优化</h2><p>GTAO 的 PPT 中提到了 Temporal Filter 的一些实现细节，我们可以参考一下进一步减少 Temporal Filter 的 artifacts。<br><strong><em>① Bilinear Reprojection 的问题</em></strong><br>上篇文章中，Temporal Filter 重投影时，直接使用了 linear 采样器采样 AO History，这在一定程度上会导致物体边缘的 AO bleeding 现象。故 PPT 中建议，使用 <code>Gather()</code> 获取历史帧的 depth 和 AO。并使用类似 Bilateral Filter 的方式混合得到的 4 个 AO 值，若当前帧的 depth 和历史帧的 depth 的差值超过一定比例，则将当前 AO 的混合比例设为 0，代码大致如下：  </p>
 <pre><code>for (int i = 0; i &lt; 4; i++)
-&#123;
+{
     float bilateralWeight = saturate(1.0 - depthScale * (currentDepth - previousDepth[i]));
     aoHistory += bilateralWeight * lerp(currentAO, previousAO[i], bilateralWeight);
-&#125;
+}
 </code></pre><p>我感觉这么做的必要性不是很大，暂时没有使用这个方法。</p>
 <p><strong><em>② Neighborhood Clamping 的问题</em></strong><br>上篇文章中提到，Variance Clip 的 critical value 若设置得很小，消除鬼影现象效果会很好，但是也会增加 AO 噪点闪烁问题。反之，噪点闪烁少了，但是消除鬼影能力就会变得很差。故 PPT 中建议，当物体运动时，减少 critical value 的值，让 Neighborhood Min/Max Window 变得更加紧致，而静止状态下的 critical value 可以设置得比较大，我的实现大致如下：  </p>
 <pre><code>float gamma = GetTemporalVarianceCriticalValue();
@@ -559,8 +601,23 @@ history.r = clamp(history.r, minMax.x, minMax.y);
 <h3 id="cone-lobe-intersection"><a href="#cone-lobe-intersection" class="headerlink" title="cone/lobe intersection"></a>cone/lobe intersection</h3><p>cone/lobe intersection 的意思就是，原来 cone/cone intersection 假设 BRDF（specular reflection） 和 visibility 都用圆锥体 cone 近似表达，现在 BRDF（specular reflection）项不用 cone 来近似表达了，直接计算真实的 reflection lobe。此时就需要将 visibility 项烘焙进 3d look up table 了：  </p>
 <script type="math/tex; mode=display">V_s = LUT(\alpha_v, \beta, r) = \int_{\Omega}^* V(\omega_i, \alpha_v, \beta) D(h,r) cos\theta_i d \omega_i</script><p>其中 r 是 roughness，其他参数上面都讲到过。上述积分本质上是计算被 visibility cone 遮蔽后的 reflection lobe。至于 4d look up table，我其实没有特别看明白，大致意思是上述积分之所以只有三个参数，是因为假设了 normal 就是 bent normal，所以从 4D lut 退化为了 3d lut。好像是因为 BRDF 项要基于 normal 计算而不是 bent normal。PPT 和对应的 article 中都没有给出特别具体的实现方案，就只能讲到这了。</p>
 <h1 id="其他说明-1"><a href="#其他说明-1" class="headerlink" title="其他说明"></a>其他说明</h1><p>①关于 GTAO 的想法：我个人觉得 GTAO 是配不上 Ground Truth 的名字的，主要是因为 GTAO 随视角变化的程度是比较明显的，跟真正的 Ground Truth 肯定也是有很大差距的，毕竟是屏幕空间算法。但是论效果而言，确实比 SSAO 优秀，在复杂的场景当中也能够在一定程度上增加真实感。我感觉就有种食之无味，弃之可惜的“鸡肋”感。<br>② GTAO 的新版的 <a target="_blank" rel="noopener" href="https://www.activision.com/cdn/research/Practical_Real_Time_Strategies_for_Accurate_Indirect_Occlusion_NEW%20VERSION_COLOR.pdf">article</a> 还提到了<strong>定向 GTAO (Directional GTAO)</strong> 的方案，即考虑定向光源的遮蔽，有兴趣可以看看。</p>
-</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io">鸟布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io/2025/09/09/2025-09-09-SSAO2/">https://ybniaobu.github.io/2025/09/09/2025-09-09-SSAO2/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://ybniaobu.github.io" target="_blank">鸟布的博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a><a class="post-meta__tags" href="/tags/Unity/">Unity</a><a class="post-meta__tags" href="/tags/%E5%9B%BE%E5%BD%A2/">图形</a><a class="post-meta__tags" href="/tags/Pipeline/">Pipeline</a><a class="post-meta__tags" href="/tags/%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7/">全局光照</a></div><div class="post-share"><div class="social-share" data-image="https://s2.loli.net/2025/09/09/Uq93S46lgTAHs7Q.gif" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2025/08/01/2025-08-01-SSAO1/" title="屏幕空间环境光遮蔽（一）SSAO"><img class="cover" src="https://s2.loli.net/2025/08/01/287gfDiMYRFrmUs.gif" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">屏幕空间环境光遮蔽（一）SSAO</div></div><div class="info-2"><div class="info-item-1">本文章主要内容有环境光遮蔽的理论基础；八面体法线压缩算法以及如何从深度重构法线；Normal-Oriented SSAO 算法的实现；使用 Spatial Filter 和 Temporal Filter 对 AO 降噪；在半分辨率下计算 AO 优化性能。</div></div></div></a><a class="pagination-related" href="/2025/12/05/2025-12-05-DCCRecord/" title="PBR 流程 DCC 软件功能备忘"><img class="cover" src="https://s2.loli.net/2022/11/29/uXNZDocJpQx5yrh.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">PBR 流程 DCC 软件功能备忘</div></div><div class="info-2"><div class="info-item-1">（长期不间断更新）本文章主要记录常用于 PBR 流程 3D 建模的 DCC 软件（诸如 blender, Zbrush, RizomUV, SP, Toolbag 等）的功能，作为备忘用途，便于日后查阅。</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/12/26/2025-12-26-HBIL/" title="Horizon-Based Indirect Lighting (HBIL)"><img class="cover" src="https://s2.loli.net/2025/12/26/YpyBQSsUquzxeLP.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-26</div><div class="info-item-2">Horizon-Based Indirect Lighting (HBIL)</div></div><div class="info-2"><div class="info-item-1">本文章主要内容为 HBIL (一种屏幕空间全局光照算法) 的基本原理与公式推导，以及具体实现和效果展示。</div></div></div></a><a class="pagination-related" href="/2025/08/01/2025-08-01-SSAO1/" title="屏幕空间环境光遮蔽（一）SSAO"><img class="cover" src="https://s2.loli.net/2025/08/01/287gfDiMYRFrmUs.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-01</div><div class="info-item-2">屏幕空间环境光遮蔽（一）SSAO</div></div><div class="info-2"><div class="info-item-1">本文章主要内容有环境光遮蔽的理论基础；八面体法线压缩算法以及如何从深度重构法线；Normal-Oriented SSAO 算法的实现；使用 Spatial Filter 和 Temporal Filter 对 AO 降噪；在半分辨率下计算 AO 优化性能。</div></div></div></a><a class="pagination-related" href="/2025/12/14/2025-12-14-APV/" title="Custom SRP 接入 Unity APV"><img class="cover" src="https://s2.loli.net/2025/12/14/nqFkiKMduaWEc13.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-14</div><div class="info-item-2">Custom SRP 接入 Unity APV</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容有 Irradiance Volume 技术的简单介绍；Unity APV 的大致实现细节以及使用教程；如何在自定义的管线中实现 APV。</div></div></div></a><a class="pagination-related" href="/2025/01/07/2025-01-07-CustomSRP3/" title="Unity Custom SRP 基础（三）"><img class="cover" src="https://s2.loli.net/2025/01/14/ELDF7wHpCPn2mKM.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-01-07</div><div class="info-item-2">Unity Custom SRP 基础（三）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含如何将 SRP 接入 Unity Lightmap 烘焙系统以实现间接光漫反射；LOD 不同级别之间切换效果的 Shader 实现；采样反射探针以实现间接光镜面反射；Detail Map 的实现以及法线混合。</div></div></div></a><a class="pagination-related" href="/2025/02/26/2025-02-26-CustomSRP5/" title="Unity Custom SRP 基础（五）"><img class="cover" src="https://s2.loli.net/2025/02/26/m2zJbPd8aeGD14A.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-02-26</div><div class="info-item-2">Unity Custom SRP 基础（五）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含 PCSS 的实现；如何在 SRP 中使用 Unity 提供的用于 Post Processing 的 Volume 框架；自定义比 Blit 效率更高的 Copy Shader；LDR Additive Bloom 特效的原理和实现。</div></div></div></a><a class="pagination-related" href="/2024/12/09/2024-12-09-CustomSRP2/" title="Unity Custom SRP 基础（二）"><img class="cover" src="https://s2.loli.net/2024/12/09/paBhbkD6Vd9CIsy.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2024-12-09</div><div class="info-item-2">Unity Custom SRP 基础（二）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容有对阴影技术的相关知识补充；如何在管线中实现方向光阴影，特别是级联阴影的实现；如何优化阴影质量，主要包括 Shadow Bias 处理自阴影以及 PCF 实现软阴影。本文不包括 PCSS 的实现。</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">鸟布</div><div class="author-info-description">教练，我想学技术</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">55</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">26</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">17</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://niaobu.notion.site/787824630ea6480e944c1ae5ae7f4792"><i class="fa-solid fa-book"></i><span>My Notion</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/ybniaobu/ybniaobu.github.io" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:niaobubob@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#HBAO"><span class="toc-number">1.</span> <span class="toc-text">HBAO</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#HBAO-%E5%8E%9F%E7%90%86%E5%8F%8A%E6%B5%81%E7%A8%8B"><span class="toc-number">1.1.</span> <span class="toc-text">HBAO 原理及流程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E6%B5%81%E7%A8%8B"><span class="toc-number">1.1.1.</span> <span class="toc-text">基本流程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%B0%E5%AD%A6%E5%8E%9F%E7%90%86"><span class="toc-number">1.1.2.</span> <span class="toc-text">数学原理</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B7%E4%BD%93%E5%AE%9E%E7%8E%B0"><span class="toc-number">1.2.</span> <span class="toc-text">具体实现</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%A1%E7%AE%97%E6%AD%A5%E9%95%BF"><span class="toc-number">1.2.1.</span> <span class="toc-text">计算步长</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AD%A5%E8%BF%9B"><span class="toc-number">1.2.2.</span> <span class="toc-text">步进</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E8%AF%B4%E6%98%8E"><span class="toc-number">1.3.</span> <span class="toc-text">其他说明</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Angle-Bias"><span class="toc-number">1.3.1.</span> <span class="toc-text">Angle Bias</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HBAO-%E7%9A%84%E6%96%B9%E6%B3%95"><span class="toc-number">1.3.2.</span> <span class="toc-text">HBAO+ 的方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Compute-Shader-%E4%BC%98%E5%8C%96"><span class="toc-number">1.3.3.</span> <span class="toc-text">Compute Shader 优化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8E-SSAO-%E5%AF%B9%E6%AF%94"><span class="toc-number">1.3.4.</span> <span class="toc-text">与 SSAO 对比</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#GTAO"><span class="toc-number">2.</span> <span class="toc-text">GTAO</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#GTAO-%E5%8E%9F%E7%90%86"><span class="toc-number">2.1.</span> <span class="toc-text">GTAO 原理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A7%AF%E5%88%86%E5%8C%96%E7%AE%80"><span class="toc-number">2.1.1.</span> <span class="toc-text">积分化简</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="toc-number">2.1.2.</span> <span class="toc-text">注意事项</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B7%E4%BD%93%E5%AE%9E%E7%8E%B0-1"><span class="toc-number">2.2.</span> <span class="toc-text">具体实现</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AD%A5%E9%95%BF"><span class="toc-number">2.2.1.</span> <span class="toc-text">步长</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Noise"><span class="toc-number">2.2.2.</span> <span class="toc-text">Noise</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%A1%E7%AE%97-AO"><span class="toc-number">2.2.3.</span> <span class="toc-text">计算 AO</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Thickness-Heuristic"><span class="toc-number">2.3.</span> <span class="toc-text">Thickness Heuristic</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Multi-Bounce"><span class="toc-number">2.4.</span> <span class="toc-text">Multi-Bounce</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Temporal-Filter-%E4%BC%98%E5%8C%96"><span class="toc-number">2.5.</span> <span class="toc-text">Temporal Filter 优化</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#GTSO"><span class="toc-number">3.</span> <span class="toc-text">GTSO</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E5%AD%A6%E5%8E%9F%E7%90%86-1"><span class="toc-number">3.1.</span> <span class="toc-text">数学原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B7%E4%BD%93%E6%96%B9%E6%A1%88"><span class="toc-number">3.2.</span> <span class="toc-text">具体方案</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#cone-cone-intersection"><span class="toc-number">3.2.1.</span> <span class="toc-text">cone&#x2F;cone intersection</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#cone-lobe-intersection"><span class="toc-number">3.2.2.</span> <span class="toc-text">cone&#x2F;lobe intersection</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E8%AF%B4%E6%98%8E-1"><span class="toc-number">4.</span> <span class="toc-text">其他说明</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/08/02/2026-08-02-C++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B03/" title="C++ 基础学习笔记（三）">C++ 基础学习笔记（三）</a><time datetime="2026-08-02T09:31:14.000Z" title="发表于 2026-08-02 17:31:14">2026-08-02</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/06/19/2026-06-19-C++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B02/" title="C++ 基础学习笔记（二）">C++ 基础学习笔记（二）</a><time datetime="2026-06-19T06:39:50.000Z" title="发表于 2026-06-19 14:39:50">2026-06-19</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/05/10/2026-05-10-C++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B01/" title="C++ 基础学习笔记（一）">C++ 基础学习笔记（一）</a><time datetime="2026-05-10T12:03:26.000Z" title="发表于 2026-05-10 20:03:26">2026-05-10</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/04/07/2026-04-07-YarnSpinner/" title="Yarn Spinner 剧情脚本语言（待删除）">Yarn Spinner 剧情脚本语言（待删除）</a><time datetime="2026-04-07T12:56:48.000Z" title="发表于 2026-04-07 20:56:48">2026-04-07</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/02/25/2026-02-25-LocalReflectionProbe/" title="Local Reflection Probe">Local Reflection Probe</a><time datetime="2026-02-25T10:50:29.000Z" title="发表于 2026-02-25 18:50:29">2026-02-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2022 - 2026 By 鸟布</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.4</a></span></div><div class="footer_custom_text">Your time is limited, so don't waste it living someone else's life.</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.9/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(() => {
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io">鸟布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io/2025/09/09/2025-09-09-SSAO2/">https://ybniaobu.github.io/2025/09/09/2025-09-09-SSAO2/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://ybniaobu.github.io" target="_blank">鸟布的博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a><a class="post-meta__tags" href="/tags/Unity/">Unity</a><a class="post-meta__tags" href="/tags/%E5%9B%BE%E5%BD%A2/">图形</a><a class="post-meta__tags" href="/tags/Pipeline/">Pipeline</a><a class="post-meta__tags" href="/tags/%E5%85%A8%E5%B1%80%E5%85%89%E7%85%A7/">全局光照</a></div><div class="post-share"><div class="social-share" data-image="https://s2.loli.net/2025/09/09/Uq93S46lgTAHs7Q.gif" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2025/08/01/2025-08-01-SSAO1/" title="屏幕空间环境光遮蔽（一）SSAO"><img class="cover" src="https://s2.loli.net/2025/08/01/287gfDiMYRFrmUs.gif" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">屏幕空间环境光遮蔽（一）SSAO</div></div><div class="info-2"><div class="info-item-1">本文章主要内容有环境光遮蔽的理论基础；八面体法线压缩算法以及如何从深度重构法线；Normal-Oriented SSAO 算法的实现；使用 Spatial Filter 和 Temporal Filter 对 AO 降噪；在半分辨率下计算 AO 优化性能。</div></div></div></a><a class="pagination-related" href="/2025/12/05/2025-12-05-DCCRecord/" title="PBR 流程 DCC 软件功能备忘"><img class="cover" src="https://s2.loli.net/2022/11/29/uXNZDocJpQx5yrh.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">PBR 流程 DCC 软件功能备忘</div></div><div class="info-2"><div class="info-item-1">（长期不间断更新）本文章主要记录常用于 PBR 流程 3D 建模的 DCC 软件（诸如 blender, Zbrush, RizomUV, SP, Toolbag 等）的功能，作为备忘用途，便于日后查阅。</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/08/01/2025-08-01-SSAO1/" title="屏幕空间环境光遮蔽（一）SSAO"><img class="cover" src="https://s2.loli.net/2025/08/01/287gfDiMYRFrmUs.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-08-01</div><div class="info-item-2">屏幕空间环境光遮蔽（一）SSAO</div></div><div class="info-2"><div class="info-item-1">本文章主要内容有环境光遮蔽的理论基础；八面体法线压缩算法以及如何从深度重构法线；Normal-Oriented SSAO 算法的实现；使用 Spatial Filter 和 Temporal Filter 对 AO 降噪；在半分辨率下计算 AO 优化性能。</div></div></div></a><a class="pagination-related" href="/2025/12/26/2025-12-26-HBIL/" title="Horizon-Based Indirect Lighting (HBIL)"><img class="cover" src="https://s2.loli.net/2025/12/26/YpyBQSsUquzxeLP.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-26</div><div class="info-item-2">Horizon-Based Indirect Lighting (HBIL)</div></div><div class="info-2"><div class="info-item-1">本文章主要内容为 HBIL (一种屏幕空间全局光照算法) 的基本原理与公式推导，以及具体实现和效果展示。</div></div></div></a><a class="pagination-related" href="/2025/12/14/2025-12-14-APV/" title="Custom SRP 接入 Unity APV"><img class="cover" src="https://s2.loli.net/2025/12/14/nqFkiKMduaWEc13.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-14</div><div class="info-item-2">Custom SRP 接入 Unity APV</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容有 Irradiance Volume 技术的简单介绍；Unity APV 的大致实现细节以及使用教程；如何在自定义的管线中实现 APV。</div></div></div></a><a class="pagination-related" href="/2025/03/13/2025-03-13-CustomSRP6/" title="Unity Custom SRP 基础（六）"><img class="cover" src="https://s2.loli.net/2025/03/13/LozNxAmnlEJSOyV.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-13</div><div class="info-item-2">Unity Custom SRP 基础（六）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含支持 HDR 渲染以及 HDR Bloom (约束闪烁问题和 Scattering Bloom)；Tone Mapping 算法的介绍；Color Grading 相关工具和 LUT Baking；Multiple Camera 和 Rendering Layers 的简单说明。</div></div></div></a><a class="pagination-related" href="/2025/02/26/2025-02-26-CustomSRP5/" title="Unity Custom SRP 基础（五）"><img class="cover" src="https://s2.loli.net/2025/02/26/m2zJbPd8aeGD14A.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-02-26</div><div class="info-item-2">Unity Custom SRP 基础（五）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含 PCSS 的实现；如何在 SRP 中使用 Unity 提供的用于 Post Processing 的 Volume 框架；自定义比 Blit 效率更高的 Copy Shader；LDR Additive Bloom 特效的原理和实现。</div></div></div></a><a class="pagination-related" href="/2026/02/25/2026-02-25-LocalReflectionProbe/" title="Local Reflection Probe"><img class="cover" src="https://files.seeusercontent.com/2026/02/25/S9sk/LocalReflectionProbe.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2026-02-25</div><div class="info-item-2">Local Reflection Probe</div></div><div class="info-2"><div class="info-item-1">本文章主要内容有基于反射探针的间接反射光照常见渲染策略，以及如何利用 Cubemap Blending, Parallax Correction, Cubemap Normalization 以及 Distance Based Roughness 来提高反射探针达成的渲染效果。</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">鸟布</div><div class="author-info-description">教练，我想学技术</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">55</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">26</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">17</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://niaobu.notion.site/787824630ea6480e944c1ae5ae7f4792"><i class="fa-solid fa-book"></i><span>My Notion</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/ybniaobu/ybniaobu.github.io" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:niaobubob@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#HBAO"><span class="toc-number">1.</span> <span class="toc-text">HBAO</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#HBAO-%E5%8E%9F%E7%90%86%E5%8F%8A%E6%B5%81%E7%A8%8B"><span class="toc-number">1.1.</span> <span class="toc-text">HBAO 原理及流程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E6%B5%81%E7%A8%8B"><span class="toc-number">1.1.1.</span> <span class="toc-text">基本流程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%B0%E5%AD%A6%E5%8E%9F%E7%90%86"><span class="toc-number">1.1.2.</span> <span class="toc-text">数学原理</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B7%E4%BD%93%E5%AE%9E%E7%8E%B0"><span class="toc-number">1.2.</span> <span class="toc-text">具体实现</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%A1%E7%AE%97%E6%AD%A5%E9%95%BF"><span class="toc-number">1.2.1.</span> <span class="toc-text">计算步长</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AD%A5%E8%BF%9B"><span class="toc-number">1.2.2.</span> <span class="toc-text">步进</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E8%AF%B4%E6%98%8E"><span class="toc-number">1.3.</span> <span class="toc-text">其他说明</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Angle-Bias"><span class="toc-number">1.3.1.</span> <span class="toc-text">Angle Bias</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HBAO-%E7%9A%84%E6%96%B9%E6%B3%95"><span class="toc-number">1.3.2.</span> <span class="toc-text">HBAO+ 的方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Compute-Shader-%E4%BC%98%E5%8C%96"><span class="toc-number">1.3.3.</span> <span class="toc-text">Compute Shader 优化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%8E-SSAO-%E5%AF%B9%E6%AF%94"><span class="toc-number">1.3.4.</span> <span class="toc-text">与 SSAO 对比</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#GTAO"><span class="toc-number">2.</span> <span class="toc-text">GTAO</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#GTAO-%E5%8E%9F%E7%90%86"><span class="toc-number">2.1.</span> <span class="toc-text">GTAO 原理</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A7%AF%E5%88%86%E5%8C%96%E7%AE%80"><span class="toc-number">2.1.1.</span> <span class="toc-text">积分化简</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="toc-number">2.1.2.</span> <span class="toc-text">注意事项</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B7%E4%BD%93%E5%AE%9E%E7%8E%B0-1"><span class="toc-number">2.2.</span> <span class="toc-text">具体实现</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%AD%A5%E9%95%BF"><span class="toc-number">2.2.1.</span> <span class="toc-text">步长</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Noise"><span class="toc-number">2.2.2.</span> <span class="toc-text">Noise</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%A1%E7%AE%97-AO"><span class="toc-number">2.2.3.</span> <span class="toc-text">计算 AO</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Thickness-Heuristic"><span class="toc-number">2.3.</span> <span class="toc-text">Thickness Heuristic</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Multi-Bounce"><span class="toc-number">2.4.</span> <span class="toc-text">Multi-Bounce</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Temporal-Filter-%E4%BC%98%E5%8C%96"><span class="toc-number">2.5.</span> <span class="toc-text">Temporal Filter 优化</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#GTSO"><span class="toc-number">3.</span> <span class="toc-text">GTSO</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E5%AD%A6%E5%8E%9F%E7%90%86-1"><span class="toc-number">3.1.</span> <span class="toc-text">数学原理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B7%E4%BD%93%E6%96%B9%E6%A1%88"><span class="toc-number">3.2.</span> <span class="toc-text">具体方案</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#cone-cone-intersection"><span class="toc-number">3.2.1.</span> <span class="toc-text">cone&#x2F;cone intersection</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#cone-lobe-intersection"><span class="toc-number">3.2.2.</span> <span class="toc-text">cone&#x2F;lobe intersection</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E8%AF%B4%E6%98%8E-1"><span class="toc-number">4.</span> <span class="toc-text">其他说明</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/08/02/2026-08-02-C++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B03/" title="C++ 基础学习笔记（三）">C++ 基础学习笔记（三）</a><time datetime="2026-08-02T09:31:14.000Z" title="发表于 2026-08-02 17:31:14">2026-08-02</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/06/19/2026-06-19-C++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B02/" title="C++ 基础学习笔记（二）">C++ 基础学习笔记（二）</a><time datetime="2026-06-19T06:39:50.000Z" title="发表于 2026-06-19 14:39:50">2026-06-19</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/05/10/2026-05-10-C++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B01/" title="C++ 基础学习笔记（一）">C++ 基础学习笔记（一）</a><time datetime="2026-05-10T12:03:26.000Z" title="发表于 2026-05-10 20:03:26">2026-05-10</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/04/07/2026-04-07-YarnSpinner/" title="Yarn Spinner 剧情脚本语言（待删除）">Yarn Spinner 剧情脚本语言（待删除）</a><time datetime="2026-04-07T12:56:48.000Z" title="发表于 2026-04-07 20:56:48">2026-04-07</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/02/25/2026-02-25-LocalReflectionProbe/" title="Local Reflection Probe">Local Reflection Probe</a><time datetime="2026-02-25T10:50:29.000Z" title="发表于 2026-02-25 18:50:29">2026-02-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2022 - 2026 By 鸟布</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.7.0</a></span></div><div class="footer_custom_text">Your time is limited, so don't waste it living someone else's life.</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.7.0"></script><script src="/js/main.js?v=5.7.0"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.14/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(() => {
+  const changeScriptToMath = article => {
+    article.querySelectorAll('script[type^="math/tex"]').forEach(el => {
+      const display = /mode=display/.test(el.type)
+      const node = document.createElement(display ? 'div' : 'span')
+      node.textContent = display
+        ? `$$${el.textContent}$$`
+        : `$${el.textContent}$`
+      el.parentNode.replaceChild(node, el)
+    })
+  }
+
   const loadMathjax = () => {
+    const article = document.getElementById('article-container')
+    if (!article || article.querySelector('.hbe-container')) return
+    changeScriptToMath(article)
+
     if (!window.MathJax) {
       window.MathJax = {
         loader: {
@@ -569,7 +626,8 @@ history.r = clamp(history.r, minMax.x, minMax.y);
             //- '[tex]/bbm',
             //- '[tex]/bboldx',
             //- '[tex]/dsfont',
-            '[tex]/mhchem'
+            '[tex]/mhchem',
+            'ui/lazy'
           ],
           paths: {
             'mathjax-newcm': '[mathjax]/../@mathjax/mathjax-newcm-font',
@@ -597,40 +655,27 @@ history.r = clamp(history.r, minMax.x, minMax.y);
           scale: 1.1
         },
         options: {
+          lazyMargin: '200px',
           enableMenu: true,
           menuOptions: {
             settings: {
               enrich: false  // Turn off Braille and voice narration text automatic generation
             }
           },
-          renderActions: {
-            findScript: [10, doc => {
-              for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
-                const display = !!node.type.match(/; *mode=display/)
-                const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display)
-                const text = document.createTextNode('')
-                node.parentNode.replaceChild(text, node)
-                math.start = {node: text, delim: '', n: 0}
-                math.end = {node: text, delim: '', n: 0}
-                doc.math.push(math)
-              }
-            }, '']
-          }
         }
       }
 
       const script = document.createElement('script')
-      script.src = 'https://cdn.jsdelivr.net/npm/mathjax@4.1.0/tex-mml-chtml.min.js'
+      script.src = 'https://cdn.jsdelivr.net/npm/mathjax@4.1.3/tex-mml-chtml.min.js'
       script.id = 'MathJax-script'
       script.async = true
       document.head.appendChild(script)
     } else {
-      MathJax.startup.document.state(0)
-      MathJax.texReset()
-      MathJax.typesetPromise()
+      MathJax.typesetClear()
+      MathJax.typesetPromise([ article ])
     }
   }
 
   btf.addGlobalFn('encrypt', loadMathjax, 'mathjax')
   window.pjax ? loadMathjax() : window.addEventListener('load', loadMathjax)
-})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.4"></script></div></div></body></html>
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.7.0"></script></div></div></body></html>

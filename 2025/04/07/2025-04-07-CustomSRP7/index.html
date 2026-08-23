@@ -9,10 +9,10 @@
 <meta property="article:published_time" content="2025-04-07T12:57:36.000Z">
 <meta property="article:modified_time" content="2026-04-21T07:22:20.427Z">
 <meta property="article:author" content="鸟布">
-<meta property="article:tag" content="游戏开发">
+<meta property="article:tag" content="Pipeline">
 <meta property="article:tag" content="Unity">
 <meta property="article:tag" content="图形">
-<meta property="article:tag" content="Pipeline">
+<meta property="article:tag" content="游戏开发">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://s2.loli.net/2025/04/07/2zi6pj3XtAPHvmy.gif"><script type="application/ld+json">{
   "@context": "https://schema.org",
@@ -29,51 +29,92 @@
       "url": "https://ybniaobu.github.io"
     }
   ]
-}</script><link rel="shortcut icon" href="https://s2.loli.net/2022/09/08/Ygib4lfw6z1khnr.png"><link rel="canonical" href="https://ybniaobu.github.io/2025/04/07/2025-04-07-CustomSRP7/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.4"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.9/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
+}</script><link rel="shortcut icon" href="https://s2.loli.net/2022/09/08/Ygib4lfw6z1khnr.png"><link rel="canonical" href="https://ybniaobu.github.io/2025/04/07/2025-04-07-CustomSRP7/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.7.0"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.3.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.14/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>
     (() => {
       
     const saveToLocal = {
       set: (key, value, ttl) => {
-        if (!ttl) return
-        const expiry = Date.now() + ttl * 86400000
-        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+        const data = { value }
+
+        if (ttl != null) {
+          data.expiry = Date.now() + ttl * 86400000
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
       },
       get: key => {
         const itemStr = localStorage.getItem(key)
-        if (!itemStr) return undefined
-        const { value, expiry } = JSON.parse(itemStr)
-        if (Date.now() > expiry) {
+        if (!itemStr) return
+
+        try {
+          const data = JSON.parse(itemStr)
+
+          if (data.expiry && Date.now() > data.expiry) {
+            localStorage.removeItem(key)
+            return
+          }
+
+          return data.value
+        } catch {
           localStorage.removeItem(key)
-          return undefined
         }
-        return value
       }
     }
 
+    const scriptCache = new Map()
+    const cssCache = new Map()
     window.btf = {
       saveToLocal,
-      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
-        const script = document.createElement('script')
-        script.src = url
-        script.async = true
-        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
-        script.onload = script.onreadystatechange = () => {
-          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+      getScript: (url, attr = {}) => {
+        if (scriptCache.has(url)) {
+          return scriptCache.get(url)
         }
-        script.onerror = reject
-        document.head.appendChild(script)
-      }),
-      getCSS: (url, id) => new Promise((resolve, reject) => {
-        const link = document.createElement('link')
-        link.rel = 'stylesheet'
-        link.href = url
-        if (id) link.id = id
-        link.onload = link.onreadystatechange = () => {
-          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+
+        const promise = new Promise((resolve, reject) => {
+          const script = document.createElement('script')
+
+          script.src = url
+          script.async = true
+
+          for (const key in attr) {
+            script.setAttribute(key, attr[key])
+          }
+
+          script.onload = resolve
+          script.onerror = reject
+
+          document.head.appendChild(script)
+        })
+
+        scriptCache.set(url, promise)
+
+        return promise
+      },
+      getCSS: (url, id) => {
+        if (cssCache.has(url)) {
+          return cssCache.get(url)
         }
-        link.onerror = reject
-        document.head.appendChild(link)
-      }),
+
+        const promise = new Promise((resolve, reject) => {
+          const link = document.createElement('link')
+
+          link.rel = 'stylesheet'
+          link.href = url
+
+          if (id) {
+            link.id = id
+          }
+
+          link.onload = resolve
+          link.onerror = reject
+
+          document.head.appendChild(link)
+        })
+
+        cssCache.set(url, promise)
+
+        return promise
+      },
       addGlobalFn: (key, fn, name = false, parent = window) => {
         if (!false && key.startsWith('pjax')) return
         const globalFn = parent.globalFn || {}
@@ -84,16 +125,17 @@
     }
   
       
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]')
       const activateDarkMode = () => {
-        document.documentElement.setAttribute('data-theme', 'dark')
-        if (document.querySelector('meta[name="theme-color"]') !== null) {
-          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'undefined')
+        document.documentElement.dataset.theme = 'dark'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', 'undefined')
         }
       }
       const activateLightMode = () => {
-        document.documentElement.setAttribute('data-theme', 'light')
-        if (document.querySelector('meta[name="theme-color"]') !== null) {
-          document.querySelector('meta[name="theme-color"]').setAttribute('content', 'undefined')
+        document.documentElement.dataset.theme = 'light'
+        if (metaThemeColor !== null) {
+          metaThemeColor.setAttribute('content', 'undefined')
         }
       }
 
@@ -162,7 +204,7 @@
   isHighlightShrink: false,
   isToc: true,
   pageType: 'post'
-}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">55</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">26</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">17</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/images/black.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">鸟布的博客</span></a><a class="nav-page-title" href="/"><span class="site-name">Unity Custom SRP 基础（七）</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Unity Custom SRP 基础（七）</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-04-07T12:57:36.000Z" title="发表于 2025-04-07 20:57:36">2025-04-07</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-04-21T07:22:20.427Z" title="更新于 2026-04-21 15:22:20">2026-04-21</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/%E5%9B%BE%E5%BD%A2/">图形</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/Unity/">Unity</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">10k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>39分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><blockquote>
+}</script><meta name="generator" content="Hexo 8.1.2"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">55</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">26</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">17</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/images/black.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">鸟布的博客</span></a><a class="nav-page-title" href="/"><span class="site-name">Unity Custom SRP 基础（七）</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div id="search-button"><span class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> 搜索</span></span></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><span class="site-page group"><i class="fa-fw fas fa-bars"></i><span> 目录</span><i class="fas fa-chevron-down"></i></span><ul class="menus_item_child"><li><a class="site-page child" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></li><li><a class="site-page child" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></li><li><a class="site-page child" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 时间轴</span></a></li></ul></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">Unity Custom SRP 基础（七）</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-04-07T12:57:36.000Z" title="发表于 2025-04-07 20:57:36">2025-04-07</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-04-21T07:22:20.427Z" title="更新于 2026-04-21 15:22:20">2026-04-21</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/Unity/">Unity</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/%E5%9B%BE%E5%BD%A2/">图形</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">9.9k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>39分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><blockquote>
 <p>本笔记是关于 Unity 的<strong>自定义可编程渲染管线</strong>的入门基础，即 <strong>SRP (Scriptable Rendering Pipeline)</strong>，主要参考了著名的教程 <a target="_blank" rel="noopener" href="https://catlikecoding.com/">https://catlikecoding.com/</a> 的 Custom SRP Tutorial，以及知乎上各位图形学大神们的文章。  </p>
 <p>笔者使用的 Unity 版本是 6000.0.27f1，Core RP Library 的版本是 17.0.3。</p>
 </blockquote>
@@ -170,9 +212,9 @@
 <p>其实什么都不用做就已经可以使用 Particle System 了，通过 GameObject / Effects / Particle System 创建即可。Particle System 可以使用任意材质，只不过使用并非专门为内置粒子系统而写的任意材质会带有一定的限制。教程中也只涉及 Particle System 的 Unlit Shader，不涉及 Particle Lit Shader ，但 Lit 跟 Unlit 类似，只是多了光照计算等，可以查阅 URP 或 HDRP。</p>
 <h2 id="Unlit-Particles-Shader"><a href="#Unlit-Particles-Shader" class="headerlink" title="Unlit Particles Shader"></a>Unlit Particles Shader</h2><p>我们先将自己的 Unlit Shader 全部复制出来，新建一个 ParticlesUnlit.Shader 然后粘贴进去，将 Shader 菜单路径改一下就行：  </p>
 <pre><code>Shader &quot;Custom RP/Particles/Unlit&quot;
-&#123;
+{
     ...
-&#125;
+}
 </code></pre><p>顺便提一下，对于内置粒子系统，GPU instancing 是不起作用的。然后将自己的 ParticlesUnlit.Shader 附给 Particle System 的 Renderer 就可以渲染粒子了：  </p>
 <blockquote>
 <p>教程里说 Particle System 不支持 GPU instancing，但是我看官方文档时，发现是可以支持的，详见：<a target="_blank" rel="noopener" href="https://docs.unity3d.com/Manual/gpu-instancing-particle-systems.html">https://docs.unity3d.com/Manual/gpu-instancing-particle-systems.html</a> 。只是需要将 Particle System 的 Renderer 模式改为 Mesh，点击 Enable GPU Instancing，并且需要一个支持 Particle GPU instancing 的 Shader。</p>
@@ -183,33 +225,33 @@
 
 <h2 id="Vertex-Color"><a href="#Vertex-Color" class="headerlink" title="Vertex Color"></a>Vertex Color</h2><p>Particle System 里面的很多颜色属性都是通过顶点色来传递的，比如 Start Color、Color over Lifetime、Color by Speed 等等，所以我们要为 Particle Unlit Shader 增加顶点色以使用这些属性：  </p>
 <pre><code>struct Attributes
-&#123;
+{
     ...
     float4 color : COLOR;
     ...
-&#125;;
+};
 
 struct Varyings
-&#123;
+{
     ...
     float4 color : COLOR;
     ...
-&#125;;
+};
 
 Varyings ParticlesUnlitVert(Attributes IN)
-&#123;
+{
     Varyings OUT;
     ...
     OUT.color = IN.color;
     ...
     return OUT;
-&#125;
+}
 
 float4 ParticlesUnlitFrag(Varyings IN) : SV_Target
-&#123;
+{
     ...
     return float4(albedo.rgb * IN.color.rgb + emission * IN.color.rgb, albedo.a * IN.color.a);
-&#125;
+}
 </code></pre><p>当然你也可以为顶点色和 base color 的混合做正片叠底 Multiply 以外的混合方式。</p>
 <div  align="center">  
 <img src="https://s2.loli.net/2025/04/10/4jfHxRgLF5AUvzl.jpg" width = "60%" height = "60%" alt="图116 - Start Color 选择 Random Color 设置从黑到白渐变的粒子效果"/>
@@ -234,26 +276,26 @@ float4 ParticlesUnlitFrag(Varyings IN) : SV_Target
 
 <p>然后我们就要去 Shader 里添加这些属性，首先添加一个 Flipbook Blending 的开关，如下：  </p>
 <pre><code>Shader &quot;YPipeline/Particles/Unlit&quot;
-&#123;
+{
     Properties
-    &#123;
+    {
         ...
         [Toggle(_FLIPBOOK_BLENDING)] _FlipbookBlending (&quot;Flipbook Blending&quot;, Float) = 0.0
-    &#125;
+    }
 
     SubShader
-    &#123;
+    {
         Pass
-        &#123;
+        {
             ...
             #pragma shader_feature_local _FLIPBOOK_BLENDING
             ...
-        &#125;
-    &#125;
-&#125;
+        }
+    }
+}
 </code></pre><p>之后 Pass 里的修改如下：  </p>
 <pre><code>struct Attributes
-&#123;
+{
     ...
     #if defined(_FLIPBOOK_BLENDING)
         float4 uv : TEXCOORD0;
@@ -261,20 +303,20 @@ float4 ParticlesUnlitFrag(Varyings IN) : SV_Target
     #else
         float2 uv : TEXCOORD0;
     #endif
-&#125;
+}
 
 struct Varyings
-&#123;
+{
     ...
     float2 uv : TEXCOORD0;
 
     #if defined(_FLIPBOOK_BLENDING)
         float3 uv2AndBlend : TEXCOORD1;
     #endif
-&#125;;
+};
 
 Varyings ParticlesUnlitVert(Attributes IN)
-&#123;
+{
     ...
     float4 baseST = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _BaseTex_ST);
     OUT.uv = IN.uv.xy * baseST.xy + baseST.zw;
@@ -283,16 +325,16 @@ Varyings ParticlesUnlitVert(Attributes IN)
         OUT.uv2AndBlend.z = IN.uvBlend;
     #endif
     return OUT;
-&#125;
+}
 
 float4 ParticlesUnlitFrag(Varyings IN) : SV_Target
-&#123;
+{
     ...
     #if defined(_FLIPBOOK_BLENDING)
         albedo = lerp(albedo, SAMPLE_TEXTURE2D(_BaseTex, sampler_Trilinear_Repeat_BaseTex, IN.uv2AndBlend.xy), IN.uv2AndBlend.z);
     #endif
     ...
-&#125;
+}
 </code></pre><p>效果如下：  </p>
 <div  align="center">  
 <img src="https://s2.loli.net/2025/04/10/6FSR5ng9CrQo43j.gif" width = "60%" height = "60%" alt="图120 - Flipbook Blending"/>
@@ -315,13 +357,13 @@ _NearFadeRange (&quot;Near Fade Range&quot;, Range(0.0, 10.0)) = 1
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 float GetViewDepthFromSVPosition(float4 positionHCS)
-&#123;
+{
     if (unity_OrthoParams.w &lt; 0.5f) // Perspective
-    &#123;
+    {
         return positionHCS.w;
-    &#125;
+    }
     else // Orthographic
-    &#123;
+    {
         float normalizedDepth = positionHCS.z;
 
         #if UNITY_REVERSED_Z
@@ -329,13 +371,13 @@ float GetViewDepthFromSVPosition(float4 positionHCS)
         #endif
 
         return (_ProjectionParams.z - _ProjectionParams.y) * normalizedDepth + _ProjectionParams.y;
-    &#125;
-&#125;
+    }
+}
 
 ...
 
 float4 ParticlesUnlitFrag(Varyings IN) : SV_Target
-&#123;
+{
     ...
     #if defined(_CAMERA_NEAR_FADE)
         float depth = GetViewDepthFromSVPosition(IN.positionHCS);
@@ -345,7 +387,7 @@ float4 ParticlesUnlitFrag(Varyings IN) : SV_Target
         albedo.a *= saturate(nearAttenuation);
     #endif
     ...
-&#125;
+}
 </code></pre><p>开启 _CAMERA_NEAR_FADE 后，改变 NearFadeDistance 效果如下：  </p>
 <div  align="center">  
 <img src="https://s2.loli.net/2025/04/11/2ZClqOErxANXIR7.gif" width = "60%" height = "60%" alt="图121 - NearFadeDistance 逐渐变大的 Camera Near Fade 效果"/>
@@ -375,19 +417,19 @@ float4 unity_OrthoParams;
 ...
 </code></pre><p>然后因为 Unity 内置的使用 _ZBufferParams 的 <code>LinearEyeDepth()</code> 函数不适用于正交投影的情形下，需要区分：  </p>
 <pre><code>float GetViewDepthFromDepthTexture(float sampledDepth)
-&#123;
+{
     if (unity_OrthoParams.w &lt; 0.5f) // Perspective
-    &#123;
+    {
         return LinearEyeDepth(sampledDepth, _ZBufferParams);
-    &#125;
+    }
     else // Orthographic
-    &#123;
+    {
         #if UNITY_REVERSED_Z
         sampledDepth = 1.0 - sampledDepth;
         #endif
         return (_ProjectionParams.z - _ProjectionParams.y) * sampledDepth + _ProjectionParams.y;
-    &#125;
-&#125;
+    }
+}
 </code></pre><h3 id="Soft-Particles-Fading"><a href="#Soft-Particles-Fading" class="headerlink" title="Soft Particles Fading"></a>Soft Particles Fading</h3><p>可以获取到深度了，就可以实现 Soft Particles 的效果了。首先为 Soft Particles 添加几个 Shader 参数：  </p>
 <pre><code>[Toggle(_SOFT_PARTICLES)] _SoftParticles (&quot;Soft Particles&quot;, Float) = 0
 _SoftParticlesDistance (&quot;Soft Particles Distance&quot;, Range(0.0, 10.0)) = 0
@@ -419,7 +461,7 @@ _SoftParticlesRange (&quot;Soft Particles Range&quot;, Range(0.01, 10.0)) = 1
 
 <p>接下来就是为 Distortion 添加 Shader 参数：  </p>
 <pre><code>[Toggle(_DISTORTION)] _Distortion (&quot;Distortion&quot;, Float) = 0.0
-[NoScaleOffset] _DistortionTex (&quot;Distortion Texture&quot;, 2D) = &quot;bump&quot; &#123;&#125;
+[NoScaleOffset] _DistortionTex (&quot;Distortion Texture&quot;, 2D) = &quot;bump&quot; {}
 _DistortionStrength (&quot;Distortion Strength&quot;, Range(0.0, 2.0)) = 0.1
 </code></pre><p>别忘了添加 shader feature：</p>
 <pre><code>#pragma shader_feature _DISTORTION
@@ -463,10 +505,10 @@ _DistortionStrength (&quot;Distortion Strength&quot;, Range(0.0, 2.0)) = 0.1
 <h3 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h3><p>首先需要注意区分 <strong>Early-Z</strong> 和 <strong>Depth Prepass</strong>（Z-Prepass）：<br><strong>①Early-Z</strong> 是一个移动设备 GPU 的 TBR/TBDR 架构下的硬件技术（但是好像现在大部分 GPU 都支持，网上的资料都有点老了），它在硬件层面上修改了渲染管线，在光栅化阶段和片元着色器阶段中间，加入了一个 Early-Z 阶段，这个阶段进行的操作和原本逐片元操作/输出合并阶段的 z-test（为了与 early-z 区别，这个阶段也会被成为 <strong>Late-Z</strong>）操作完全一样。这样做的目的是为了提前剔除掉被遮挡的片元，减少 over-draw 从而节省 GPU 性能。Early-Z 的问题在于，若开启了 alpha test ，或者有丢弃像素的操作，又或者在片元着色器开启了深度写入，就会使 Early-Z 失效，所以一般情况下会配合软件层面的 Depth Prepass 使用。<br><strong>②Depth Prepass</strong> 是一个软件技术，其做法就是使用两个 pass，第一个 pass 渲染物体的深度（即 Depth Prepass），第二个 pass 渲染该物体的颜色。在渲染深度时，只开启 Zwrite 和 ZTest 渲染物体的深度；在渲染颜色时，关闭 Zwrite，并将 ZTest 设置为 <strong>Equal</strong>，注意这里深度比较函数必须是 Equal 不能是 LessEqual，Equal 下性能是最优的。Depth Prepass 可以有效地减少片元着色器的工作，特别适用于复杂的片元着色器（比如 PBR）以及复杂的场景（比如场景中有较多的花草树木，以及头发渲染）。</p>
 <h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><p><strong><em>①第一步 Depth Prepass：</em></strong><br>首先为 Opaque 和 AlphaTest 的物体准备一个 Depth Prepass，Shader 里类似如下：  </p>
 <pre><code>Pass
-&#123;
+{
     Name &quot;Depth&quot;
 
-    Tags &#123; &quot;LightMode&quot; = &quot;Depth&quot; &#125;
+    Tags { &quot;LightMode&quot; = &quot;Depth&quot; }
 
     ZWrite On
     ColorMask 0
@@ -484,30 +526,30 @@ _DistortionStrength (&quot;Distortion Strength&quot;, Range(0.0, 2.0)) = 0.1
 
     #include &quot;StandardForwardDepthPass.hlsl&quot;
     ENDHLSL
-&#125;
+}
 </code></pre><p>然后只需要在片元着色器中做裁切就行，大致如下：  </p>
 <pre><code>struct Attributes
-&#123;
+{
     float4 positionOS   : POSITION;
     float2 uv           : TEXCOORD0;
-&#125;;
+};
 
 struct Varyings
-&#123;
+{
     float4 positionHCS  : SV_POSITION;
     float2 uv           : TEXCOORD0;
-&#125;;
+};
 
 Varyings DepthVert(Attributes IN)
-&#123;
+{
     Varyings OUT;
     OUT.uv = TRANSFORM_TEX(IN.uv, _BaseTex);
     OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
     return OUT;
-&#125;
+}
 
 float DepthFrag(Varyings IN) : SV_DEPTH
-&#123;
+{
     float baseTexAlpha = SAMPLE_TEXTURE2D(_BaseTex, sampler_Trilinear_Repeat_BaseTex, IN.uv).a;
     float opacityTexAlpha = SAMPLE_TEXTURE2D(_OpacityTex, sampler_Trilinear_Repeat_BaseTex, IN.uv).r;
     float alpha = baseTexAlpha * opacityTexAlpha * _BaseColor.a;
@@ -524,16 +566,16 @@ float DepthFrag(Varyings IN) : SV_DEPTH
     #endif
 
     return IN.positionHCS.z;
-&#125;
+}
 </code></pre><p><strong><em>②第二步修改渲染颜色的 Pass：</em></strong><br>这一步只需要将原先渲染颜色的 Pass 的 ZWrite 关闭，ZTest 设置为 <strong>Equal</strong> 即可：  </p>
 <pre><code>Pass 
-&#123;
+{
     ...
     ZWrite Off
     ZTest Equal
     Cull [_Cull]
     ...
-&#125;
+}
 </code></pre><p><strong><em>③第三步在 SRP 中提交绘制指令：</em></strong><br>首先为 Depth Prepass 创建一个 ShaderTagId：  </p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> ShaderTagId k_DepthShaderTagId = <span class="keyword">new</span> ShaderTagId(<span class="string">&quot;Depth&quot;</span>);</span><br></pre></td></tr></table></figure>
 <p>然后就是绘制，Filtering &amp; Sorting Settings 可以和 Draw Opaque、alphaTest 流程中的局部参数共用，流程就不重复说明了，详见第一篇文章。这里要注意一下的是绘制时无需传递 perObjectData，还有就是因为只写入深度，ClearRenderTarget 时只需要清除深度：  </p>
@@ -548,13 +590,13 @@ float DepthFrag(Varyings IN) : SV_DEPTH
 <h2 id="Copy-Depth"><a href="#Copy-Depth" class="headerlink" title="Copy Depth"></a>Copy Depth</h2><p>我们在渲染的时候，有时候需要采样 depth buffer，比如之前的 Soft Particles 效果、SSAO 等等。但是当我们以 depth buffer 作为 render target 的时候，不能同时对 depth buffer 进行采样，所以我们需要将 depth buffer 复制到 depth texture 里，Unity URP 的 CopyDepth 阶段就是在做这件事情。我们新创建一个 <code>_CameraDepthTexture</code> 的 RT 资源，创建的过程就不再赘述了，跟上面 <code>_CameraDepthBuffer</code> 一样。</p>
 <p>我们之前后处理中提到的 Copy Shader 复制的是整个 Color Buffer，我们现在要创建一个复制 Depth Buffer 的版本，即 Copy Depth Shader，Shader 代码大致如下，将 ColorMask 设置为 0，开启深度写入：  </p>
 <pre><code>Shader &quot;Hidden/YPipeline/CopyDepth&quot;
-&#123;
+{
     SubShader
-    &#123;
+    {
         Tags
-        &#123;
+        {
             &quot;RenderType&quot; = &quot;Opaque&quot;
-        &#125;
+        }
 
         ZTest Always
         ZWrite On
@@ -562,7 +604,7 @@ float DepthFrag(Varyings IN) : SV_DEPTH
         Cull Off
 
         Pass
-        &#123;
+        {
             Name &quot;CopyDepth&quot;
 
             HLSLPROGRAM
@@ -573,21 +615,21 @@ float DepthFrag(Varyings IN) : SV_DEPTH
 
             #include &quot;CopyDepthPass.hlsl&quot;
             ENDHLSL
-        &#125;
-    &#125;
-&#125;
+        }
+    }
+}
 </code></pre><p>然后顶点着色器跟之前的 Copy Shader 一样，片元着色器目标是 SV_DEPTH，而不是 SV_TARGET：  </p>
 <pre><code>TEXTURE2D(_CameraDepthBuffer);
 SAMPLER(sampler_CameraDepthBuffer);
 
 struct Varyings
-&#123;
+{
     float4 positionHCS  : SV_POSITION;
     float2 uv           : TEXCOORD0;
-&#125;;
+};
 
 Varyings CopyDepthVert(uint vertexID : SV_VertexID)
-&#123;
+{
     Varyings OUT;
     OUT.uv = float2((vertexID &lt;&lt; 1) &amp; 2, vertexID &amp; 2);
     OUT.positionHCS = float4(OUT.uv * 2.0 - 1.0, UNITY_NEAR_CLIP_VALUE, 1.0);
@@ -599,12 +641,12 @@ Varyings CopyDepthVert(uint vertexID : SV_VertexID)
     // #endif
 
     return OUT;
-&#125;
+}
 
 float CopyDepthFrag(Varyings IN) : SV_DEPTH
-&#123;
+{
     return SAMPLE_TEXTURE2D_LOD(_CameraDepthBuffer, sampler_CameraDepthBuffer, IN.uv, 0).r;
-&#125;
+}
 </code></pre><p>具体什么时候 Copy Depth 我是参考了 URP 放在 Depth Prepass 和 Draw Opaque &amp; AlphaTest 之间。</p>
 <h2 id="Gizmos-and-Depth"><a href="#Gizmos-and-Depth" class="headerlink" title="Gizmos and Depth"></a>Gizmos and Depth</h2><p>之前在 Post Processing 时提到过，Gizmo 的绘制依赖于原来的 CameraTarget 中的深度信息。若没有深度信息，gizmos 就不会被物体遮挡。现在我们可以将深度信息复制进 CameraTarget 了：  </p>
 <figure class="highlight c#"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (Handles.ShouldRenderGizmos())</span><br><span class="line">&#123;</span><br><span class="line">    BlitUtility.CopyDepth(data.buffer, RenderTargetIDs.k_DepthBufferId, BuiltinRenderTextureType.CameraTarget);</span><br><span class="line">    RendererList gizmosRendererList = data.context.CreateGizmoRendererList(data.camera, GizmoSubset.PreImageEffects);</span><br><span class="line">    data.buffer.DrawRendererList(gizmosRendererList);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -650,9 +692,9 @@ float CopyDepthFrag(Varyings IN) : SV_DEPTH
 <h2 id="FXAA-Quality"><a href="#FXAA-Quality" class="headerlink" title="FXAA Quality"></a>FXAA Quality</h2><p>FXAA 应该发生在 color grading 的后面，但是有些后处理应该放在 FXAA 后面，比如 Film Grain 胶片颗粒效果，具体顺序可以参考 URP 或 HDRP。我跟 URP 或 HDRP 一样，将 FXAA 放在了 FinalPost Shader 中处理。</p>
 <h3 id="Luma-Contrast"><a href="#Luma-Contrast" class="headerlink" title="Luma Contrast"></a>Luma Contrast</h3><p>FXAA 通过确定水平和垂直方向上像素点的亮度差，来计算对比值，当对比度值较大时，则进行抗锯齿处理。而亮度可以通过 $\,Y = 0.2126 R + 0.7152 G + 0.0722 B\,$ 计算，但是 FXAA 的白皮书里提到，FXAA 需要的是 Non-Linear RGB 的输入，因为我们需要根据感知上的差异大小以获取更优秀的抗锯齿效果。教程中也提到了这一点，所以需要计算 <strong>Gamma-Adjusted Luminance</strong>，即 <strong>Luma</strong>。我实际测试了一下，使用 Luma 确实会比 Luminance 效果好一点点，但是肉眼还是很难区分出区别，特别是当输出分辨率较高时，我看知乎上很多 FXAA 教程也没有将使用 Luma，都是直接使用 Luminance。</p>
 <pre><code>float GetLuma(float3 rgb)
-&#123;
+{
     return sqrt(Luminance(rgb));
-&#125;
+}
 </code></pre><p>还有就是因为人眼对绿色的亮度最为敏感，我们可以直接使用绿色来替代 Luma 作为亮度以节省性能。亮度值也可以在上一个 Pass 中处理时，写入到 alpha 通道中，这样可以减少采样时亮度的计算，因为采样的时候可能会重复采样从而重复计算亮度。</p>
 <p>采样的位置是下图所示，分别得到中间点 M 和周围四个点 N、E、W、S 的亮度值：  </p>
 <div  align="center">  
@@ -660,28 +702,28 @@ float CopyDepthFrag(Varyings IN) : SV_DEPTH
 </div>
 
 <pre><code>float4 SampleOffset(float2 uv, float uOffset, float vOffset)
-&#123;
+{
     uv += float2(uOffset, vOffset) * _BlitTexture_TexelSize.xy;
     return SAMPLE_TEXTURE2D_LOD(_BlitTexture, sampler_LinearClamp, uv, 0);
-&#125;
+}
 
 float3 ApplyFXAAQuality(float2 uv, float4 middleColor)
-&#123;
+{
     float M = GetLuma(middleColor);
     float N = GetLuma(SampleOffset(uv, 0, 1));
     float E = GetLuma(SampleOffset(uv, 1, 0));
     float S = GetLuma(SampleOffset(uv, 0, -1));
     float W = GetLuma(SampleOffset(uv, -1, 0));
-&#125;
+}
 </code></pre><p>然后就是计算出这 5 个值中的最大值和最小值，相减得到<strong>对比值 Contrast</strong>：  </p>
 <pre><code>float3 ApplyFXAAQuality(float2 uv, float4 middleColor)
-&#123;
+{
     ...
     // Calculate Contrast
     float maxLuma = max(max(max(N, E), max(W, S)), M);
     float minLuma = min(min(min(N, E), min(W, S)), M);
     float contrast = maxLuma - minLuma;
-&#125;
+}
 </code></pre><p>直接输出 Contrast，相当于提取了基于颜色的边缘，边缘正好会是两个像素点宽度，如下图：  </p>
 <div  align="center">  
 <img src="https://s2.loli.net/2025/04/28/AKNpUuGHSf6WmTl.jpg" width = "25%" height = "25%" alt="图130 - Luma Contrast Visualization"/>
@@ -696,11 +738,11 @@ float3 ApplyFXAAQuality(float2 uv, float4 middleColor)
 <pre><code>float4 _FXAAParams; // x: contrastThreshold, y: relativeThreshold, z: blendFactor
 
 float3 ApplyFXAAQuality(float2 uv, float4 middleColor)
-&#123;
+{
     ...
     // Threshold
     if (contrast &lt; max(_FXAAParams.x, maxLuma * _FXAAParams.y)) return middleColor;
-&#125;
+}
 </code></pre><h3 id="Blend-Factor"><a href="#Blend-Factor" class="headerlink" title="Blend Factor"></a>Blend Factor</h3><p>接下来就是确定要进行抗锯齿处理的像素点进行混合（模糊）时的系数，混合系数是根据原像素点（中间像素点）的亮度和周围像素点的亮度平均值的差异来确定的。计算周围像素点亮度的平均值时，简单的算术平均效果肯定没这么好，为了更好地效果，需要再额外采样并得到斜对角上四个点的亮度值，即 NW、NE、SW、SE 点，对角像素距离中心像素比较远，所以权重会比周围 4 个低，滤波核如下图：  </p>
 <div  align="center">  
 <img src="https://s2.loli.net/2025/04/28/WnjMxZ69os3TmlX.png" width = "20%" height = "20%" alt="图132 - FXAA Filter Kernel"/>
@@ -708,7 +750,7 @@ float3 ApplyFXAAQuality(float2 uv, float4 middleColor)
 
 <p>为了使混合权重更加平滑，我们对得到的混合权重再用 smoothstep 处理一下，再将结果进行平方处理，代码如下：  </p>
 <pre><code>float3 ApplyFXAAQuality(float2 uv, float4 middleColor)
-&#123;
+{
     ...
     float NW = GetLuma(SampleOffset(uv, -1, 1));
     float NE = GetLuma(SampleOffset(uv, 1, 1));
@@ -722,7 +764,7 @@ float3 ApplyFXAAQuality(float2 uv, float4 middleColor)
     filter = saturate(filter / contrast);
     float blendFactor = smoothstep(0.0, 1.0, filter);
     blendFactor = blendFactor * blendFactor;
-&#125;
+}
 </code></pre><h3 id="Blend-Direction"><a href="#Blend-Direction" class="headerlink" title="Blend Direction"></a>Blend Direction</h3><p>然后就是确定进行混合计算的方向（锯齿边界的方向）。FXAA 会混合中间像素和 N、E、S、W 中的一个像素，选择哪个像素取决于锯齿边界的方向：  </p>
 <div  align="center">  
 <img src="https://s2.loli.net/2025/04/28/wOpCnoZU8Rfv94W.png" width = "30%" height = "30%" alt="图133 - Four Possible Blend Directions"/>
@@ -777,16 +819,16 @@ if (positive &lt; negative) pixelStep = -pixelStep;
 // Reserve Blending Pixel Gradient &amp; Luma
 float gradient, oppositeLuma;
 if (positive &gt; negative)
-&#123;
+{
     gradient = positive;
     oppositeLuma = isHorizontal ? N : E;
-&#125;
+}
 else
-&#123;
+{
     pixelStep = -pixelStep;
     gradient = negative;
     oppositeLuma = isHorizontal ? S : W;
-&#125;
+}
 </code></pre><p>接下来就是沿着边界两侧的方向，进行搜索，直到找到锯齿边界终点为止。判断边界的方式是计算两侧的亮度值的差，是否和当前的亮度变化梯度值符合，如下图所示：  </p>
 <div  align="center">  
 <img src="https://s2.loli.net/2025/04/28/5NQub23jWcYULDe.png" width = "30%" height = "30%" alt="图137 - Searching for the end pixel"/>
@@ -824,38 +866,38 @@ int i;
 
 UNITY_UNROLL
 for (i = 1; i &lt;= EXTRA_EDGE_STEPS; i++)
-&#123;
+{
     uvP += edgeStep;
     lumaDeltaP = GetLuma(SampleOffsetZero(uvP)) - edgeLuma;
     if (abs(lumaDeltaP) &gt; gradientThreshold) break;
-&#125;
+}
 if (i == EXTRA_EDGE_STEPS + 1)
-&#123;
+{
     uvP += LAST_EDGE_STEP_GUESS * edgeStep;
-&#125;
+}
 
 UNITY_UNROLL
 for (i = 1; i &lt;= EXTRA_EDGE_STEPS; i++)
-&#123;
+{
     uvN -= edgeStep;
     lumaDeltaN = GetLuma(SampleOffsetZero(uvN)) - edgeLuma;
     if (abs(lumaDeltaN) &gt; gradientThreshold) break;
-&#125;
+}
 if (i == EXTRA_EDGE_STEPS + 1)
-&#123;
+{
     uvP -= LAST_EDGE_STEP_GUESS * edgeStep;
-&#125;
+}
 
 if (isHorizontal)
-&#123;
+{
     distanceP = uvP.x - uv.x;
     distanceN = uv.x - uvN.x;
-&#125;
+}
 else
-&#123;
+{
     distanceP = uvP.y - uv.y;
     distanceN = uv.y - uvN.y;
-&#125;
+}
 </code></pre><p>接下来就是计算 Edge 混合系数了，我们可以根据锯齿边界最近端的像素距离占总长度的比例来计算出一个基于 Edge 的混合系数。但是在此之前，我们还需要判断一下混合的方向是否和当前需要计算的一致，这里是通过比较相对亮度的正负值来实现的。比如下图中的锯齿边界，在水平的锯齿边界上计算时，两个黄色的点是现在我们要计算混合系数的目标像素点，两个红色标记的点是我们期望进行混合的点。因为左边的混合方向其实应该是向上的，因此这种情况下就不需要进行计算，而是在处理上面红色像素点时进行计算。而右边的黄色标记目标像素点，是需要在当前处理的。</p>
 <div  align="center">  
 <img src="https://s2.loli.net/2025/04/29/fwAi1HCWdI4GFxL.png" width = "60%" height = "60%" alt="图139 - Blending on a Single Side"/>
@@ -864,27 +906,27 @@ else
 <p>如果判断出边界方向不符合时，就直接设 Edge 混合系数为 0，边界方向符合时，按照相对的距离，来估算混合系数：  </p>
 <pre><code>float edgeFactor;
 if (distanceP &lt; distanceN)
-&#123;
+{
     if (sign(lumaDeltaP) == sign(M - edgeLuma))
-    &#123;
+    {
         edgeFactor = 0;
-    &#125;
+    }
     else
-    &#123;
+    {
         edgeFactor = 0.5f - distanceP / (distanceP + distanceN);
-    &#125;
-&#125;
+    }
+}
 else
-&#123;
+{
     if (sign(lumaDeltaN) == sign(M - edgeLuma))
-    &#123;
+    {
         edgeFactor = 0;
-    &#125;
+    }
     else
-    &#123;
+    {
         edgeFactor = 0.5f - distanceN / (distanceP + distanceN);
-    &#125;
-&#125;
+    }
+}
 </code></pre><p>最终取 Edge Factor 和 Blend Factor 的最大值作为最终混合系数：  </p>
 <pre><code>float finalFactor = max(blendFactor, edgeFactor);
 return SampleOffsetZero(uv + pixelStep * finalFactor).rgb;
@@ -908,21 +950,21 @@ return SampleOffsetZero(uv + pixelStep * finalFactor).rgb;
     #define LAST_EDGE_STEP_GUESS 8.0
 #endif
 
-static const float EdgeStepSizes[EXTRA_EDGE_STEPS] = &#123; EDGE_STEP_SIZES &#125;;
+static const float EdgeStepSizes[EXTRA_EDGE_STEPS] = { EDGE_STEP_SIZES };
 
 ···
 float3 ApplyFXAAQuality(float2 uv, float4 middleColor)
-&#123;
+{
     ...
     UNITY_UNROLL
     for (i = 1; i &lt;= EXTRA_EDGE_STEPS; i++)
-    &#123;
+    {
         uvP += EdgeStepSizes[i - 1] * edgeStep;
         lumaDeltaP = GetLuma(SampleOffsetZero(uvP)) - edgeLuma;
         if (abs(lumaDeltaP) &gt; gradientThreshold) break;
-    &#125;
+    }
     ...
-&#125;
+}
 </code></pre><p>因为图片会压缩以及采样，上述三种预设质量效果的差别不是很能展示出来，故我就不展示了。我实测下来，FXAA_QUALITY_LOW 的质量会比较差，FXAA_QUALITY_MEDIUM 和 FXAA_QUALITY_HIGH 的差别肉眼不是很能察觉得出来，但是其实 FXAA_QUALITY_MEDIUM 和 FXAA_QUALITY_HIGH 的性能差距也不会很大，所以默认开 FXAA_QUALITY_HIGH 就行。</p>
 <h2 id="FXAA-Console"><a href="#FXAA-Console" class="headerlink" title="FXAA Console"></a>FXAA Console</h2><p>FXAA Quality 版本需要的采样次数是比较多的，Console 版本每个像素点最多只需要进行 9 次采样，比 Quality 版本要少很多，当然效果也会差一点。FXAA Console 的主要逻辑是计算锯齿边的法线方向，然后根据法线方向做混合。</p>
 <p>首先还是采样周围像素点，然后做阈值判断，只不过 Console 版本只采样对角线上 4 个点，并且这里的偏移只有半个像素，如下：  </p>
@@ -970,10 +1012,10 @@ float4 rgbA = (rgbN1 + rgbP1) * 0.5;
 </code></pre><p><code>FXAA_CONSOLE_SCALE</code> 是个可控制的变量，NVIDIA FXAA 3.11 中的参数建议如下，建议默认值为 0.5：  </p>
 <pre><code>// N = 0.50 (default)
 // N = 0.33 (sharper)
-// &#123;x___&#125; = -N/screenWidthInPixels  
-// &#123;_y__&#125; = -N/screenHeightInPixels
-// &#123;__z_&#125; =  N/screenWidthInPixels  
-// &#123;___w&#125; =  N/screenHeightInPixels 
+// {x___} = -N/screenWidthInPixels  
+// {_y__} = -N/screenHeightInPixels
+// {__z_} =  N/screenWidthInPixels  
+// {___w} =  N/screenHeightInPixels 
 FxaaFloat4 fxaaConsoleRcpFrameOpt,
 </code></pre><p>不过这样做的问题就是，这种方式对于斜向的锯齿比较友好，但是对于水平和垂直方向的锯齿，却不是很友好。因为水平和垂直方向的锯齿，计算的方向的一个维度会是 0，会导致两次采样几乎没有覆盖到应该要混合区域的区域。因此我们要进行一次额外的计算，将偏移距离延伸至更远处，具体的做法就是使用 dir 向量分量的最小值的倒数，将 dir 进行缩放。这样如果 dir 的最小分量的值越小，就能采样到越远的地方：</p>
 <pre><code>float dirAbsMinTimesC = min(abs(dir.x), abs(dir.y)) * FXAA_CONSOLE_EDGE_SHARPNESS;
@@ -984,9 +1026,9 @@ float4 rgbB = rgbA * 0.5 + (rgbN2 + rgbP2) * 0.25;
 </code></pre><p>为了防止 dir2 采样到亮度变化较大的区域，产生噪点，这里我们再对 dir2 采样到的亮度值进行一次判断，如果得到的结果超过了周围最小最大的亮度范围，则丢弃新的采样的结果：  </p>
 <pre><code>float newLum = GetLuma(rgbB);
 if((newLum &gt; minLuma) &amp;&amp; (newLum &lt; maxLuma))
-&#123;
+{
     rgbA = rgbB;
-&#125;
+}
 return rgbA.rgb;
 </code></pre><p>FXAA Quality 和 FXAA Console 对比如下（实测下来感觉 FXAA Quality 即使是 Low 的预设也会比 Console 略微好一点）：  </p>
 <div  align="center">  
@@ -994,8 +1036,23 @@ return rgbA.rgb;
 </div>
 
 <p>图片上可能看不太出来区别，最好还是实践看效果。</p>
-</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io">鸟布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io/2025/04/07/2025-04-07-CustomSRP7/">https://ybniaobu.github.io/2025/04/07/2025-04-07-CustomSRP7/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://ybniaobu.github.io" target="_blank">鸟布的博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a><a class="post-meta__tags" href="/tags/Unity/">Unity</a><a class="post-meta__tags" href="/tags/%E5%9B%BE%E5%BD%A2/">图形</a><a class="post-meta__tags" href="/tags/Pipeline/">Pipeline</a></div><div class="post-share"><div class="social-share" data-image="https://s2.loli.net/2025/04/07/2zi6pj3XtAPHvmy.gif" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2025/03/13/2025-03-13-CustomSRP6/" title="Unity Custom SRP 基础（六）"><img class="cover" src="https://s2.loli.net/2025/03/13/LozNxAmnlEJSOyV.gif" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Unity Custom SRP 基础（六）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含支持 HDR 渲染以及 HDR Bloom (约束闪烁问题和 Scattering Bloom)；Tone Mapping 算法的介绍；Color Grading 相关工具和 LUT Baking；Multiple Camera 和 Rendering Layers 的简单说明。</div></div></div></a><a class="pagination-related" href="/2025/04/29/2025-04-29-CustomSRP8/" title="Unity Custom SRP 基础（八）"><img class="cover" src="https://s2.loli.net/2025/04/29/IHYjvyKDR2uoGEt.gif" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Unity Custom SRP 基础（八）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含对 Render Graph 的介绍；如何使用 Unity 的 Render Graph；使用 Structured Buffer 传递灯光数据；简单的 Tile-based Light Culling 的实现；修改 CullShadowCasters 相关代码。</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/02/26/2025-02-26-CustomSRP5/" title="Unity Custom SRP 基础（五）"><img class="cover" src="https://s2.loli.net/2025/02/26/m2zJbPd8aeGD14A.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-02-26</div><div class="info-item-2">Unity Custom SRP 基础（五）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含 PCSS 的实现；如何在 SRP 中使用 Unity 提供的用于 Post Processing 的 Volume 框架；自定义比 Blit 效率更高的 Copy Shader；LDR Additive Bloom 特效的原理和实现。</div></div></div></a><a class="pagination-related" href="/2025/01/07/2025-01-07-CustomSRP3/" title="Unity Custom SRP 基础（三）"><img class="cover" src="https://s2.loli.net/2025/01/14/ELDF7wHpCPn2mKM.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-01-07</div><div class="info-item-2">Unity Custom SRP 基础（三）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含如何将 SRP 接入 Unity Lightmap 烘焙系统以实现间接光漫反射；LOD 不同级别之间切换效果的 Shader 实现；采样反射探针以实现间接光镜面反射；Detail Map 的实现以及法线混合。</div></div></div></a><a class="pagination-related" href="/2025/12/14/2025-12-14-APV/" title="Custom SRP 接入 Unity APV"><img class="cover" src="https://s2.loli.net/2025/12/14/nqFkiKMduaWEc13.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-14</div><div class="info-item-2">Custom SRP 接入 Unity APV</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容有 Irradiance Volume 技术的简单介绍；Unity APV 的大致实现细节以及使用教程；如何在自定义的管线中实现 APV。</div></div></div></a><a class="pagination-related" href="/2025/09/09/2025-09-09-SSAO2/" title="屏幕空间环境光遮蔽（二）HBAO 与 GTAO"><img class="cover" src="https://s2.loli.net/2025/09/09/Uq93S46lgTAHs7Q.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-09-09</div><div class="info-item-2">屏幕空间环境光遮蔽（二）HBAO 与 GTAO</div></div><div class="info-2"><div class="info-item-1">本文章主要内容有 HBAO 算法的原理与具体实现；GTAO 算法的原理与具体实现；关于 GTSO 的原理和实现方法的简单介绍。</div></div></div></a><a class="pagination-related" href="/2025/03/13/2025-03-13-CustomSRP6/" title="Unity Custom SRP 基础（六）"><img class="cover" src="https://s2.loli.net/2025/03/13/LozNxAmnlEJSOyV.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-13</div><div class="info-item-2">Unity Custom SRP 基础（六）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含支持 HDR 渲染以及 HDR Bloom (约束闪烁问题和 Scattering Bloom)；Tone Mapping 算法的介绍；Color Grading 相关工具和 LUT Baking；Multiple Camera 和 Rendering Layers 的简单说明。</div></div></div></a><a class="pagination-related" href="/2025/06/21/2025-06-21-TAA/" title="Temporal Anti-Aliasing (TAA)"><img class="cover" src="https://s2.loli.net/2025/06/23/kEPO3zg8IRXwUFC.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-06-21</div><div class="info-item-2">Temporal Anti-Aliasing (TAA)</div></div><div class="info-2"><div class="info-item-1">本文章主要内容有 TAA 基本原理和实现，包括 Jitter、History Blending、Reprojection、Color Clamping、Weighted Blending Factor、Depth Dilation、Filter 等步骤；以及在 Unity 实现 Object Motion Vector。</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">鸟布</div><div class="author-info-description">教练，我想学技术</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">55</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">26</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">17</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://niaobu.notion.site/787824630ea6480e944c1ae5ae7f4792"><i class="fa-solid fa-book"></i><span>My Notion</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/ybniaobu/ybniaobu.github.io" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:niaobubob@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Particles"><span class="toc-number">1.</span> <span class="toc-text">Particles</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Unlit-Particles-Shader"><span class="toc-number">1.1.</span> <span class="toc-text">Unlit Particles Shader</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Vertex-Color"><span class="toc-number">1.2.</span> <span class="toc-text">Vertex Color</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Flipbooks"><span class="toc-number">1.3.</span> <span class="toc-text">Flipbooks</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Flipbook-Blending"><span class="toc-number">1.3.1.</span> <span class="toc-text">Flipbook Blending</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Fading-Near-Camera"><span class="toc-number">1.4.</span> <span class="toc-text">Fading Near Camera</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Soft-Particles"><span class="toc-number">1.5.</span> <span class="toc-text">Soft Particles</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%87%8D%E6%9E%84-View-Space-Depth"><span class="toc-number">1.5.1.</span> <span class="toc-text">重构 View Space Depth</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Soft-Particles-Fading"><span class="toc-number">1.5.2.</span> <span class="toc-text">Soft Particles Fading</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Distortion"><span class="toc-number">1.6.</span> <span class="toc-text">Distortion</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Distortion-Map"><span class="toc-number">1.6.1.</span> <span class="toc-text">Distortion Map</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Distortion-Blend"><span class="toc-number">1.6.2.</span> <span class="toc-text">Distortion Blend</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Depth-amp-Color-Texture"><span class="toc-number">2.</span> <span class="toc-text">Depth &amp; Color Texture</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Depth-Prepass"><span class="toc-number">2.1.</span> <span class="toc-text">Depth Prepass</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86"><span class="toc-number">2.1.1.</span> <span class="toc-text">基本原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E7%8E%B0"><span class="toc-number">2.1.2.</span> <span class="toc-text">实现</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Copy-Depth"><span class="toc-number">2.2.</span> <span class="toc-text">Copy Depth</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Gizmos-and-Depth"><span class="toc-number">2.3.</span> <span class="toc-text">Gizmos and Depth</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Copy-Color"><span class="toc-number">2.4.</span> <span class="toc-text">Copy Color</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Render-Scale"><span class="toc-number">3.</span> <span class="toc-text">Render Scale</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Buffer-Size"><span class="toc-number">3.1.</span> <span class="toc-text">Buffer Size</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AF%B9-Shader-%E7%9A%84%E5%BD%B1%E5%93%8D"><span class="toc-number">3.2.</span> <span class="toc-text">对 Shader 的影响</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Rescaling"><span class="toc-number">3.3.</span> <span class="toc-text">Rescaling</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#FXAA"><span class="toc-number">4.</span> <span class="toc-text">FXAA</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#FXAA-Quality"><span class="toc-number">4.1.</span> <span class="toc-text">FXAA Quality</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Luma-Contrast"><span class="toc-number">4.1.1.</span> <span class="toc-text">Luma Contrast</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Threshold"><span class="toc-number">4.1.2.</span> <span class="toc-text">Threshold</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Blend-Factor"><span class="toc-number">4.1.3.</span> <span class="toc-text">Blend Factor</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Blend-Direction"><span class="toc-number">4.1.4.</span> <span class="toc-text">Blend Direction</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Edge-Blend"><span class="toc-number">4.1.5.</span> <span class="toc-text">Edge Blend</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Edge-Quality"><span class="toc-number">4.1.6.</span> <span class="toc-text">Edge Quality</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FXAA-Console"><span class="toc-number">4.2.</span> <span class="toc-text">FXAA Console</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/08/02/2026-08-02-C++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B03/" title="C++ 基础学习笔记（三）">C++ 基础学习笔记（三）</a><time datetime="2026-08-02T09:31:14.000Z" title="发表于 2026-08-02 17:31:14">2026-08-02</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/06/19/2026-06-19-C++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B02/" title="C++ 基础学习笔记（二）">C++ 基础学习笔记（二）</a><time datetime="2026-06-19T06:39:50.000Z" title="发表于 2026-06-19 14:39:50">2026-06-19</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/05/10/2026-05-10-C++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B01/" title="C++ 基础学习笔记（一）">C++ 基础学习笔记（一）</a><time datetime="2026-05-10T12:03:26.000Z" title="发表于 2026-05-10 20:03:26">2026-05-10</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/04/07/2026-04-07-YarnSpinner/" title="Yarn Spinner 剧情脚本语言（待删除）">Yarn Spinner 剧情脚本语言（待删除）</a><time datetime="2026-04-07T12:56:48.000Z" title="发表于 2026-04-07 20:56:48">2026-04-07</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/02/25/2026-02-25-LocalReflectionProbe/" title="Local Reflection Probe">Local Reflection Probe</a><time datetime="2026-02-25T10:50:29.000Z" title="发表于 2026-02-25 18:50:29">2026-02-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2022 - 2026 By 鸟布</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.5.4</a></span></div><div class="footer_custom_text">Your time is limited, so don't waste it living someone else's life.</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4"></script><script src="/js/main.js?v=5.5.4"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.9/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(() => {
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io">鸟布</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://ybniaobu.github.io/2025/04/07/2025-04-07-CustomSRP7/">https://ybniaobu.github.io/2025/04/07/2025-04-07-CustomSRP7/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://ybniaobu.github.io" target="_blank">鸟布的博客</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a><a class="post-meta__tags" href="/tags/Unity/">Unity</a><a class="post-meta__tags" href="/tags/%E5%9B%BE%E5%BD%A2/">图形</a><a class="post-meta__tags" href="/tags/Pipeline/">Pipeline</a></div><div class="post-share"><div class="social-share" data-image="https://s2.loli.net/2025/04/07/2zi6pj3XtAPHvmy.gif" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related" href="/2025/03/13/2025-03-13-CustomSRP6/" title="Unity Custom SRP 基础（六）"><img class="cover" src="https://s2.loli.net/2025/03/13/LozNxAmnlEJSOyV.gif" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">Unity Custom SRP 基础（六）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含支持 HDR 渲染以及 HDR Bloom (约束闪烁问题和 Scattering Bloom)；Tone Mapping 算法的介绍；Color Grading 相关工具和 LUT Baking；Multiple Camera 和 Rendering Layers 的简单说明。</div></div></div></a><a class="pagination-related" href="/2025/04/29/2025-04-29-CustomSRP8/" title="Unity Custom SRP 基础（八）"><img class="cover" src="https://s2.loli.net/2025/04/29/IHYjvyKDR2uoGEt.gif" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Unity Custom SRP 基础（八）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含对 Render Graph 的介绍；如何使用 Unity 的 Render Graph；使用 Structured Buffer 传递灯光数据；简单的 Tile-based Light Culling 的实现；修改 CullShadowCasters 相关代码。</div></div></div></a></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><a class="pagination-related" href="/2025/06/21/2025-06-21-TAA/" title="Temporal Anti-Aliasing (TAA)"><img class="cover" src="https://s2.loli.net/2025/06/23/kEPO3zg8IRXwUFC.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-06-21</div><div class="info-item-2">Temporal Anti-Aliasing (TAA)</div></div><div class="info-2"><div class="info-item-1">本文章主要内容有 TAA 基本原理和实现，包括 Jitter、History Blending、Reprojection、Color Clamping、Weighted Blending Factor、Depth Dilation、Filter 等步骤；以及在 Unity 实现 Object Motion Vector。</div></div></div></a><a class="pagination-related" href="/2025/12/14/2025-12-14-APV/" title="Custom SRP 接入 Unity APV"><img class="cover" src="https://s2.loli.net/2025/12/14/nqFkiKMduaWEc13.jpg" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-14</div><div class="info-item-2">Custom SRP 接入 Unity APV</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容有 Irradiance Volume 技术的简单介绍；Unity APV 的大致实现细节以及使用教程；如何在自定义的管线中实现 APV。</div></div></div></a><a class="pagination-related" href="/2025/09/09/2025-09-09-SSAO2/" title="屏幕空间环境光遮蔽（二）HBAO 与 GTAO"><img class="cover" src="https://s2.loli.net/2025/09/09/Uq93S46lgTAHs7Q.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-09-09</div><div class="info-item-2">屏幕空间环境光遮蔽（二）HBAO 与 GTAO</div></div><div class="info-2"><div class="info-item-1">本文章主要内容有 HBAO 算法的原理与具体实现；GTAO 算法的原理与具体实现；关于 GTSO 的原理和实现方法的简单介绍。</div></div></div></a><a class="pagination-related" href="/2025/03/13/2025-03-13-CustomSRP6/" title="Unity Custom SRP 基础（六）"><img class="cover" src="https://s2.loli.net/2025/03/13/LozNxAmnlEJSOyV.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-03-13</div><div class="info-item-2">Unity Custom SRP 基础（六）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含支持 HDR 渲染以及 HDR Bloom (约束闪烁问题和 Scattering Bloom)；Tone Mapping 算法的介绍；Color Grading 相关工具和 LUT Baking；Multiple Camera 和 Rendering Layers 的简单说明。</div></div></div></a><a class="pagination-related" href="/2025/12/26/2025-12-26-HBIL/" title="Horizon-Based Indirect Lighting (HBIL)"><img class="cover" src="https://s2.loli.net/2025/12/26/YpyBQSsUquzxeLP.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-12-26</div><div class="info-item-2">Horizon-Based Indirect Lighting (HBIL)</div></div><div class="info-2"><div class="info-item-1">本文章主要内容为 HBIL (一种屏幕空间全局光照算法) 的基本原理与公式推导，以及具体实现和效果展示。</div></div></div></a><a class="pagination-related" href="/2025/04/29/2025-04-29-CustomSRP8/" title="Unity Custom SRP 基础（八）"><img class="cover" src="https://s2.loli.net/2025/04/29/IHYjvyKDR2uoGEt.gif" alt="cover"><div class="info text-center"><div class="info-1"><div class="info-item-1"><i class="far fa-calendar-alt fa-fw"></i> 2025-04-29</div><div class="info-item-2">Unity Custom SRP 基础（八）</div></div><div class="info-2"><div class="info-item-1">本笔记的主要内容包含对 Render Graph 的介绍；如何使用 Unity 的 Render Graph；使用 Structured Buffer 传递灯光数据；简单的 Tile-based Light Culling 的实现；修改 CullShadowCasters 相关代码。</div></div></div></a></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/images/wechat%20avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">鸟布</div><div class="author-info-description">教练，我想学技术</div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">55</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">26</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">17</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://niaobu.notion.site/787824630ea6480e944c1ae5ae7f4792"><i class="fa-solid fa-book"></i><span>My Notion</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/ybniaobu/ybniaobu.github.io" target="_blank" title="Github"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:niaobubob@gmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Particles"><span class="toc-number">1.</span> <span class="toc-text">Particles</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Unlit-Particles-Shader"><span class="toc-number">1.1.</span> <span class="toc-text">Unlit Particles Shader</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Vertex-Color"><span class="toc-number">1.2.</span> <span class="toc-text">Vertex Color</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Flipbooks"><span class="toc-number">1.3.</span> <span class="toc-text">Flipbooks</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Flipbook-Blending"><span class="toc-number">1.3.1.</span> <span class="toc-text">Flipbook Blending</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Fading-Near-Camera"><span class="toc-number">1.4.</span> <span class="toc-text">Fading Near Camera</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Soft-Particles"><span class="toc-number">1.5.</span> <span class="toc-text">Soft Particles</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%87%8D%E6%9E%84-View-Space-Depth"><span class="toc-number">1.5.1.</span> <span class="toc-text">重构 View Space Depth</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Soft-Particles-Fading"><span class="toc-number">1.5.2.</span> <span class="toc-text">Soft Particles Fading</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Distortion"><span class="toc-number">1.6.</span> <span class="toc-text">Distortion</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Distortion-Map"><span class="toc-number">1.6.1.</span> <span class="toc-text">Distortion Map</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Distortion-Blend"><span class="toc-number">1.6.2.</span> <span class="toc-text">Distortion Blend</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Depth-amp-Color-Texture"><span class="toc-number">2.</span> <span class="toc-text">Depth &amp; Color Texture</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Depth-Prepass"><span class="toc-number">2.1.</span> <span class="toc-text">Depth Prepass</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E5%8E%9F%E7%90%86"><span class="toc-number">2.1.1.</span> <span class="toc-text">基本原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E7%8E%B0"><span class="toc-number">2.1.2.</span> <span class="toc-text">实现</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Copy-Depth"><span class="toc-number">2.2.</span> <span class="toc-text">Copy Depth</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Gizmos-and-Depth"><span class="toc-number">2.3.</span> <span class="toc-text">Gizmos and Depth</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Copy-Color"><span class="toc-number">2.4.</span> <span class="toc-text">Copy Color</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Render-Scale"><span class="toc-number">3.</span> <span class="toc-text">Render Scale</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Buffer-Size"><span class="toc-number">3.1.</span> <span class="toc-text">Buffer Size</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AF%B9-Shader-%E7%9A%84%E5%BD%B1%E5%93%8D"><span class="toc-number">3.2.</span> <span class="toc-text">对 Shader 的影响</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Rescaling"><span class="toc-number">3.3.</span> <span class="toc-text">Rescaling</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#FXAA"><span class="toc-number">4.</span> <span class="toc-text">FXAA</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#FXAA-Quality"><span class="toc-number">4.1.</span> <span class="toc-text">FXAA Quality</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Luma-Contrast"><span class="toc-number">4.1.1.</span> <span class="toc-text">Luma Contrast</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Threshold"><span class="toc-number">4.1.2.</span> <span class="toc-text">Threshold</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Blend-Factor"><span class="toc-number">4.1.3.</span> <span class="toc-text">Blend Factor</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Blend-Direction"><span class="toc-number">4.1.4.</span> <span class="toc-text">Blend Direction</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Edge-Blend"><span class="toc-number">4.1.5.</span> <span class="toc-text">Edge Blend</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Edge-Quality"><span class="toc-number">4.1.6.</span> <span class="toc-text">Edge Quality</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FXAA-Console"><span class="toc-number">4.2.</span> <span class="toc-text">FXAA Console</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/08/02/2026-08-02-C++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B03/" title="C++ 基础学习笔记（三）">C++ 基础学习笔记（三）</a><time datetime="2026-08-02T09:31:14.000Z" title="发表于 2026-08-02 17:31:14">2026-08-02</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/06/19/2026-06-19-C++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B02/" title="C++ 基础学习笔记（二）">C++ 基础学习笔记（二）</a><time datetime="2026-06-19T06:39:50.000Z" title="发表于 2026-06-19 14:39:50">2026-06-19</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/05/10/2026-05-10-C++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B01/" title="C++ 基础学习笔记（一）">C++ 基础学习笔记（一）</a><time datetime="2026-05-10T12:03:26.000Z" title="发表于 2026-05-10 20:03:26">2026-05-10</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/04/07/2026-04-07-YarnSpinner/" title="Yarn Spinner 剧情脚本语言（待删除）">Yarn Spinner 剧情脚本语言（待删除）</a><time datetime="2026-04-07T12:56:48.000Z" title="发表于 2026-04-07 20:56:48">2026-04-07</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2026/02/25/2026-02-25-LocalReflectionProbe/" title="Local Reflection Probe">Local Reflection Probe</a><time datetime="2026-02-25T10:50:29.000Z" title="发表于 2026-02-25 18:50:29">2026-02-25</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2022 - 2026 By 鸟布</span><span class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 8.1.2</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.7.0</a></span></div><div class="footer_custom_text">Your time is limited, so don't waste it living someone else's life.</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.7.0"></script><script src="/js/main.js?v=5.7.0"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@6.1.14/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"><script>(() => {
+  const changeScriptToMath = article => {
+    article.querySelectorAll('script[type^="math/tex"]').forEach(el => {
+      const display = /mode=display/.test(el.type)
+      const node = document.createElement(display ? 'div' : 'span')
+      node.textContent = display
+        ? `$$${el.textContent}$$`
+        : `$${el.textContent}$`
+      el.parentNode.replaceChild(node, el)
+    })
+  }
+
   const loadMathjax = () => {
+    const article = document.getElementById('article-container')
+    if (!article || article.querySelector('.hbe-container')) return
+    changeScriptToMath(article)
+
     if (!window.MathJax) {
       window.MathJax = {
         loader: {
@@ -1004,7 +1061,8 @@ return rgbA.rgb;
             //- '[tex]/bbm',
             //- '[tex]/bboldx',
             //- '[tex]/dsfont',
-            '[tex]/mhchem'
+            '[tex]/mhchem',
+            'ui/lazy'
           ],
           paths: {
             'mathjax-newcm': '[mathjax]/../@mathjax/mathjax-newcm-font',
@@ -1032,40 +1090,27 @@ return rgbA.rgb;
           scale: 1.1
         },
         options: {
+          lazyMargin: '200px',
           enableMenu: true,
           menuOptions: {
             settings: {
               enrich: false  // Turn off Braille and voice narration text automatic generation
             }
           },
-          renderActions: {
-            findScript: [10, doc => {
-              for (const node of document.querySelectorAll('script[type^="math/tex"]')) {
-                const display = !!node.type.match(/; *mode=display/)
-                const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display)
-                const text = document.createTextNode('')
-                node.parentNode.replaceChild(text, node)
-                math.start = {node: text, delim: '', n: 0}
-                math.end = {node: text, delim: '', n: 0}
-                doc.math.push(math)
-              }
-            }, '']
-          }
         }
       }
 
       const script = document.createElement('script')
-      script.src = 'https://cdn.jsdelivr.net/npm/mathjax@4.1.0/tex-mml-chtml.min.js'
+      script.src = 'https://cdn.jsdelivr.net/npm/mathjax@4.1.3/tex-mml-chtml.min.js'
       script.id = 'MathJax-script'
       script.async = true
       document.head.appendChild(script)
     } else {
-      MathJax.startup.document.state(0)
-      MathJax.texReset()
-      MathJax.typesetPromise()
+      MathJax.typesetClear()
+      MathJax.typesetPromise([ article ])
     }
   }
 
   btf.addGlobalFn('encrypt', loadMathjax, 'mathjax')
   window.pjax ? loadMathjax() : window.addEventListener('load', loadMathjax)
-})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.5.4"></script></div></div></body></html>
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">搜索</span><i class="fas fa-spinner fa-pulse" id="loading-status" hidden="hidden"></i><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="text-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  数据加载中</span></div><div class="local-search-input"><input placeholder="搜索文章" type="text"/></div><hr/><div id="local-search-results"></div><div class="ais-Pagination" id="local-search-pagination" style="display:none;"><ul class="ais-Pagination-list"></ul></div><div id="local-search-stats"></div></div><div id="search-mask"></div><script src="/js/search/local-search.js?v=5.7.0"></script></div></div></body></html>
