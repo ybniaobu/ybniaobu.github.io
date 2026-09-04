@@ -1,20 +1,21 @@
 ---
-title: Yarn Spinner 剧情脚本语言（待删除）
+title: Yarn Spinner 剧情脚本语言
 date: 2026-04-07 20:56:48
 categories: 
   - [游戏开发, Gameplay]
   - [游戏开发, Unity]
 tags:
   - 游戏开发
-  - 剧本编写
   - Unity
   - Gameplay
 top_img: /images/black.jpg
 cover: https://files.seeusercontent.com/2026/04/07/hFz6/YarnSpinner.png
-description: 【待删除文章】本文章记录了如何使用 Yarn Spinner 脚本进行叙事文本创作，包括基础至高级语法。
+description: 本文章记录了如何使用 Yarn Spinner 脚本进行叙事文本创作，包括基础至高级语法。
 ---
 
 > Yarn Spinner 官网为 https://yarnspinner.dev/ ，本文章发表时版本为 3.2。
+>   
+> 在写完这篇文章后，最终我还是决定自己开发一个基于 SQLite 的对话系统，使用别人的工具终归还是有很多不舒服的地方。但 Yarn Spinner 对对话系统的思考和相关语法依然值得借鉴，故文章继续保留在这里。
 
 # 前言
 最近一直在研究游戏的对话系统，也调查了一些知名的插件，诸如：[Dialogue System](https://assetstore.unity.com/packages/tools/behavior-ai/dialogue-system-for-unity-11672) 和 [Node Canvas](https://assetstore.unity.com/packages/tools/visual-scripting/nodecanvas-14914)，从本质上来说这两个插件都是在 Unity 编辑器内部运行的可视化**对话树 Dialogue Tree** 编辑器。只是 Dialogue System 功能比较齐全，也支持导入我后面要说的几种对话脚本或工具，但该插件我感觉过于复杂笨重了，而 Node Canvas 相对轻量一点，还有行为树、状态机等功能。这两个插件都会将对话树中的对话内容序列化至 ScriptableObject 的资产文件 .asset 中，Node Canvas 是将对话树序列化为 JSON，以字符串的形式存储在 ScriptableObject 中，Dialogue System 则更复杂一点，存储了更多信息。
