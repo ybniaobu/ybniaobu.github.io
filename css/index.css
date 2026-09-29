@@ -1670,7 +1670,7 @@ canvas:not(#ribbon-canvas),
   --white: #fff;
   --text-highlight-color: #1f2d3d;
   --blockquote-color: #6a737d;
-  --blockquote-bg: rgba(73,177,245,0.1);
+  --blockquote-bg: rgba(64,127,127,0.1);
   --reward-pop: #f5f5f5;
   --toc-link-color: #666261;
   --card-box-shadow: 0 3px 8px 6px rgba(7,17,27,0.05);
@@ -1839,7 +1839,7 @@ table td {
   vertical-align: middle;
 }
 *::selection {
-  background: #708090;
+  background: #204040;
   color: #f7f7f7;
 }
 button {
@@ -1893,7 +1893,7 @@ img:not([src]) {
 blockquote {
   margin: 0 0 20px;
   padding: 7px 15px;
-  border-left: 4px solid #49b1f5;
+  border-left: 4px solid #407f7f;
   background-color: var(--blockquote-bg);
   color: var(--blockquote-color);
   border-radius: 6px;
@@ -2060,8 +2060,8 @@ figure.highlight pre .javascript .function {
 }
 .container code {
   padding: 2px 5px;
-  background: rgba(27,31,35,0.05);
-  color: #f47466;
+  background: rgba(30,30,30,0.05);
+  color: #282828;
 }
 .container pre {
   padding: 10px 20px;
@@ -3940,7 +3940,7 @@ figure.highlight pre .javascript .function {
   color: #2f4f4f;
 }
 #aside-content #card-toc .toc-content .toc-link.active {
-  background: #00c4b6;
+  background: #407f7f;
   color: #fff;
 }
 #aside-content .sticky_layout:only-child > :first-child {
@@ -5093,6 +5093,7 @@ figure.highlight pre .javascript .function {
 .container {
   word-wrap: break-word;
   overflow-wrap: break-word;
+  text-align: justify;
 }
 .container a {
   color: #49b1f5;
@@ -7298,7 +7299,7 @@ blockquote.pullquote.right {
   box-shadow: none;
 }
 [data-theme='dark'] .container .note code {
-  background: rgba(27,31,35,0.05);
+  background: rgba(30,30,30,0.05);
 }
 [data-theme='dark'] .container kbd {
   border-color: #696969;
