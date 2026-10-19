@@ -1793,18 +1793,27 @@ SQLite 内置函数按返回值分类，可以分为**标量函数 scalar functi
 
 # 在程序中调用
 ## C/C++ API
-SQLite 对外暴露的是一套 **C 语言 API**（头文件 `sqlite3.h`），C++ 可以直接调用。整个接口有超过 255 个 API，但大部分很少用到，初学者只需关注核心 API 即可，这里也只介绍核心 API，其它内容详见官方文档 [The SQLite C/C++ Interface](https://www.sqlite.org/c3ref/intro.html)。整个接口围绕两个核心对象以及八个函数展开：**数据库连接对象 `sqlite3`** 与**预编译语句对象 `sqlite3_stmt`**（stmt 即 statement），八个函数如下：  
+SQLite 对外暴露的是一套 **C 语言 API**（头文件 `sqlite3.h`），C++ 可以直接调用。整个接口有超过 255 个 API，但大部分很少用到，初学者只需关注核心 API 即可，这里也只介绍核心 API，其它内容详见官方文档 [The SQLite C/C++ Interface](https://www.sqlite.org/c3ref/intro.html)。整个接口围绕两个核心对象，即**数据库连接对象 `sqlite3`** 与**预编译语句对象 `sqlite3_stmt`**（stmt 即 statement），以及八个核心函数展开。  
 
-【书签】
+### 核心函数
+***①`sqlite3_open()`***  
+用于打开数据库文件（不存在则创建），得到数据库连接对象 sqlite3。其常用函数原型为 `int sqlite3_open(const char *filename, sqlite3 **ppDb);`
 
-1. `sqlite3_open()`：用于打开数据库文件（不存在则创建），得到**数据库连接对象**，；  
-2. `sqlite3_prepare()`：
-3. `sqlite3_bind()`：
-4. `sqlite3_step()`：
-5. `sqlite3_column()`：
-6. `sqlite3_finalize()`：
-7. `sqlite3_close()`：
-8. `sqlite3_exec()`：
+
+
+***②`sqlite3_prepare()`***  
+
+***③`sqlite3_bind()`***  
+
+***④`sqlite3_step()`***  
+
+***⑤`sqlite3_column()`***  
+
+***⑥`sqlite3_finalize()`***  
+
+***⑦`sqlite3_close()`***  
+
+***⑧`sqlite3_exec()`***  
 
 ## C# API
 
