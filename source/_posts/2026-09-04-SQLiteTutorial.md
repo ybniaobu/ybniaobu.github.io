@@ -9,7 +9,7 @@ tags:
   - SQLite
 top_img: /images/black.jpg
 cover: https://files.seeusercontent.com/2026/09/04/0qBc/SQlite.png
-description: 本笔记的主要内容有 SQLite 的数据类型、数据表操作、数据的查增改删，以及索引、事务等进阶特性，最后还有如何在 C/C++ 与 C# 程序中调用 SQLite【暂未完成】。
+description: 本笔记的主要内容有 SQLite 的数据类型、数据表操作、数据的查增改删，以及索引、事务等进阶特性，最后还有如何通过 C/C++ API 调用 SQLite。
 ---
 
 > 本文尽可能地介绍 SQLite 的大部分内容，但受限于篇幅，未提到的内容请查阅 [SQLite 官方文档](https://www.sqlite.org/docs.html)。本文书写时 SQLite 版本为 3.53.4（2026-07-24）。
@@ -1791,21 +1791,201 @@ SQLite 内置函数按返回值分类，可以分为**标量函数 scalar functi
 * `typeof(X)`：返回 X 所属存储类的名称，可能为 "null"、"integer"、"real"、"text" 或 "blob"；  
 * `sqlite_version()`、`sqlite_source_id()`：分别返回当前 SQLite 库的版本号与源码标识；   
 
-# 在程序中调用
-## C/C++ API
-SQLite 对外暴露的是一套 **C 语言 API**（头文件 `sqlite3.h`），C++ 可以直接调用。整个接口有超过 255 个 API，但大部分很少用到，初学者只需关注核心 API 即可，这里也只介绍核心 API，其它内容详见官方文档 [The SQLite C/C++ Interface](https://www.sqlite.org/c3ref/intro.html)。整个接口围绕两个核心对象以及八个函数展开：**数据库连接对象 `sqlite3`** 与**预编译语句对象 `sqlite3_stmt`**（stmt 即 statement），八个函数如下：  
+# C/C++ API
+SQLite 对外暴露的是一套 **C 语言 API**（头文件 `sqlite3.h`），C++ 可以直接调用。整个接口有超过 255 个 API，但大部分很少用到，初学者只需关注核心 API 即可，这里也只简单介绍一下核心 API 的用法，详细内容详见官方文档 [The SQLite C/C++ Interface](https://www.sqlite.org/c3ref/intro.html)。整个接口围绕两个核心对象，即**数据库连接对象 `sqlite3`** 与**预编译语句对象 `sqlite3_stmt`**（stmt 即 statement），以及八个核心函数展开。  
 
-【书签】
+## 核心对象
+**①`sqlite3`** 是**数据库连接对象 database connection object**，每个已打开的 SQLite 数据库都由一个指向名为 sqlite3 实例的指针来表示。`sqlite3_open()` 相当于它的构造函数，`sqlite3_close()` 相当于它的析构函数，此外还有大量接口使用了 sqlite3 对象。  
 
-1. `sqlite3_open()`：用于打开数据库文件（不存在则创建），得到**数据库连接对象**，；  
-2. `sqlite3_prepare()`：
-3. `sqlite3_bind()`：
-4. `sqlite3_step()`：
-5. `sqlite3_column()`：
-6. `sqlite3_finalize()`：
-7. `sqlite3_close()`：
-8. `sqlite3_exec()`：
+**②`sqlite3_stmt`** 是**预编译语句对象 prepared statement object**，该对象的一个实例代表一条已经编译成二进制形式、可以直接求值执行的 SQL 语句。原始的 SQL 文本相当于源代码，而预编译语句对象则相当于编译出来的目标代码。任何 SQL 语句都必须先转换成预编译语句（对象）才能被执行。一条预编译语句对象的生命周期通常是这样的：  
+1. 用 `sqlite3_prepare_v2()` 创建预编译语句对象；  
+2. 用 `sqlite3_bind_*()` 系列接口绑定参数；  
+3. 一次或多次调用 `sqlite3_step()` 执行该 SQL；  
+4. 用 `sqlite3_reset()` 复位该语句，然后回到第 2 步，这一步可以重复零次或多次；  
+5. 用 `sqlite3_finalize()` 销毁该对象。
 
-## C# API
+## 核心函数
+**①`sqlite3_open()`**，主要有 `sqlite3_open()` 和 `sqlite3_open_v2()` 两个接口，其常用接口版本为 `sqlite3_open()`：  
 
-**System.Data.SQLite** 与 **Microsoft.Data.Sqlite**
+``` C
+int sqlite3_open(
+    const char *filename,   /* Database filename (UTF-8) */
+    sqlite3 **ppDb          /* OUT: SQLite db handle */
+);
+```
+该类接口用于打开数据库文件（不存在则创建），通过二级指针 ppDb 得到数据库连接对象 `sqlite3`。如果创建或打开成功，则返回 `SQLITE_OK` (0)，否则返回一个非 0 的错误码。无论打开时是否发生错误，当不再需要该数据库连接对象后，都应将其传给 `sqlite3_close()` 以释放与之关联的资源。`sqlite3_open_v2()` 接口的用法与 `sqlite3_open()` 相同，区别在于它额外接受两个参数，`sqlite3_open()` 相当于 `sqlite3_open_v2()` 使用 `SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE` 组合作为其第三个参数 flag。
+
+**②`sqlite3_prepare()`**，主要有 `sqlite3_prepare()`、`sqlite3_prepare_v2()` 和 `sqlite3_prepare_v3()` 三个接口，其中 `sqlite3_prepare()` 已标记为废弃，常用接口版本为 `sqlite3_prepare_v2()`：  
+
+``` C
+int sqlite3_prepare_v2(
+    sqlite3 *db,            /* Database handle */
+    const char *zSql,       /* SQL statement, UTF-8 encoded */
+    int nByte,              /* Maximum length of zSql in bytes. */
+    sqlite3_stmt **ppStmt,  /* OUT: Statement handle */
+    const char **pzTail     /* OUT: Pointer to unused portion of zSql */
+);
+```
+
+该类接口用于将 SQL 文本编译为可执行字节码，并通过输出参数 ppStmt 返回预编译语句对象 `sqlite3_stmt`，因此可以看作 `sqlite3_stmt` 的构造函数。其中，第一个参数 db 是 `sqlite3_open()` 得到的数据库连接对象，第二个参数 zSql 是要编译的 SQL 语句（UTF-8 编码）。如果 nByte 参数为负数，则 zSql 会读取到第一个零终止符为止。如果 nByte 为正数，则它是从 zSql 读取的最大字节数。当 nByte 为正数时，zSql 会读取到第一个零终止符为止，或者读取 nByte 个字节为止，以先到者为准。如果 nByte 为零，则不会生成预处理语句。一般情况下 nByte 传入 -1，但是传入包含终止符在内的字节数（即 `strlen(zSql) + 1`）会带来微小的性能优势，因为 SQLite 不必再扫描终止符。pzTail 是一个输出参数，如果它不为 NULL，\*pzTail 会指向 zSql 中第一条 SQL 语句结束之后的第一个字节。由于 prepare 只编译第一条语句，语句之间的边界由分号决定，\*pzTail 指向的正是尚未编译的剩余文本。这一设计使得在同一个字符串中顺序处理多条 SQL 成为可能：循环调用 prepare，每次将 pzTail 作为新的 zSql 传入，直到 pzTail 指向空串或只剩空白/注释。如果只关心单条语句，传入 NULL 即可。
+
+**③`sqlite3_bind()`**，其接口函数数量较多，主要有：  
+
+``` C
+int sqlite3_bind_null(sqlite3_stmt*, int);
+int sqlite3_bind_int(sqlite3_stmt*, int, int);
+int sqlite3_bind_double(sqlite3_stmt*, int, double);
+int sqlite3_bind_text(sqlite3_stmt*, int, const char*, int, void(*)(void*));
+int sqlite3_bind_blob(sqlite3_stmt*, int, const void*, int, void(*)(void*));
+int sqlite3_bind_value(sqlite3_stmt*, int, const sqlite3_value*);
+int sqlite3_bind_pointer(sqlite3_stmt*, int, void*, const char*, void(*)(void*));
+```
+
+这组接口的函数原型形如 `int sqlite3_bind_*(sqlite3_stmt *stmt, int index, ...);`，用于将变量数据绑定到预编译语句 `sqlite3_stmt` 中预留的 SQL 参数占位符，第一个参数 stmt 是待绑定的预编译语句，第二个参数 index 指定要绑定哪个占位符（<u>最左侧的参数索引为 1</u>），第三个参数是要绑定的值。SQLite 支持五种占位符形式：`?`、`?NNN`、`:VVV`、`@VVV`、`$VVV`，其中 `?` 为无名参数，按出现顺序依次分配索引；`?NNN` 其索引就是数字 NNN 本身；`:VVV` / `@VVV` / `$VVV` 都为命名参数，同一个命名参数在 SQL 中出现多次，它始终共享第一个出现位置的索引，命名参数还可以通过 `sqlite3_bind_parameter_index()` 查找索引。需要注意的是，<u>SQLite 占位符只能出现在允许写表达式的位置上，用来代表一个值，不能用来替换表名、列名、关键字或语句结构。</u>另外，`sqlite3_reset()` 不会清除已经绑定的参数值，它只是将语句重置到可以再次 step 的初始状态，绑定数据依然保留。
+
+对于 `sqlite3_bind_text` 和 `sqlite3_bind_blob`，还需要考虑最后一个参数该怎么传：它是析构函数指针，决定了传入的这段字符串/二进制数据由谁、在什么时候释放。传 `SQLITE_STATIC` 表示该内存在语句使用期间保持不变，SQLite 不会再复制一份，因此必须保证它一直有效到语句 finalize，不能用栈上的临时缓冲区；传 `SQLITE_TRANSIENT` 则让 SQLite 立刻复制一份，绑定成功后原来那块内存就可以随意释放或覆盖，代价是多一次拷贝，通常也是最省心的选择。若传入自定义的析构函数，它会在 SQLite 用完该值时（语句 finalize 或该参数被重新绑定）被调用，适合引用计数之类的场景。
+
+**④`sqlite3_step()`**，它的函数原型非常简洁：  
+
+``` C
+int sqlite3_step(sqlite3_stmt*);
+```
+
+它是真正执行已编译 SQL 语句的核心函数，每次调用都会推进语句的执行，直到产出一个结果行、执行完毕或遇到错误为止，例如对 SELECT 查询，就需要反复调用它来逐行取出数据。`sqlite3_step()` 的不同返回值指示了语句的不同状态：`SQLITE_ROW` 成功取到一个新的结果行，之后就可以使用 `sqlite3_column_*` 系列函数读取当前行的数据，然后再次调用 `sqlite3_step()` 以获取下一行；`SQLITE_DONE` 语句已成功执行完毕，不再有新的结果行，对于返回数据的语句（如 SELECT），最标准的模式是循环调用直到 `SQLITE_DONE`；`SQLITE_BUSY` 拿不到所需的数据库锁，可稍后重试；`SQLITE_ERROR` 出现运行时错误（如违反约束）；`SQLITE_MISUSE` 调用方式不当，例如语句未正确初始化。在 SQLite 3.6.23.1（2010-03-26）之前，在 `sqlite3_step()` 返回除 `SQLITE_ROW` 之外的任何值后，必须先调用 `sqlite3_reset()` 才能再次调用 `sqlite3_step()`，如果未使用 `sqlite3_reset()` 重置预处理语句，`sqlite3_step()` 将返回 `SQLITE_MISUSE` 错误。但在之后，`sqlite3_step()` 在这种情况下会自动调用 `sqlite3_reset()`，而不是返回 `SQLITE_MISUSE` 错误。
+
+**⑤`sqlite3_column()`**，也是一组接口，常用的原型有：  
+
+``` C
+int              sqlite3_column_type(sqlite3_stmt*, int iCol);
+int              sqlite3_column_int(sqlite3_stmt*, int iCol);
+sqlite3_int64    sqlite3_column_int64(sqlite3_stmt*, int iCol);
+double           sqlite3_column_double(sqlite3_stmt*, int iCol);
+const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
+const void      *sqlite3_column_blob(sqlite3_stmt*, int iCol);
+int              sqlite3_column_bytes(sqlite3_stmt*, int iCol);
+const char      *sqlite3_column_name(sqlite3_stmt*, int N);
+```
+
+这组接口用于读取当前结果行中某一列的值，第一个参数是语句对象，第二个参数 iCol 是列号。它与 bind 的参数索引不同，列号从 0 开始。它们只有在 `sqlite3_step()` 返回 `SQLITE_ROW` 之后调用才有意义，取到的数据在下一次 `sqlite3_reset()` 或 `sqlite3_finalize()` 之前持续有效。各接口会按 SQLite 的类型转换规则做隐式转换，例如，如果某一列的值在数据库中是 INTEGER，但你调用的是 `sqlite3_column_text()`，SQLite 会自动将该整数转换为 UTF-8 文本并返回相应的字符串指针。若想知道该列的原始存储类，可以使用 `sqlite3_column_type()`。另外，`column_text()` / `column_blob()` 等返回的是指向 SQLite 内部缓冲区的指针，而不是调用者拥有的独立内存，这些指针的有效期持续到该列上发生下一次类型转换为止。一旦你对同一列调用了另一个 `sqlite3_column_*` 函数（可能触发类型转换），之前获得的指针就可能失效。如果你需要保留数据，应立即将内容复制到自己的内存当中。
+
+**⑥`sqlite3_finalize()`**，其函数原型如下：  
+
+``` C
+int sqlite3_finalize(sqlite3_stmt *pStmt);
+```
+
+它是预编译语句对象 `sqlite3_stmt` 的析构函数，用于销毁语句并释放其占用的内存等资源，它与 `sqlite3_prepare_v2()` 配对使用，是防止内存泄漏的强制性步骤。返回值方面，若该语句最近一次 `sqlite3_step()` 失败了，finalize 会把那个错误码再返回一次（通常是之前已经处理过的错误）。若语句从未执行过或最近一次执行正常，则返回 `SQLITE_OK`。
+
+**⑦`sqlite3_close()`**，有`sqlite3_close()` 和 `sqlite3_close_v2()` 两个接口：  
+
+``` C
+int sqlite3_close(sqlite3*);
+int sqlite3_close_v2(sqlite3*);
+```
+
+它是数据库连接对象 `sqlite3` 的析构函数，用于关闭连接并释放其占用的全部资源。调用前必须先 finalize 所有预编译语句，否则 `sqlite3_close()` 会返回 `SQLITE_BUSY` 并保持连接打开状态。至于 `sqlite3_close_v2()` 是为垃圾回收语言设计的变体，总是返回 `SQLITE_OK`，但不会立即释放数据库连接，而是将数据库连接标记为不可用的状态，等最后一个语句对象 finalize 之后才释放。无论采用哪种方式关闭，只要连接上还有未提交的事务，关闭操作都会触发自动回滚。
+
+**⑧`sqlite3_exec()`**，其函数原型如下：  
+
+``` C
+int sqlite3_exec(
+    sqlite3 *db,                               /* An open database */
+    const char *sql,                           /* SQL to be evaluated */
+    int (*callback)(void*,int,char**,char**),  /* Callback function */
+    void *arg,                                 /* 1st argument to callback */
+    char **errmsg                              /* Error msg written here */
+);
+```
+
+它本质上是对 `sqlite3_prepare_v2()`、`sqlite3_step()`、`sqlite3_column_*()` 和 `sqlite3_finalize()` 这一完整流程的便捷包装器。每次调用 `sqlite3_exec()`，SQL 文本都会经历完整的解析、编译、执行、清理生命周期。对于一次性、独立的操作，这完全合理。但如果你需要循环执行同一个 INSERT，每次 exec 都会重复解析和编译同一段 SQL，这在性能上是显著的浪费。回调函数的原型为 `int (*callback)(void *arg, int nCol, char **azCol, char **azColName)`，每取到一行结果就调用一次，nCol 是该行的列数，azCol\[i\] 是第 i 列的值，azColName\[i\] 是对应的列名，arg 即 exec 的第四个参数。另外，需要注意的是，如果 errmsg 非 NULL 且执行过程中发生错误，SQLite 会通过 `sqlite3_malloc()` 分配内存，将错误信息字符串写入其中，必须在使用完毕后调用 `sqlite3_free()` 释放这块内存，否则会造成内存泄漏。
+
+## 简单示例
+
+``` C++
+#include <sqlite3.h>
+#include <stdio.h>
+
+int main()
+{
+    sqlite3 *db = NULL;
+    if( sqlite3_open("demo.db", &db) != SQLITE_OK ) // ① 打开连接
+    {
+        fprintf(stderr, "打开失败: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return 1;
+    }
+
+    // ⑧ 建表：exec 一次执行多条语句
+    char *errmsg = NULL;
+    int rc = sqlite3_exec(db,
+        "DROP TABLE IF EXISTS employee;"
+        "CREATE TABLE employee(id INTEGER PRIMARY KEY, name TEXT, salary REAL);",
+        NULL, NULL, &errmsg);
+    if( rc != SQLITE_OK )
+    {
+        fprintf(stderr, "建表失败: %s\n", errmsg);
+        sqlite3_free(errmsg); // 错误信息必须手动释放
+        sqlite3_close(db);
+        return rc;
+    }
+
+    // ②③④⑥ 插入：prepare 只编译一次，循环里只做 bind -> step -> reset
+    sqlite3_stmt *stmt = NULL;
+    rc = sqlite3_prepare_v2(db, "INSERT INTO employee(name, salary) VALUES(?, ?);",
+                            -1, &stmt, NULL);
+    if( rc != SQLITE_OK )
+    {
+        fprintf(stderr, "编译插入语句失败: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return rc;
+    }
+
+    const char *names[]      = { "张三", "李四", "王五" };
+    const double salaries[]  = { 8000.0, 12000.0, 9500.0 };
+    for( int i = 0; i < 3; ++i )
+    {
+        sqlite3_bind_text(stmt, 1, names[i], -1, SQLITE_TRANSIENT); // ③ 让 SQLite 拷贝一份字符串
+        sqlite3_bind_double(stmt, 2, salaries[i]); // ③ 绑定第 2 个参数
+        rc = sqlite3_step(stmt); // ④插入一次即 DONE
+        if( rc != SQLITE_DONE )
+        {
+            fprintf(stderr, "插入失败: %s\n", sqlite3_errmsg(db));
+            break;
+        }
+        sqlite3_reset(stmt); // 复位以便复用
+    }
+    sqlite3_finalize(stmt); // ⑥ 销毁语句
+
+    // ②③④⑤⑥ 查询：同一套流程，只是 step 会反复返回 SQLITE_ROW
+    rc = sqlite3_prepare_v2(db, "SELECT id, name, salary FROM employee WHERE salary > ?;",
+                            -1, &stmt, NULL);
+    if( rc != SQLITE_OK )
+    {
+        fprintf(stderr, "编译查询语句失败: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return rc;
+    }
+
+    sqlite3_bind_double(stmt, 1, 9000.0); // ③ 绑定查询参数
+    while( (rc = sqlite3_step(stmt)) == SQLITE_ROW ) // ④ 逐行推进
+    {
+        int id = sqlite3_column_int(stmt, 0); // ⑤ 列号从 0 开始
+        const unsigned char *name = sqlite3_column_text(stmt, 1);
+        double salary = sqlite3_column_double(stmt, 2); // ⑤ 按需要转换类型
+        printf("%d\t%s\t%.1f\n", id, name ? (const char*)name : "(NULL)", salary);
+    }
+    if( rc != SQLITE_DONE ) // 循环退出后区分正常与出错
+        fprintf(stderr, "查询失败: %s\n", sqlite3_errmsg(db));
+
+    sqlite3_finalize(stmt); // ⑥
+    sqlite3_close(db); // ⑦
+    return 0;
+}
+```
+
+运行后输出（金额大于 9000 的两行）：  
+
+``` Console
+2	李四	12000.0
+3	王五	9500.0
+```
